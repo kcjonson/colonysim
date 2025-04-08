@@ -136,13 +136,13 @@ bool VectorGraphics::initialize() {
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
 
-    // Position attribute
+    // Position (location = 0)
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // Color attribute
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
-    glEnableVertexAttribArray(1);
+    // Color (location = 2)
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
+    glEnableVertexAttribArray(2);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
@@ -159,6 +159,8 @@ void VectorGraphics::render(const glm::mat4& viewMatrix, const glm::mat4& projec
         return;
     }
 
+    //std::cout << "Rendering VectorGraphics with " << vertices.size() << " vertices and " << indices.size() << " indices." << std::endl;
+
     shader.use();
     shader.setUniform("view", viewMatrix);
     shader.setUniform("projection", projectionMatrix);
@@ -166,6 +168,11 @@ void VectorGraphics::render(const glm::mat4& viewMatrix, const glm::mat4& projec
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
+
+    GLenum err;
+    while ((err = glGetError()) != GL_NO_ERROR) {
+        std::cerr << "OpenGL error: " << err << std::endl;
+    }
 }
 
 void VectorGraphics::clear() {

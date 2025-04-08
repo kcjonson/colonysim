@@ -4,6 +4,7 @@
 #include <random>
 #include <cmath>
 #include <algorithm>
+#include <iomanip> // For std::setw and std::setprecision
 
 constexpr float PI = 3.14159265358979323846f;
 
@@ -32,55 +33,56 @@ float fbm(float x, float y, int octaves, float persistence) {
 World::World() : width(100), height(100) {
     terrain.resize(width * height);
     resources.resize(width * height);
-    generateTerrain();
 }
 
 World::~World() = default;
 
 void World::update(float deltaTime) {
-    std::cout << "Updating world state..." << std::endl;
+    // std::cout << "Updating world state..." << std::endl;
     entityManager.update(deltaTime);
 }
 
 void World::render(VectorGraphics& graphics) {
-    std::cout << "Rendering world..." << std::endl;
+    // std::cout << "Rendering world..." << std::endl;
     
-    // Draw grid
-    for (int x = -10; x <= 10; x++) {
-        for (int y = -10; y <= 10; y++) {
-            glm::vec2 pos(x * 1.0f, y * 1.0f);
-            glm::vec2 size(0.1f, 0.1f);
-            glm::vec4 color(0.5f, 0.5f, 0.5f, 0.2f);
-            graphics.drawRectangle(pos, size, color);
-        }
-    }
+    // // Draw grid
+    // for (int x = -10; x <= 10; x++) {
+    //     for (int y = -10; y <= 10; y++) {
+    //         glm::vec2 pos(x * 1.0f, y * 1.0f);
+    //         glm::vec2 size(0.1f, 0.1f);
+    //         glm::vec4 color(0.5f, 0.5f, 0.5f, 0.2f);
+    //         graphics.drawRectangle(pos, size, color);
+    //     }
+    // }
 
-    // Draw terrain
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            float height = getTerrainHeight(x, y);
-            float resource = getResourceAmount(x, y);
+    // // Draw terrain
+    // for (int y = 0; y < height; y++) {
+    //     for (int x = 0; x < width; x++) {
+    //         float height = getTerrainHeight(x, y);
+    //         float resource = getResourceAmount(x, y);
             
-            // Calculate color based on height and resources
-            glm::vec4 color(0.0f, 0.5f + height * 0.5f, 0.0f, 1.0f);
-            if (resource > 0.0f) {
-                color.r = resource;
-            }
+    //         // Calculate color based on height and resources
+    //         glm::vec4 color(0.0f, 0.5f + height * 0.5f, 0.0f, 1.0f);
+    //         if (resource > 0.0f) {
+    //             color.r = resource;
+    //         }
             
-            // Draw terrain tile
-            graphics.drawRectangle(
-                glm::vec2(x * 10.0f, y * 10.0f),
-                glm::vec2(10.0f, 10.0f),
-                color
-            );
-        }
-    }
+    //         // Draw terrain tile
+    //         graphics.drawRectangle(
+    //             glm::vec2(x * 10.0f, y * 10.0f),
+    //             glm::vec2(10.0f, 10.0f),
+    //             color
+    //         );
+    //     }
+    // }
     
     // Render entities
     entityManager.render(graphics);
 }
 
 void World::generateTerrain() {
+    std::cout << "Generating terrain..." << std::endl;
+
     // Generate terrain using Perlin noise
     generatePerlinNoise(terrain, width, height, 0.1f);
     
@@ -91,6 +93,17 @@ void World::generateTerrain() {
     for (float& resource : resources) {
         resource = std::max(0.0f, resource - 0.5f) * 2.0f;
     }
+
+    // Log the generated terrain values for debugging
+    // std::cout << "Generated Terrain Values:" << std::endl;
+    // for (int y = 0; y < height; y++) {
+    //     for (int x = 0; x < width; x++) {
+    //         float heightValue = getTerrainHeight(x, y);
+    //         // Limit the output to 4 characters long
+    //         std::cout << std::setw(4) << std::fixed << std::setprecision(2) << heightValue << " "; // Print height value
+    //     }
+    //     std::cout << std::endl; // New line for each row
+    // }
 }
 
 void World::generatePerlinNoise(std::vector<float>& noise, int width, int height, float scale) {
@@ -121,6 +134,14 @@ float World::getResourceAmount(int x, int y) const {
         return 0.0f;
     }
     return resources[y * width + x];
+}
+
+size_t World::createEntity(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color) {
+    return entityManager.createEntity(position, size, color);
+}
+
+Entity* World::getEntity(size_t index) {
+    return entityManager.getEntity(index);
 }
 
 void World::removeEntity(size_t index) {

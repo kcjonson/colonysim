@@ -1,5 +1,6 @@
 #include "Camera.h"
 #include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
 
 Camera::Camera() : position(0.0f, 0.0f, 5.0f), target(0.0f, 0.0f, 0.0f), up(0.0f, 1.0f, 0.0f) {
     updateViewMatrix();
@@ -22,6 +23,10 @@ void Camera::setUp(const glm::vec3& up) {
 }
 
 void Camera::setOrthographicProjection(float left, float right, float bottom, float top, float near, float far) {
+    std::cout << "Setting orthographic projection with parameters: " 
+              << "left=" << left << ", right=" << right 
+              << ", bottom=" << bottom << ", top=" << top 
+              << ", near=" << near << ", far=" << far << std::endl;
     projectionMatrix = glm::ortho(left, right, bottom, top, near, far);
 }
 

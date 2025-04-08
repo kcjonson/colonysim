@@ -9,15 +9,16 @@ EntityManager::EntityManager() = default;
 EntityManager::~EntityManager() = default;
 
 void EntityManager::update(float deltaTime) {
-    std::cout << "Updating " << entities.size() << " entities" << std::endl;
+    //std::cout << "Updating " << entities.size() << " entities" << std::endl;
     updateMovement(deltaTime);
     updateWork(deltaTime);
 }
 
 void EntityManager::render(VectorGraphics& graphics) {
-    std::cout << "Rendering " << entities.size() << " entities" << std::endl;
+    //std::cout << "Rendering " << entities.size() << " entities" << std::endl;
     for (const auto& entity : entities) {
         if (entity) {
+            //std::cout << "Rendering entity at: (" << entity->getPosition().x << ", " << entity->getPosition().y << ")" << std::endl;
             entity->render(graphics);
         }
     }
