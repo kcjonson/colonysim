@@ -1,9 +1,29 @@
 #pragma once
 
-#include <vector>
-#include <memory>
+#include <unordered_map>
+#include <utility>
+#include <functional> // For std::hash
 #include "EntityManager.h"
 #include "VectorGraphics.h"
+#include "Camera.h"
+
+// Hash function for std::pair (since it's not provided by default)
+namespace std {
+    template <>
+    struct hash<std::pair<int, int>> {
+        size_t operator()(const std::pair<int, int>& p) const {
+            return hash<int>()(p.first) ^ (hash<int>()(p.second) << 1);
+        }
+    };
+}
+
+struct Tile {
+    float height = 0.0f;
+    float resource = 0.0f;
+    int type = 0; // 0 = empty, 1 = terrain, etc.
+    glm::vec4 color = glm::vec4(0.0f, 0.5f, 0.0f, 1.0f); // Default green
+    // Add other properties as needed
+};
 
 class World {
 public:
@@ -29,12 +49,20 @@ public:
     Entity* getEntity(size_t index);
     void removeEntity(size_t index);
 
-private:
-    void generatePerlinNoise(std::vector<float>& noise, int width, int height, float scale);
+    // Tile management
+    void setTile(int x, int y, const Tile& tile);
+    Tile getTile(int x, int y) const;
 
-    int width;
-    int height;
-    std::vector<float> terrain;
-    std::vector<float> resources;
+private:
+    void generatePerlinNoise(std::unordered_map<std::pair<int, int>, Tile>& noiseMap, int width, int height, float scale);
+
+    int width = 100;
+    int height = 100;
+    std::unordered_map<std::pair<int, int>, Tile> tiles;
     EntityManager entityManager;
+    int generateDistance = 200;
+    void generateTilesInRadius();
+    int overscanAmount = 2; // Number of extra tiles to render beyond visible area
+    glm::vec4 getCameraBounds() const; // Helper to calculate visible area
+    Camera camera;
 }; 

@@ -24,12 +24,21 @@ public:
 
     glm::vec3 screenToWorld(const glm::vec3& screenPos) const;
 
+    float getAspectRatio() const {
+        return (projectionRight - projectionLeft) / (projectionTop - projectionBottom);
+    }
+
 private:
     glm::vec3 position;
     glm::vec3 target;
     glm::vec3 up;
     glm::mat4 viewMatrix;
     glm::mat4 projectionMatrix;
+    
+    float projectionLeft = -1.0f;
+    float projectionRight = 1.0f;
+    float projectionBottom = -1.0f;
+    float projectionTop = 1.0f;
     
     void updateViewMatrix();
 }; 

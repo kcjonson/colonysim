@@ -23,10 +23,10 @@ void Camera::setUp(const glm::vec3& up) {
 }
 
 void Camera::setOrthographicProjection(float left, float right, float bottom, float top, float near, float far) {
-    std::cout << "Setting orthographic projection with parameters: " 
-              << "left=" << left << ", right=" << right 
-              << ", bottom=" << bottom << ", top=" << top 
-              << ", near=" << near << ", far=" << far << std::endl;
+    projectionLeft = left;
+    projectionRight = right;
+    projectionBottom = bottom;
+    projectionTop = top;
     projectionMatrix = glm::ortho(left, right, bottom, top, near, far);
 }
 
@@ -75,4 +75,4 @@ glm::vec3 Camera::screenToWorld(const glm::vec3& screenPos) const {
 
 void Camera::updateViewMatrix() {
     viewMatrix = glm::lookAt(position, target, up);
-} 
+}

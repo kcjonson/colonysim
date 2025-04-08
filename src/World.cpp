@@ -1,16 +1,36 @@
 #include "World.h"
+#include "ConfigManager.h"
+#include "Camera.h"
 #include "VectorGraphics.h"
 #include <iostream>
 #include <random>
 #include <cmath>
 #include <algorithm>
 #include <iomanip> // For std::setw and std::setprecision
+#include <unordered_map>
 
 constexpr float PI = 3.14159265358979323846f;
 
-// Simple 2D noise function
+// Improved noise2D function with smoother transitions
 float noise2D(float x, float y) {
-    return std::sin(x * 0.01f) * std::cos(y * 0.01f);
+    // Use fractional parts for smoother interpolation
+    float fx = x - std::floor(x);
+    float fy = y - std::floor(y);
+
+    // Smoothstep interpolation
+    fx = fx * fx * (3.0f - 2.0f * fx);
+    fy = fy * fy * (3.0f - 2.0f * fy);
+
+    // Sample noise at grid points
+    float n00 = std::sin(x) * std::cos(y);
+    float n01 = std::sin(x) * std::cos(y + 1.0f);
+    float n10 = std::sin(x + 1.0f) * std::cos(y);
+    float n11 = std::sin(x + 1.0f) * std::cos(y + 1.0f);
+
+    // Bilinear interpolation
+    float nx0 = n00 + fx * (n10 - n00);
+    float nx1 = n01 + fx * (n11 - n01);
+    return nx0 + fy * (nx1 - nx0);
 }
 
 // Fractional Brownian Motion for terrain generation
@@ -31,109 +51,123 @@ float fbm(float x, float y, int octaves, float persistence) {
 }
 
 World::World() : width(100), height(100) {
-    terrain.resize(width * height);
-    resources.resize(width * height);
+    generateTerrain();
 }
 
 World::~World() = default;
 
+void World::setTile(int x, int y, const Tile& tile) {
+    tiles[{x, y}] = tile;
+}
+
+Tile World::getTile(int x, int y) const {
+    auto it = tiles.find({x, y});
+    if (it != tiles.end()) {
+        return it->second;
+    }
+    return Tile{}; // Return default tile if not found
+}
+
 void World::update(float deltaTime) {
-    // std::cout << "Updating world state..." << std::endl;
     entityManager.update(deltaTime);
 }
 
-void World::render(VectorGraphics& graphics) {
-    // std::cout << "Rendering world..." << std::endl;
+glm::vec4 World::getCameraBounds() const {
+    float viewWidth = ConfigManager::getInstance().getViewHeight() * camera.getAspectRatio();
+    float viewHeight = ConfigManager::getInstance().getViewHeight();
     
-    // // Draw grid
-    // for (int x = -10; x <= 10; x++) {
-    //     for (int y = -10; y <= 10; y++) {
-    //         glm::vec2 pos(x * 1.0f, y * 1.0f);
-    //         glm::vec2 size(0.1f, 0.1f);
-    //         glm::vec4 color(0.5f, 0.5f, 0.5f, 0.2f);
-    //         graphics.drawRectangle(pos, size, color);
-    //     }
-    // }
+    return glm::vec4(
+        -viewWidth/2.0f,  // left
+        viewWidth/2.0f,   // right
+        -viewHeight/2.0f, // bottom
+        viewHeight/2.0f   // top
+    );
+}
 
-    // // Draw terrain
-    // for (int y = 0; y < height; y++) {
-    //     for (int x = 0; x < width; x++) {
-    //         float height = getTerrainHeight(x, y);
-    //         float resource = getResourceAmount(x, y);
-            
-    //         // Calculate color based on height and resources
-    //         glm::vec4 color(0.0f, 0.5f + height * 0.5f, 0.0f, 1.0f);
-    //         if (resource > 0.0f) {
-    //             color.r = resource;
-    //         }
-            
-    //         // Draw terrain tile
-    //         graphics.drawRectangle(
-    //             glm::vec2(x * 10.0f, y * 10.0f),
-    //             glm::vec2(10.0f, 10.0f),
-    //             color
-    //         );
-    //     }
-    // }
+void World::render(VectorGraphics& graphics) {
+    // Draw centerpoint for debugging
+    graphics.drawCircle(glm::vec2(0.0f, 0.0f), 1.0f, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+
+    // Get camera bounds
+    glm::vec4 bounds = getCameraBounds();
+    float tileSize = 40.0f; // I feel like this should be somewhere else.
     
+    // Calculate visible tile range with overscan
+    int minX = static_cast<int>((bounds.x - overscanAmount * tileSize) / tileSize) - 1;
+    int maxX = static_cast<int>((bounds.y + overscanAmount * tileSize) / tileSize) + 1;
+    int minY = static_cast<int>((bounds.z - overscanAmount * tileSize) / tileSize) - 1;
+    int maxY = static_cast<int>((bounds.w + overscanAmount * tileSize) / tileSize) + 1;
+
+    // Draw only visible tiles
+    for (int y = minY; y <= maxY; y++) {
+        for (int x = minX; x <= maxX; x++) {
+            auto it = tiles.find({x, y});
+            if (it != tiles.end()) {
+                const auto& tile = it->second;
+                graphics.drawRectangle(
+                    glm::vec2(x * tileSize, y * tileSize),
+                    glm::vec2(tileSize, tileSize),
+                    tile.color
+                );
+            }
+        }
+    }
+
     // Render entities
     entityManager.render(graphics);
 }
 
 void World::generateTerrain() {
     std::cout << "Generating terrain..." << std::endl;
-
-    // Generate terrain using Perlin noise
-    generatePerlinNoise(terrain, width, height, 0.1f);
-    
-    // Generate resources
-    generatePerlinNoise(resources, width, height, 0.05f);
-    
-    // Normalize and threshold resources
-    for (float& resource : resources) {
-        resource = std::max(0.0f, resource - 0.5f) * 2.0f;
-    }
-
-    // Log the generated terrain values for debugging
-    // std::cout << "Generated Terrain Values:" << std::endl;
-    // for (int y = 0; y < height; y++) {
-    //     for (int x = 0; x < width; x++) {
-    //         float heightValue = getTerrainHeight(x, y);
-    //         // Limit the output to 4 characters long
-    //         std::cout << std::setw(4) << std::fixed << std::setprecision(2) << heightValue << " "; // Print height value
-    //     }
-    //     std::cout << std::endl; // New line for each row
-    // }
+    generateTilesInRadius();
 }
 
-void World::generatePerlinNoise(std::vector<float>& noise, int width, int height, float scale) {
-    // Simple noise generation (placeholder for proper Perlin noise)
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            float nx = x * scale;
-            float ny = y * scale;
-            
-            // Simple noise function
-            float value = std::sin(nx) * std::cos(ny);
-            value = (value + 1.0f) * 0.5f; // Normalize to [0, 1]
-            
-            noise[y * width + x] = value;
+void World::generateTilesInRadius() {
+    tiles.clear();
+
+    for (int y = -generateDistance; y <= generateDistance; y++) {
+        for (int x = -generateDistance; x <= generateDistance; x++) {
+            float nx = x * 0.05f; // Adjusted noise scale
+            float ny = y * 0.05f;
+
+            // Smoother noise with FBM
+            float heightValue = fbm(nx, ny, 4, 0.5f);
+            float resourceValue = fbm(nx * 0.5f, ny * 0.5f, 4, 0.5f);
+
+            Tile tile;
+            tile.height = heightValue;
+            tile.resource = resourceValue;
+
+            // Smooth terrain transitions
+            if (heightValue > 0.7f) {
+                tile.type = 2; // Mountain
+                tile.color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+            } else if (heightValue > 0.5f) {
+                tile.type = 1; // Land
+                float blend = (heightValue - 0.5f) / 0.2f;
+                tile.color = glm::mix(
+                    glm::vec4(0.0f, 0.5f, 0.0f, 1.0f),
+                    glm::vec4(0.5f, 0.5f, 0.5f, 1.0f),
+                    blend
+                );
+            } else {
+                tile.type = 0; // Water
+                float blend = heightValue / 0.5f;
+                tile.color = glm::mix(
+                    glm::vec4(0.0f, 0.2f, 0.5f, 1.0f),
+                    glm::vec4(0.0f, 0.5f, 0.8f, 1.0f),
+                    blend
+                );
+            }
+
+            // Resource tint
+            if (resourceValue > 0.5f) {
+                tile.color.r = resourceValue;
+            }
+
+            setTile(x, y, tile);
         }
     }
-}
-
-float World::getTerrainHeight(int x, int y) const {
-    if (x < 0 || x >= width || y < 0 || y >= height) {
-        return 0.0f;
-    }
-    return terrain[y * width + x];
-}
-
-float World::getResourceAmount(int x, int y) const {
-    if (x < 0 || x >= width || y < 0 || y >= height) {
-        return 0.0f;
-    }
-    return resources[y * width + x];
 }
 
 size_t World::createEntity(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color) {
