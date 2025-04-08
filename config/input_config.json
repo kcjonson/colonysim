@@ -1,0 +1,16 @@
+{
+    "camera": {
+        "pan_speed": 100.0,
+        "zoom_speed": 1.0,
+        "edge_pan_threshold": 0.05,
+        "edge_pan_speed": 50.0,
+        "invert_zoom": false,
+        "invert_pan": false
+    },
+    "controls": {
+        "pan_up": 265,
+        "pan_down": 264,
+        "pan_left": 263,
+        "pan_right": 262
+    }
+} 
