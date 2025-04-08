@@ -55,7 +55,7 @@ Game::Game()
 
     // Initialize VectorGraphics after GLAD is initialized
     if (!vectorGraphics.initialize()) {
-        std::cerr << "Failed to initialize VectorGraphics" << std::endl;
+        std::cerr << "ERROR: VectorGraphics initialization failed!" << std::endl;
         glfwTerminate();
         return;
     }
@@ -76,6 +76,12 @@ Game::Game()
         ConfigManager::getInstance().getFarPlane()
     );
 
+    std::cout << "Camera parameters: viewWidth=" << viewWidth 
+              << ", viewHeight=" << viewHeight 
+              << ", nearPlane=" << ConfigManager::getInstance().getNearPlane()
+              << ", farPlane=" << ConfigManager::getInstance().getFarPlane() 
+              << std::endl;
+
     // Set up callbacks
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
@@ -92,17 +98,17 @@ Game::Game()
     EntityManager& entityManager = world.getEntityManager();
     
     // Create a worker entity
-    // size_t workerId = entityManager.createEntity(
-    //     glm::vec2(0.0f, 0.0f),
-    //     glm::vec2(20.0f, 20.0f),
-    //     glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) // Green
-    // );
-    // Entity* worker = entityManager.getEntity(workerId);
-    // if (worker) {
-    //     worker->setSpeed(100.0f);
-    //     worker->setState(EntityState::IDLE);
-    //     worker->setType(EntityType::WORKER);
-    // }
+    size_t workerId = entityManager.createEntity(
+        glm::vec2(0.0f, 0.0f),
+        glm::vec2(20.0f, 20.0f),
+        glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) // Green
+    );
+    Entity* worker = entityManager.getEntity(workerId);
+    if (worker) {
+        worker->setSpeed(100.0f);
+        worker->setState(EntityState::IDLE);
+        worker->setType(EntityType::WORKER);
+    }
 
     // Create a resource entity
     size_t resourceId = entityManager.createEntity(
@@ -162,13 +168,14 @@ void Game::run() {
         
         // Cap delta time to prevent spiral of death
         if (deltaTime > 0.25f) {
+            std::cout << "Delta time is too high: " << deltaTime << std::endl;
             deltaTime = 0.25f;
         }
         
         accumulator += deltaTime;
         
         // Process input
-        processInput();
+        processInput(); 
         
         // Fixed timestep updates
         while (accumulator >= fixedTimeStep) {
@@ -182,6 +189,8 @@ void Game::run() {
         // Swap buffers and poll events
         glfwSwapBuffers(window);
         glfwPollEvents();
+        
+
     }
     
     std::cout << "Game loop ended" << std::endl;
@@ -211,10 +220,16 @@ void Game::update(float deltaTime) {
 }
 
 void Game::render() {
-    // Clear the screen once per frame
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-
+    
+    // Debug shape - should always be visible
+    vectorGraphics.drawRectangle(
+        glm::vec2(0.0f, 0.0f),  // Center of screen
+        glm::vec2(100.0f, 100.0f),  // Size
+        glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)  // Red
+    );
+    
     // Get camera matrices once per frame
     const glm::mat4& viewMatrix = camera.getViewMatrix();
     const glm::mat4& projectionMatrix = camera.getProjectionMatrix();
