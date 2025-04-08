@@ -6,6 +6,7 @@
 #include "EntityManager.h"
 #include "VectorGraphics.h"
 #include "Camera.h"
+#include <string>
 
 // Hash function for std::pair (since it's not provided by default)
 namespace std {
@@ -27,7 +28,7 @@ struct Tile {
 
 class World {
 public:
-    World();
+    World(const std::string& seed = "I am a seed, how novel!");
     ~World();
 
     void update(float deltaTime);
@@ -65,4 +66,6 @@ private:
     int overscanAmount = 2; // Number of extra tiles to render beyond visible area
     glm::vec4 getCameraBounds() const; // Helper to calculate visible area
     Camera camera;
+    std::string seed;
+    unsigned int getHashedSeed() const;
 }; 
