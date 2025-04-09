@@ -26,7 +26,5 @@ public:
 private:
     glm::vec2 cursorWorldPosition;
     float currentFPS;
-    float fpsUpdateTimer;
-    int frameCount;
     FontRenderer fontRenderer;
 }; 

@@ -8,9 +8,7 @@
 
 Interface::Interface()
     : cursorWorldPosition(0.0f, 0.0f)
-    , currentFPS(0.0f)
-    , fpsUpdateTimer(0.0f)
-    , frameCount(0) {
+    , currentFPS(0.0f) {
     std::cout << "Interface constructor called" << std::endl;
 }
 
@@ -25,15 +23,7 @@ bool Interface::initialize() {
 }
 
 void Interface::update(float deltaTime) {
-    // Update FPS counter
-    fpsUpdateTimer += deltaTime;
-    frameCount++;
-
-    if (fpsUpdateTimer >= 0.5f) { // Update FPS display every 0.5 seconds
-        currentFPS = frameCount / fpsUpdateTimer;
-        frameCount = 0;
-        fpsUpdateTimer = 0.0f;
-    }
+   // No update needed
 }
 
 void Interface::render(VectorGraphics& graphics, GLFWwindow* window) {

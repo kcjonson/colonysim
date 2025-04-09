@@ -161,66 +161,53 @@ void Game::run() {
 
     std::cout << "Starting game loop..." << std::endl;
 
-    // Initial render
-    render();
-    glfwSwapBuffers(window);
     
     // Fixed timestep variables
-    const float fixedTimeStep = 1.0f / 60.0f;  // 60 FPS
-    float accumulator = 0.0f;
     double lastTime = glfwGetTime();
     
     while (!glfwWindowShouldClose(window) && isRunning) {
+        // Start timing
+        double frameStartTime = glfwGetTime();
+
         // Calculate delta time
         double currentTime = glfwGetTime();
         float deltaTime = static_cast<float>(currentTime - lastTime);
         lastTime = currentTime;
-        
-        // Cap delta time to prevent spiral of death
+
+        // Cap delta time
+        // Large delta times can cause calculations in game state to get out of sync.
+        // This will deliberately limit how much time can pass between updates.
+        // I think this will result in behavior like entities moving in small steps
+        // rather than large jumps as FPS drops.
         if (deltaTime > 0.25f) {
-            std::cout << "Delta time is too high: " << deltaTime << std::endl;
-            deltaTime = 0.25f;
+            deltaTime = 0.25f;  // Prevent large jumps
         }
-        
-        accumulator += deltaTime;
-        
+
         // Process input
         processInput();
-        
-        // Fixed timestep updates
-        while (accumulator >= fixedTimeStep) {
-            // Debug FPS - reduced frequency
-            static float fpsUpdateTime = 0.0f;
-            static int frameCount = 0;
-            fpsUpdateTime += deltaTime;
-            frameCount++;
-            
-            if (fpsUpdateTime >= 5.0f) {  // Changed from 1.0f to 5.0f
-                std::cout << "FPS: " << frameCount / fpsUpdateTime << std::endl;
-                fpsUpdateTime = 0.0f;
-                frameCount = 0;
-            }
 
-            // Update
-            // Note: the fixedTimeStep is the time it took(ish)? to update the game state
-            // this is important to know when calculating things like movement distance.
-            update(fixedTimeStep);
+        // Update game state
+        update(deltaTime);
 
-            accumulator -= fixedTimeStep;
-        }
-
-        // Render
+        // Render the frame
         render();
 
-        // Swap buffers and poll events only if enough time has passed
-        if (accumulator < fixedTimeStep) {
-            auto frameStart = std::chrono::high_resolution_clock::now();
-            glfwSwapBuffers(window);
-            vectorGraphics.clear();
-            auto frameEnd = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<float> frameDuration = frameEnd - frameStart;
-        }
+        // Swap buffers
+        glfwSwapBuffers(window);
+
+        // Poll events
         glfwPollEvents();
+
+        // End timing
+        double frameEndTime = glfwGetTime();
+        double frameDuration = frameEndTime - frameStartTime;
+
+        // Calculate FPS
+        if (frameDuration > 0.0) {
+            float fps = 1.0f / static_cast<float>(frameDuration);
+            std::cout << "FPS: " << fps << std::endl;  // Output FPS
+            interface.setFPS(fps);
+        }
     }
     
     std::cout << "Game loop ended" << std::endl;
