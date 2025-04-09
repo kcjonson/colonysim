@@ -32,6 +32,10 @@ public:
 
     void render(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
     void clear();
+    void beginBatch();
+    void endBatch();
+    bool isBatching = false;
+
 
     void drawRectangle(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color);
     void drawCircle(const glm::vec2& center, float radius, const glm::vec4& color, int segments = 32);

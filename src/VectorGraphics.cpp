@@ -183,6 +183,19 @@ void VectorGraphics::clear() {
     updateBuffers();
 }
 
+void VectorGraphics::beginBatch() {
+    vertices.clear();
+    indices.clear();
+    isBatching = true;
+}
+
+void VectorGraphics::endBatch() {
+    if (!vertices.empty()) {
+        updateBuffers();
+    }
+    isBatching = false;
+}
+
 void VectorGraphics::drawRectangle(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color) {
     size_t startIndex = vertices.size();
     
@@ -200,7 +213,9 @@ void VectorGraphics::drawRectangle(const glm::vec2& position, const glm::vec2& s
     indices.push_back(static_cast<unsigned int>(startIndex + 2));
     indices.push_back(static_cast<unsigned int>(startIndex + 3));
 
-    updateBuffers();
+    if (!isBatching) {
+        updateBuffers();
+    }
 }
 
 void VectorGraphics::drawCircle(const glm::vec2& center, float radius, const glm::vec4& color, int segments) {
@@ -223,7 +238,9 @@ void VectorGraphics::drawCircle(const glm::vec2& center, float radius, const glm
         indices.push_back(static_cast<unsigned int>(startIndex + i + 2));
     }
 
-    updateBuffers();
+    if (!isBatching) {
+        updateBuffers();
+    }
 }
 
 void VectorGraphics::drawLine(const glm::vec2& start, const glm::vec2& end, const glm::vec4& color, float width) {
@@ -247,7 +264,9 @@ void VectorGraphics::drawLine(const glm::vec2& start, const glm::vec2& end, cons
     indices.push_back(static_cast<unsigned int>(startIndex + 2));
     indices.push_back(static_cast<unsigned int>(startIndex + 3));
 
-    updateBuffers();
+    if (!isBatching) {
+        updateBuffers();
+    }
 }
 
 void VectorGraphics::drawPolygon(const std::vector<glm::vec2>& points, const glm::vec4& color) {
@@ -267,7 +286,9 @@ void VectorGraphics::drawPolygon(const std::vector<glm::vec2>& points, const glm
         indices.push_back(static_cast<unsigned int>(startIndex + i + 1));
     }
 
-    updateBuffers();
+    if (!isBatching) {
+        updateBuffers();
+    }
 }
 
 void VectorGraphics::updateBuffers() {

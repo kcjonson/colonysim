@@ -88,11 +88,14 @@ glm::vec4 World::getCameraBounds() const {
     float viewWidth = ConfigManager::getInstance().getViewHeight() * camera.getAspectRatio();
     float viewHeight = ConfigManager::getInstance().getViewHeight();
     
+    // Get camera position (convert to 2D if using orthographic projection)
+    glm::vec3 cameraPos = camera.getPosition();
+    
     return glm::vec4(
-        -viewWidth/2.0f,  // left
-        viewWidth/2.0f,   // right
-        -viewHeight/2.0f, // bottom
-        viewHeight/2.0f   // top
+        cameraPos.x - viewWidth/2.0f,   // left
+        cameraPos.x + viewWidth/2.0f,   // right
+        cameraPos.y - viewHeight/2.0f,  // bottom
+        cameraPos.y + viewHeight/2.0f   // top
     );
 }
 

@@ -208,7 +208,7 @@ void Game::run() {
         if (accumulator < fixedTimeStep) {
             auto frameStart = std::chrono::high_resolution_clock::now();
             glfwSwapBuffers(window);
-            vectorGraphics.clear(); // <-- SUPER FUCKING IMPORTANT
+            vectorGraphics.clear();
             auto frameEnd = std::chrono::high_resolution_clock::now();
             std::chrono::duration<float> frameDuration = frameEnd - frameStart;
         }
@@ -241,7 +241,9 @@ void Game::render() {
     const glm::mat4& projectionMatrix = camera.getProjectionMatrix();
 
     // Render world
+    vectorGraphics.beginBatch();
     world.render(vectorGraphics);
+    vectorGraphics.endBatch();
 
     // Render all vector graphics in a single batch
     vectorGraphics.render(viewMatrix, projectionMatrix);
