@@ -106,7 +106,6 @@ VectorGraphics::VectorGraphics() : initialized(false) {
     VAO = 0;
     VBO = 0;
     EBO = 0;
-    layers.clear();
 }
 
 VectorGraphics::~VectorGraphics() {
@@ -166,37 +165,26 @@ void VectorGraphics::render(const glm::mat4& viewMatrix, const glm::mat4& projec
         return;
     }
 
-    // First sort layers by z-index
-    sortLayers();
+    if (!vertices.empty()) {
+        // Update buffers if needed
+        updateBuffers();
 
-    // Begin batching for all layers
-    beginBatch();
+        // Actually render
+        shader.use();
+        shader.setUniform("view", viewMatrix);
+        shader.setUniform("projection", projectionMatrix);
 
-    // Render all layers
-    std::cout << "Rendering " << layers.size() << " layers" << std::endl;
-    for (auto& layer : layers) {
-        layer->render(*this, viewMatrix, projectionMatrix);
+        glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
+
+        #ifdef DEBUG_MODE
+            GLenum err;
+            while ((err = glGetError()) != GL_NO_ERROR) {
+                std::cerr << "OpenGL error: " << err << std::endl;
+            }
+        #endif
     }
-
-    // End batching for all layers and update buffers
-    endBatch();
-
-    // Actually render
-    std::cout << "Drawing " << indices.size() << " indices" << std::endl;
-    shader.use();
-    shader.setUniform("view", viewMatrix);
-    shader.setUniform("projection", projectionMatrix);
-
-    glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
-
-    #ifdef DEBUG_MODE
-        GLenum err;
-        while ((err = glGetError()) != GL_NO_ERROR) {
-            std::cerr << "OpenGL error: " << err << std::endl;
-        }
-    #endif
 }
 
 void VectorGraphics::clear() {
@@ -212,9 +200,6 @@ void VectorGraphics::beginBatch() {
 }
 
 void VectorGraphics::endBatch() {
-    if (!vertices.empty()) {
-        updateBuffers();
-    }
     isBatching = false;
 }
 
@@ -346,69 +331,4 @@ void VectorGraphics::renderText(const std::string& text, const glm::vec2& positi
     // This is a placeholder for future proper font rendering implementation
     // For now, we'll just call drawText
     drawText(text, position, color);
-}
-
-void VectorGraphics::renderScreenSpace(const glm::mat4& projectionMatrix) {
-    if (!initialized) {
-        std::cerr << "VectorGraphics not initialized" << std::endl;
-        return;
-    }
-
-    // First sort layers by z-index
-    sortLayers();
-
-    // Begin batching for all layers
-    beginBatch();
-
-    // Render all layers
-    for (auto& layer : layers) {
-        layer->renderScreenSpace(*this, projectionMatrix);
-    }
-
-    // End batching for all layers
-    endBatch();
-
-    // Actually render
-    shader.use();
-    shader.setUniform("view", glm::mat4(1.0f)); // Identity matrix for screen space
-    shader.setUniform("projection", projectionMatrix);
-
-    glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
-
-    #ifdef DEBUG_MODE
-        GLenum err;
-        while ((err = glGetError()) != GL_NO_ERROR) {
-            std::cerr << "OpenGL error: " << err << std::endl;
-        }
-    #endif
-}
-
-void VectorGraphics::addLayer(std::shared_ptr<Rendering::Layer> layer) {
-    layers.push_back(layer);
-    sortLayers();
-}
-
-void VectorGraphics::removeLayer(std::shared_ptr<Rendering::Layer> layer) {
-    layers.erase(
-        std::remove_if(layers.begin(), layers.end(),
-            [&layer](const std::shared_ptr<Rendering::Layer>& l) {
-                return l == layer;
-            }
-        ),
-        layers.end()
-    );
-}
-
-void VectorGraphics::clearLayers() {
-    layers.clear();
-}
-
-void VectorGraphics::sortLayers() {
-    std::sort(layers.begin(), layers.end(),
-        [](const std::shared_ptr<Rendering::Layer>& a, const std::shared_ptr<Rendering::Layer>& b) {
-            return a->getZIndex() < b->getZIndex();
-        }
-    );
 } 

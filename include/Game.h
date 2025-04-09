@@ -18,20 +18,11 @@ public:
 
     void run();
     
-    // Layer access
-    std::shared_ptr<Rendering::Layer> getWorldLayer() const { return worldLayer; }
-    std::shared_ptr<Rendering::Layer> getUILayer() const { return uiLayer; }
-
 private:
     void processInput();
     void update(float deltaTime);
     void render();
     
-    // Layer management
-    void initializeLayers();
-    std::shared_ptr<Rendering::Layer> worldLayer;
-    std::shared_ptr<Rendering::Layer> uiLayer;
-
     // GLFW callbacks
     static void framebufferSizeCallback(GLFWwindow* window, int width, int height);
     static void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset);

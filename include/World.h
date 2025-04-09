@@ -6,7 +6,9 @@
 #include "EntityManager.h"
 #include "VectorGraphics.h"
 #include "Camera.h"
+#include "Rendering/Layer.h"
 #include <string>
+#include <memory>
 
 // Hash function for std::pair (since it's not provided by default)
 namespace std {
@@ -31,11 +33,16 @@ public:
     World(const std::string& seed = "I am a seed, how novel!");
     ~World();
 
+    // Initialize world resources
+    bool initialize();
+    
     void update(float deltaTime);
-    void render(VectorGraphics& graphics);
+    
+    // Main render method - calls renderWorld or renderUI based on which graphics instance is passed
+    void render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
+    
     int getWidth() const { return width; }
     int getHeight() const { return height; }
-    
 
     // Terrain
     float getTerrainHeight(int x, int y) const;
@@ -56,6 +63,8 @@ public:
 
 private:
     void generatePerlinNoise(std::unordered_map<std::pair<int, int>, Tile>& noiseMap, int width, int height, float scale);
+    void renderTiles(VectorGraphics& graphics);
+    void renderEntities(VectorGraphics& graphics);
 
     int width = 100;
     int height = 100;
@@ -68,4 +77,7 @@ private:
     Camera camera;
     std::string seed;
     unsigned int getHashedSeed() const;
+    
+    // For organizing world rendering
+    std::shared_ptr<Rendering::Layer> worldLayer;
 }; 

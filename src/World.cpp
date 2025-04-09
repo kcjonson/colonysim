@@ -63,6 +63,7 @@ float fbm(float x, float y, int octaves, float persistence, unsigned int seed) {
 }
 
 World::World(const std::string& seed) : width(100), height(100), seed(seed) {
+    worldLayer = std::make_shared<Rendering::Layer>(0.0f);
     generateTerrain();
 }
 
@@ -99,7 +100,15 @@ glm::vec4 World::getCameraBounds() const {
     );
 }
 
-void World::render(VectorGraphics& graphics) {
+// New render method with view and projection matrices
+void World::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+    // Render all world elements to the current graphics batch
+    renderTiles(graphics);
+    renderEntities(graphics);
+}
+
+// Split the rendering into separate methods
+void World::renderTiles(VectorGraphics& graphics) {
     // Draw centerpoint for debugging
     graphics.drawCircle(glm::vec2(0.0f, 0.0f), 1.0f, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
 
@@ -127,7 +136,9 @@ void World::render(VectorGraphics& graphics) {
             }
         }
     }
+}
 
+void World::renderEntities(VectorGraphics& graphics) {
     // Render entities
     entityManager.render(graphics);
 }
@@ -212,4 +223,11 @@ unsigned int World::getHashedSeed() const {
         hash *= 16777619u;
     }
     return hash;
+}
+
+// New initialize method that doesn't need VectorGraphics
+bool World::initialize() {
+    // No need to store VectorGraphics reference anymore
+    // Just initialize any world resources
+    return true;
 } 

@@ -21,10 +21,10 @@ public:
     Layer(float zIndex = 0.0f);
     virtual ~Layer() = default;
 
-    // Hierarchy methods
-    void addLayer(std::shared_ptr<Layer> layer);
-    void removeLayer(std::shared_ptr<Layer> layer);
-    void clearLayers();
+    // Hierarchy methods - renamed for more consistent naming
+    void addItem(std::shared_ptr<Layer> item);
+    void removeItem(std::shared_ptr<Layer> item);
+    void clearItems();
     
     // Z-index handling
     float getZIndex() const { return zIndex; }

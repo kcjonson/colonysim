@@ -10,7 +10,6 @@
 #include "Rendering/Shapes/Line.h"
 #include "Rendering/Shapes/Polygon.h"
 #include "Rendering/Shapes/Text.h"
-#include <functional>
 
 Game::Game() 
     : window(nullptr)
@@ -18,9 +17,7 @@ Game::Game()
     , world()
     , inputManager(nullptr, camera, world.getEntityManager())
     , vectorGraphics()
-    , isRunning(true)
-    , worldLayer(nullptr)
-    , uiLayer(nullptr) {
+    , isRunning(true) {
     
     std::cout << "Initializing game..." << std::endl;
     
@@ -71,13 +68,17 @@ Game::Game()
         glfwTerminate();
         return;
     }
-    
-    // Initialize layers after VectorGraphics is initialized
-    initializeLayers();
 
     // Initialize Interface
     if (!interface.initialize()) {
         std::cerr << "ERROR: Interface initialization failed!" << std::endl;
+        glfwTerminate();
+        return;
+    }
+    
+    // Initialize Interface graphics
+    if (!interface.initializeGraphics(window)) {
+        std::cerr << "ERROR: Interface graphics initialization failed!" << std::endl;
         glfwTerminate();
         return;
     }
@@ -111,6 +112,13 @@ Game::Game()
 
     // Generate terrain
     world.generateTerrain();
+    
+    // Initialize World
+    if (!world.initialize()) {
+        std::cerr << "ERROR: World initialization failed!" << std::endl;
+        glfwTerminate();
+        return;
+    }
 
     // Create some test entities
     std::cout << "Creating test entities..." << std::endl;
@@ -256,11 +264,25 @@ void Game::render() {
     screenProjection[3][0] = -1.0f;          // Translate x
     screenProjection[3][1] = 1.0f;           // Translate y
 
-    // Render world in world space
+    // Start a new batch for world rendering
+    vectorGraphics.beginBatch();
+    
+    // Render world (will add to the current batch)
+    world.render(vectorGraphics, viewMatrix, projectionMatrix);
+    
+    // End batch and render world
+    vectorGraphics.endBatch();
     vectorGraphics.render(viewMatrix, projectionMatrix);
     
-    // Render UI in screen space
-    vectorGraphics.renderScreenSpace(screenProjection);
+    // Start a new batch for UI rendering
+    vectorGraphics.beginBatch();
+    
+    // Render UI (will add to the current batch)
+    interface.render(vectorGraphics, screenProjection);
+    
+    // End batch and render UI
+    vectorGraphics.endBatch();
+    vectorGraphics.render(glm::mat4(1.0f), screenProjection); // Identity view matrix for screen space
 }
 
 void Game::framebufferSizeCallback(GLFWwindow* window, int width, int height) {
@@ -315,60 +337,3 @@ void Game::mouseButtonCallback(GLFWwindow* window, int button, int action, int m
         game->inputManager.handleMouseButton(button, action);
     }
 }
-
-void Game::initializeLayers() {
-    // Create root layers for world and UI
-    worldLayer = std::make_shared<Rendering::Layer>(0.0f);  // World layer has z-index 0
-    uiLayer = std::make_shared<Rendering::Layer>(1000.0f);  // UI layer has higher z-index to render on top
-
-    // Add layers to vector graphics
-    vectorGraphics.addLayer(worldLayer);
-    vectorGraphics.addLayer(uiLayer);
-    
-    // Create a custom Layer for world rendering
-    class WorldRenderLayer : public Rendering::Layer {
-    public:
-        WorldRenderLayer(World& worldRef, float z) : Rendering::Layer(z), world(worldRef) {}
-        
-        virtual void render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) override {
-            if (!visible) return;
-            
-            // Call world's render method
-            world.render(graphics);
-            
-            // Then render any child layers
-            Rendering::Layer::render(graphics, viewMatrix, projectionMatrix);
-        }
-        
-    private:
-        World& world;
-    };
-    
-    // Create a custom Layer for interface rendering
-    class InterfaceRenderLayer : public Rendering::Layer {
-    public:
-        InterfaceRenderLayer(Interface& interfaceRef, GLFWwindow* win, float z) 
-            : Rendering::Layer(z), interface(interfaceRef), window(win) {}
-        
-        virtual void renderScreenSpace(VectorGraphics& graphics, const glm::mat4& projectionMatrix) override {
-            if (!visible) return;
-            
-            // Call interface's render method
-            interface.render(graphics, window);
-            
-            // Then render any child layers
-            Rendering::Layer::renderScreenSpace(graphics, projectionMatrix);
-        }
-        
-    private:
-        Interface& interface;
-        GLFWwindow* window;
-    };
-    
-    // Create and add custom layers
-    auto worldRenderLayer = std::make_shared<WorldRenderLayer>(world, 0.1f);
-    worldLayer->addLayer(worldRenderLayer);
-    
-    auto interfaceRenderLayer = std::make_shared<InterfaceRenderLayer>(interface, window, 1000.1f);
-    uiLayer->addLayer(interfaceRenderLayer);
-} 

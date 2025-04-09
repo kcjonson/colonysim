@@ -8,24 +8,24 @@ Layer::Layer(float zIndex)
     , visible(true) {
 }
 
-void Layer::addLayer(std::shared_ptr<Layer> layer) {
-    children.push_back(layer);
-    // Sort children after adding a new layer
+void Layer::addItem(std::shared_ptr<Layer> item) {
+    children.push_back(item);
+    // Sort children after adding a new item
     sortChildren();
 }
 
-void Layer::removeLayer(std::shared_ptr<Layer> layer) {
+void Layer::removeItem(std::shared_ptr<Layer> item) {
     children.erase(
         std::remove_if(children.begin(), children.end(),
-            [&layer](const std::shared_ptr<Layer>& child) {
-                return child == layer;
+            [&item](const std::shared_ptr<Layer>& child) {
+                return child == item;
             }
         ),
         children.end()
     );
 }
 
-void Layer::clearLayers() {
+void Layer::clearItems() {
     children.clear();
 }
 
