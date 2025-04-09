@@ -25,6 +25,7 @@ set(SOURCES
     src/InputManager.cpp
     src/VectorGraphics.cpp
     src/ConfigManager.cpp
+    src/Interface.cpp
 )
 
 # Add header files
@@ -37,6 +38,7 @@ set(HEADERS
     include/InputManager.h
     include/VectorGraphics.h
     include/ConfigManager.h
+    include/Interface.h
 )
 
 

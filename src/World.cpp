@@ -58,7 +58,7 @@ float fbm(float x, float y, int octaves, float persistence, unsigned int seed) {
         amplitude *= persistence;
         frequency *= 2.0f;
     }
-
+ 
     return total / maxValue;
 }
 
@@ -105,7 +105,7 @@ void World::render(VectorGraphics& graphics) {
 
     // Get camera bounds
     glm::vec4 bounds = getCameraBounds();
-    float tileSize = 40.0f; // I feel like this should be somewhere else.
+    float tileSize = 20.0f; // I feel like this should be somewhere else.
     
     // Calculate visible tile range with overscan
     int minX = static_cast<int>((bounds.x - overscanAmount * tileSize) / tileSize) - 1;

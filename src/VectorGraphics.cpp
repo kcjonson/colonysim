@@ -297,4 +297,53 @@ void VectorGraphics::updateBuffers() {
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
+}
+
+void VectorGraphics::drawText(const std::string& text, const glm::vec2& position, const glm::vec4& color) {
+    // For now, we'll implement a simple text rendering using rectangles for each character
+    // This is a placeholder until we implement proper font rendering
+    const float charWidth = 8.0f;
+    const float charHeight = 12.0f;
+    const float spacing = 2.0f;
+    
+    glm::vec2 currentPos = position;
+    
+    for (char c : text) {
+        if (c == ' ') {
+            currentPos.x += charWidth + spacing;
+            continue;
+        }
+        
+        // Draw a simple rectangle for each character
+        drawRectangle(currentPos, glm::vec2(charWidth, charHeight), color);
+        currentPos.x += charWidth + spacing;
+    }
+}
+
+void VectorGraphics::renderText(const std::string& text, const glm::vec2& position, const glm::vec4& color) {
+    // This is a placeholder for future proper font rendering implementation
+    // For now, we'll just call drawText
+    drawText(text, position, color);
+}
+
+void VectorGraphics::renderScreenSpace(const glm::mat4& projectionMatrix) {
+    if (!initialized) {
+        std::cerr << "VectorGraphics not initialized" << std::endl;
+        return;
+    }
+
+    shader.use();
+    shader.setUniform("projection", projectionMatrix);
+    shader.setUniform("view", glm::mat4(1.0f)); // Identity matrix for screen space
+
+    glBindVertexArray(VAO);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+
+    #ifdef DEBUG_MODE
+        GLenum err;
+        while ((err = glGetError()) != GL_NO_ERROR) {
+            std::cerr << "OpenGL error: " << err << std::endl;
+        }
+    #endif
 } 

@@ -3,6 +3,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <glm/gtc/matrix_transform.hpp>
 
 Game::Game() 
     : window(nullptr)
@@ -227,12 +228,11 @@ void Game::processInput() {
 void Game::update(float deltaTime) {
     inputManager.update(deltaTime);
     world.update(deltaTime);
+    interface.update(deltaTime);
 }
 
 void Game::render() {
-
     // Set clear color to teal
-    // this seems to be the global background color
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
@@ -244,9 +244,22 @@ void Game::render() {
     vectorGraphics.beginBatch();
     world.render(vectorGraphics);
     vectorGraphics.endBatch();
-
-    // Render all vector graphics in a single batch
     vectorGraphics.render(viewMatrix, projectionMatrix);
+
+    // Render interface in screen space
+    vectorGraphics.beginBatch();
+    interface.render(vectorGraphics, window);
+    vectorGraphics.endBatch();
+    
+    // Create screen-space projection matrix manually
+    int width, height;
+    glfwGetWindowSize(window, &width, &height);
+    glm::mat4 screenProjection = glm::mat4(1.0f);
+    screenProjection[0][0] = 2.0f / width;  // Scale x
+    screenProjection[1][1] = -2.0f / height; // Scale y (negative to flip y-axis)
+    screenProjection[3][0] = -1.0f;          // Translate x
+    screenProjection[3][1] = 1.0f;           // Translate y
+    vectorGraphics.renderScreenSpace(screenProjection);
 }
 
 void Game::framebufferSizeCallback(GLFWwindow* window, int width, int height) {
@@ -278,6 +291,20 @@ void Game::mouseMoveCallback(GLFWwindow* window, double xpos, double ypos) {
     Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
     if (game) {
         game->inputManager.handleMouseMove(xpos, ypos);
+        
+        // Convert screen coordinates to world coordinates
+        int width, height;
+        glfwGetWindowSize(window, &width, &height);
+        
+        // Convert to normalized device coordinates
+        float ndcX = (2.0f * static_cast<float>(xpos)) / static_cast<float>(width) - 1.0f;
+        float ndcY = 1.0f - (2.0f * static_cast<float>(ypos)) / static_cast<float>(height);
+        
+        // Convert to world coordinates using camera matrices
+        glm::vec4 worldPos = glm::inverse(game->camera.getProjectionMatrix() * game->camera.getViewMatrix()) * 
+                            glm::vec4(ndcX, ndcY, 0.0f, 1.0f);
+        
+        game->interface.setCursorWorldPosition(glm::vec2(worldPos.x, worldPos.y));
     }
 }
 

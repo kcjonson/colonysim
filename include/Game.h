@@ -7,6 +7,7 @@
 #include "World.h"
 #include "Camera.h"
 #include "InputManager.h"
+#include "Interface.h"
 
 class Game {
 public:
@@ -32,5 +33,6 @@ private:
     World world;
     InputManager inputManager;
     VectorGraphics vectorGraphics;
+    Interface interface;
     bool isRunning;
 }; 

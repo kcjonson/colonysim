@@ -3,6 +3,7 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include <glad/glad.h>
+#include <string>
 
 struct Vertex {
     glm::vec2 position;
@@ -31,19 +32,24 @@ public:
     bool initialize();
 
     void render(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
+    void renderScreenSpace(const glm::mat4& projectionMatrix);
     void clear();
     void beginBatch();
     void endBatch();
     bool isBatching = false;
 
-
+    // Drawing primitives
     void drawRectangle(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color);
     void drawCircle(const glm::vec2& center, float radius, const glm::vec4& color, int segments = 32);
     void drawLine(const glm::vec2& start, const glm::vec2& end, const glm::vec4& color, float width = 1.0f);
     void drawPolygon(const std::vector<glm::vec2>& points, const glm::vec4& color);
+    
+    // Text rendering
+    void drawText(const std::string& text, const glm::vec2& position, const glm::vec4& color);
 
 private:
     void updateBuffers();
+    void renderText(const std::string& text, const glm::vec2& position, const glm::vec4& color);
 
     Shader shader;
     std::vector<Vertex> vertices;
