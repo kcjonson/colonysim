@@ -222,6 +222,7 @@ void Game::processInput() {
 void Game::update(float deltaTime) {
     inputManager.update(deltaTime);
     world.update(deltaTime);
+    interface.setCursorWorldPosition(inputManager.getCursorWorldPos());
     interface.update(deltaTime);
 }
 

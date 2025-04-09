@@ -38,6 +38,9 @@ public:
     static void cursorPosCallback(GLFWwindow* window, double xpos, double ypos);
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
+    // Getters
+    glm::vec2 getCursorWorldPos();
+
 private:
     GLFWwindow* window;
     Camera& camera;

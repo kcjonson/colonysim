@@ -180,6 +180,10 @@ void InputManager::handleEntitySelection(const glm::vec2& mousePos) {
     selectedEntity = -1;
 }
 
+glm::vec2 InputManager::getCursorWorldPos() {
+    return camera.screenToWorld(glm::vec3(lastMousePos, 0.0f));
+}
+
 void InputManager::loadConfig(const std::string& configPath) {
     std::ifstream file(configPath);
     if (!file.is_open()) {

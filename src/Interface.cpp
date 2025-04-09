@@ -57,7 +57,7 @@ void Interface::render(VectorGraphics& graphics, GLFWwindow* window) {
     // Calculate box position
     // Since drawRectangle uses center-based positioning, we need to adjust the position
     glm::vec2 boxPos(left + boxWidth/2, top + boxHeight/2);
-    //graphics.drawRectangle(boxPos, glm::vec2(boxWidth, boxHeight), glm::vec4(0.0f, 0.0f, 0.0f, 0.2f));
+    graphics.drawRectangle(boxPos, glm::vec2(boxWidth, boxHeight), glm::vec4(0.0f, 0.0f, 0.0f, 1));
     
     // Create text strings
     std::stringstream cursorText;
