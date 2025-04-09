@@ -208,6 +208,7 @@ void Game::run() {
         if (accumulator < fixedTimeStep) {
             auto frameStart = std::chrono::high_resolution_clock::now();
             glfwSwapBuffers(window);
+            vectorGraphics.clear(); // <-- SUPER FUCKING IMPORTANT
             auto frameEnd = std::chrono::high_resolution_clock::now();
             std::chrono::duration<float> frameDuration = frameEnd - frameStart;
         }
@@ -224,7 +225,6 @@ void Game::processInput() {
 }
 
 void Game::update(float deltaTime) {
-
     inputManager.update(deltaTime);
     world.update(deltaTime);
 }
@@ -232,7 +232,7 @@ void Game::update(float deltaTime) {
 void Game::render() {
 
     // Set clear color to teal
-    // not sure what the purpose of this is ...
+    // this seems to be the global background color
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     

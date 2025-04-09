@@ -21,6 +21,7 @@ public:
 private:
     ConfigManager() = default;
     ~ConfigManager() = default;
+    bool configLoaded = false;
     ConfigManager(const ConfigManager&) = delete;
     ConfigManager& operator=(const ConfigManager&) = delete;
 

@@ -10,6 +10,7 @@ ConfigManager& ConfigManager::getInstance() {
 }
 
 bool ConfigManager::loadConfig(const std::string& filepath) {
+    if (configLoaded) return true;
     try {
         std::ifstream file(filepath);
         if (!file.is_open()) {
@@ -40,11 +41,12 @@ bool ConfigManager::loadConfig(const std::string& filepath) {
             if (camera.contains("nearPlane")) nearPlane = camera["nearPlane"].get<float>();
             if (camera.contains("farPlane")) farPlane = camera["farPlane"].get<float>();
         }
-
+        configLoaded = true;
         return true;
     }
     catch (const std::exception& e) {
         std::cerr << "Error loading config file: " << e.what() << std::endl;
         return false;
     }
+    
 }

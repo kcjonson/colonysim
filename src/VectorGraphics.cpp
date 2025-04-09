@@ -169,10 +169,12 @@ void VectorGraphics::render(const glm::mat4& viewMatrix, const glm::mat4& projec
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 
-    GLenum err;
-    while ((err = glGetError()) != GL_NO_ERROR) {
-        std::cerr << "OpenGL error: " << err << std::endl;
-    }
+    #ifdef DEBUG_MODE
+        GLenum err;
+        while ((err = glGetError()) != GL_NO_ERROR) {
+            std::cerr << "OpenGL error: " << err << std::endl;
+        }
+    #endif
 }
 
 void VectorGraphics::clear() {

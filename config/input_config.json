@@ -3,7 +3,7 @@
         "pan_speed": 100.0,
         "zoom_speed": 1.0,
         "edge_pan_threshold": 0.05,
-        "edge_pan_speed": 50.0,
+        "edge_pan_speed": 70.0,
         "invert_zoom": false,
         "invert_pan": false
     },
