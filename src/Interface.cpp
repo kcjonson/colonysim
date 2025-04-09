@@ -37,24 +37,37 @@ void Interface::update(float deltaTime) {
 }
 
 void Interface::render(VectorGraphics& graphics, GLFWwindow* window) {
-    std::cout << "Rendering Interface..." << std::endl;
-    
-    // Create info box background
-    const float padding = 10.0f;
-    const float lineHeight = 20.0f;
-    const float boxWidth = 200.0f;
-    const float boxHeight = 60.0f;
+    // std::cout << "Rendering Interface..." << std::endl;
     
     // Get window dimensions
     int width, height;
     glfwGetWindowSize(window, &width, &height);
-    std::cout << "Window size: " << width << "x" << height << std::endl;
+    // std::cout << "Window size: " << width << "x" << height << std::endl;
     
-    // Calculate box position (top right corner)
-    glm::vec2 boxPos(width - boxWidth - padding, padding);
+    // Set up screen-space projection matrix
+    // screen-space projection matrix transforms coordinates from screen space (pixels) to normalized device coordinates (NDC) for OpenGL rendering
+    glm::mat4 projection(1.0f);
+    projection[0][0] = 2.0f / width;   // Scale x
+    projection[1][1] = -2.0f / height;  // Scale y (because the 0,0 is at the top left)
+    projection[3][0] = -1.0f;          // Translate x
+    projection[3][1] = 1.0f;           // Translate y
     
-    // Draw semi-transparent black background
-    graphics.drawRectangle(boxPos, glm::vec2(boxWidth, boxHeight), glm::vec4(0.0f, 0.0f, 0.0f, 0.5f));
+    // Set projection for font renderer
+    fontRenderer.setProjection(projection);
+    
+    // Create info box background
+    const float fontScale = 0.3f;  // Adjusted for approximately 14pt
+    const float padding = 10.0f;
+    const float lineHeight = 20.0f;
+    const float left = 90.0f;
+    const float top = 90.0f;
+    const float boxWidth = 200.0f;
+    const float boxHeight = 60.0f;
+    
+    // Calculate box position
+    // Since drawRectangle uses center-based positioning, we need to adjust the position
+    glm::vec2 boxPos(left + boxWidth/2, top + boxHeight/2);
+    //graphics.drawRectangle(boxPos, glm::vec2(boxWidth, boxHeight), glm::vec4(0.0f, 0.0f, 0.0f, 0.2f));
     
     // Create text strings
     std::stringstream cursorText;
@@ -64,17 +77,9 @@ void Interface::render(VectorGraphics& graphics, GLFWwindow* window) {
     std::stringstream fpsText;
     fpsText << "FPS: " << std::fixed << std::setprecision(1) << currentFPS;
     
-    // Set up screen-space projection matrix manually
-    glm::mat4 projection(1.0f);
-    projection[0][0] = 2.0f / width;  // Scale x
-    projection[1][1] = -2.0f / height; // Scale y (negative to flip y-axis)
-    projection[3][0] = -1.0f;          // Translate x
-    projection[3][1] = 1.0f;           // Translate y
-    fontRenderer.setProjection(projection);
+    // Draw text
+    fontRenderer.renderText(cursorText.str(), glm::vec2(left + padding, top + padding), fontScale, glm::vec3(1.0f, 1.0f, 1.0f));
+    fontRenderer.renderText(fpsText.str(), glm::vec2(left + padding, top + padding + lineHeight), fontScale, glm::vec3(1.0f, 1.0f, 1.0f));
     
-    // Draw text using FontRenderer
-    fontRenderer.renderText(cursorText.str(), boxPos.x + padding, boxPos.y + padding, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
-    fontRenderer.renderText(fpsText.str(), boxPos.x + padding, boxPos.y + padding + lineHeight, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
-    
-    std::cout << "Interface rendering complete" << std::endl;
+    // std::cout << "Interface rendering complete" << std::endl;
 } 

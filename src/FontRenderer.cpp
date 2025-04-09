@@ -184,50 +184,67 @@ bool FontRenderer::compileShaders() {
     return true;
 }
 
-void FontRenderer::renderText(const std::string& text, float x, float y, float scale, const glm::vec3& color) {
-    std::cout << "Rendering text: " << text << " at (" << x << ", " << y << ")" << std::endl;
-    
+void FontRenderer::renderText(const std::string& text, const glm::vec2& position, float scale, const glm::vec3& color) {
+    // Enable blending for text transparency
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
+    // Set up shader and uniforms
     glUseProgram(shaderProgram);
     glUniform3f(glGetUniformLocation(shaderProgram, "textColor"), color.x, color.y, color.z);
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(VAO);
 
+    // Create a local copy of the position to avoid modifying the const reference
+    glm::vec2 currentPos = position;
+
+    // Iterate through each character in the text
     std::string::const_iterator c;
     for (c = text.begin(); c != text.end(); c++) {
         Character ch = characters[*c];
 
-        float xpos = x + ch.bearing.x * scale;
-        float ypos = y - (ch.size.y - ch.bearing.y) * scale;
+        // Calculate position of character quad
+        // xpos: current position + horizontal bearing
+        // ypos: current position - vertical bearing (to align along baseline)
+        float xpos = currentPos.x + ch.bearing.x * scale;
+        float ypos = currentPos.y - ch.bearing.y * scale;
 
+        // Calculate width and height of character quad
         float w = ch.size.x * scale;
         float h = ch.size.y * scale;
 
+        // Define vertices for character quad
+        // Each vertex contains: x, y, texture_x, texture_y
+        // Texture coordinates are flipped vertically (0.0f at bottom, 1.0f at top)
+        // to match OpenGL's texture coordinate system while keeping the text upright
         float vertices[6][4] = {
-            { xpos,     ypos + h,   0.0f, 0.0f },
-            { xpos,     ypos,       0.0f, 1.0f },
-            { xpos + w, ypos,       1.0f, 1.0f },
+            // First triangle
+            { xpos,     ypos + h,   0.0f, 1.0f },  // Top-left
+            { xpos,     ypos,       0.0f, 0.0f },  // Bottom-left
+            { xpos + w, ypos,       1.0f, 0.0f },  // Bottom-right
 
-            { xpos,     ypos + h,   0.0f, 0.0f },
-            { xpos + w, ypos,       1.0f, 1.0f },
-            { xpos + w, ypos + h,   1.0f, 0.0f }
+            // Second triangle
+            { xpos,     ypos + h,   0.0f, 1.0f },  // Top-left
+            { xpos + w, ypos,       1.0f, 0.0f },  // Bottom-right
+            { xpos + w, ypos + h,   1.0f, 1.0f }   // Top-right
         };
 
+        // Render character quad
         glBindTexture(GL_TEXTURE_2D, ch.textureID);
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        x += (ch.advance >> 6) * scale;
+        // Advance cursor position for next character
+        // Advance is in 1/64 pixels, so we need to divide by 64
+        currentPos.x += (ch.advance >> 6) * scale;
     }
+
+    // Clean up OpenGL state
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_BLEND);
-    
-    std::cout << "Text rendering complete" << std::endl;
 }
 
 void FontRenderer::setProjection(const glm::mat4& projection) {

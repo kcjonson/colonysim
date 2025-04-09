@@ -253,11 +253,6 @@ void Game::render() {
     vectorGraphics.endBatch();
     vectorGraphics.render(viewMatrix, projectionMatrix);
 
-    // Render interface in screen space
-    vectorGraphics.beginBatch();
-    interface.render(vectorGraphics, window);
-    vectorGraphics.endBatch();
-    
     // Create screen-space projection matrix manually
     int width, height;
     glfwGetWindowSize(window, &width, &height);
@@ -266,6 +261,11 @@ void Game::render() {
     screenProjection[1][1] = -2.0f / height; // Scale y (negative to flip y-axis)
     screenProjection[3][0] = -1.0f;          // Translate x
     screenProjection[3][1] = 1.0f;           // Translate y
+
+    // Render interface in screen space
+    vectorGraphics.beginBatch();
+    interface.render(vectorGraphics, window);
+    vectorGraphics.endBatch();
     vectorGraphics.renderScreenSpace(screenProjection);
 }
 
