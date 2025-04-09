@@ -3,6 +3,8 @@
 #include <iomanip>
 #include <glm/glm.hpp>
 #include "VectorGraphics.h"
+#include "Rendering/Shapes/Rectangle.h"
+#include "Rendering/Shapes/Text.h"
 #include <GLFW/glfw3.h>
 #include <iostream>
 
@@ -38,7 +40,7 @@ void Interface::render(VectorGraphics& graphics, GLFWwindow* window) {
     // screen-space projection matrix transforms coordinates from screen space (pixels) to normalized device coordinates (NDC) for OpenGL rendering
     glm::mat4 projection(1.0f);
     projection[0][0] = 2.0f / width;   // Scale x
-    projection[1][1] = -2.0f / height;  // Scale y (because the 0,0 is at the top left)
+    projection[1][1] = -2.0f / height;  // Scale y (negative to flip y-axis)
     projection[3][0] = -1.0f;          // Translate x
     projection[3][1] = 1.0f;           // Translate y
     
@@ -57,7 +59,17 @@ void Interface::render(VectorGraphics& graphics, GLFWwindow* window) {
     // Calculate box position
     // Since drawRectangle uses center-based positioning, we need to adjust the position
     glm::vec2 boxPos(left + boxWidth/2, top + boxHeight/2);
-    graphics.drawRectangle(boxPos, glm::vec2(boxWidth, boxHeight), glm::vec4(0.0f, 0.0f, 0.0f, 1));
+    
+    // Use our Rectangle class instead of directly calling drawRectangle
+    auto infoBox = std::make_shared<Rendering::Shapes::Rectangle>(
+        boxPos,                                  // position
+        glm::vec2(boxWidth, boxHeight),          // size
+        glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),       // color
+        0.0f                                     // z-index
+    );
+    
+    // Draw the info box directly using VectorGraphics since we're still in the middle of migration
+    infoBox->draw(graphics);
     
     // Create text strings
     std::stringstream cursorText;
@@ -67,7 +79,7 @@ void Interface::render(VectorGraphics& graphics, GLFWwindow* window) {
     std::stringstream fpsText;
     fpsText << "FPS: " << std::fixed << std::setprecision(1) << currentFPS;
     
-    // Draw text
+    // Draw text - for now we'll continue using the fontRenderer until we fully migrate to the new system
     fontRenderer.renderText(cursorText.str(), glm::vec2(left + padding, top + padding), fontScale, glm::vec3(1.0f, 1.0f, 1.0f));
     fontRenderer.renderText(fpsText.str(), glm::vec2(left + padding, top + padding + lineHeight), fontScale, glm::vec3(1.0f, 1.0f, 1.0f));
     

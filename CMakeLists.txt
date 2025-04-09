@@ -28,6 +28,14 @@ set(SOURCES
     src/ConfigManager.cpp
     src/Interface.cpp
     src/FontRenderer.cpp
+    # Add new rendering files
+    src/Rendering/Layer.cpp
+    src/Rendering/Shapes/Shape.cpp
+    src/Rendering/Shapes/Rectangle.cpp
+    src/Rendering/Shapes/Circle.cpp
+    src/Rendering/Shapes/Line.cpp
+    src/Rendering/Shapes/Polygon.cpp
+    src/Rendering/Shapes/Text.cpp
 )
 
 # Add header files
@@ -42,6 +50,14 @@ set(HEADERS
     include/ConfigManager.h
     include/Interface.h
     include/FontRenderer.h
+    # Add new rendering headers
+    include/Rendering/Layer.h
+    include/Rendering/Shapes/Shape.h
+    include/Rendering/Shapes/Rectangle.h
+    include/Rendering/Shapes/Circle.h
+    include/Rendering/Shapes/Line.h
+    include/Rendering/Shapes/Polygon.h
+    include/Rendering/Shapes/Text.h
 )
 
 # Create executable

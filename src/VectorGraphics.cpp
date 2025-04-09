@@ -1,4 +1,5 @@
 #include "VectorGraphics.h"
+#include "Rendering/Layer.h"
 #include <glad/glad.h>
 #include <fstream>
 #include <sstream>
@@ -105,6 +106,7 @@ VectorGraphics::VectorGraphics() : initialized(false) {
     VAO = 0;
     VBO = 0;
     EBO = 0;
+    layers.clear();
 }
 
 VectorGraphics::~VectorGraphics() {
@@ -117,14 +119,18 @@ VectorGraphics::~VectorGraphics() {
 
 bool VectorGraphics::initialize() {
     if (initialized) {
+        std::cout << "VectorGraphics already initialized" << std::endl;
         return true;
     }
+
+    std::cout << "Initializing VectorGraphics..." << std::endl;
 
     // Initialize shader
     if (!shader.loadFromFile("vector.vert", "vector.frag")) {
         std::cerr << "Failed to load vector shaders" << std::endl;
         return false;
     }
+    std::cout << "Shader loaded successfully" << std::endl;
 
     // Initialize buffers
     glGenVertexArrays(1, &VAO);
@@ -150,6 +156,7 @@ bool VectorGraphics::initialize() {
     glBindVertexArray(0);
 
     initialized = true;
+    std::cout << "VectorGraphics initialization complete" << std::endl;
     return true;
 }
 
@@ -159,8 +166,23 @@ void VectorGraphics::render(const glm::mat4& viewMatrix, const glm::mat4& projec
         return;
     }
 
-    //std::cout << "Rendering VectorGraphics with " << vertices.size() << " vertices and " << indices.size() << " indices." << std::endl;
+    // First sort layers by z-index
+    sortLayers();
 
+    // Begin batching for all layers
+    beginBatch();
+
+    // Render all layers
+    std::cout << "Rendering " << layers.size() << " layers" << std::endl;
+    for (auto& layer : layers) {
+        layer->render(*this, viewMatrix, projectionMatrix);
+    }
+
+    // End batching for all layers and update buffers
+    endBatch();
+
+    // Actually render
+    std::cout << "Drawing " << indices.size() << " indices" << std::endl;
     shader.use();
     shader.setUniform("view", viewMatrix);
     shader.setUniform("projection", projectionMatrix);
@@ -332,9 +354,24 @@ void VectorGraphics::renderScreenSpace(const glm::mat4& projectionMatrix) {
         return;
     }
 
+    // First sort layers by z-index
+    sortLayers();
+
+    // Begin batching for all layers
+    beginBatch();
+
+    // Render all layers
+    for (auto& layer : layers) {
+        layer->renderScreenSpace(*this, projectionMatrix);
+    }
+
+    // End batching for all layers
+    endBatch();
+
+    // Actually render
     shader.use();
-    shader.setUniform("projection", projectionMatrix);
     shader.setUniform("view", glm::mat4(1.0f)); // Identity matrix for screen space
+    shader.setUniform("projection", projectionMatrix);
 
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
@@ -346,4 +383,32 @@ void VectorGraphics::renderScreenSpace(const glm::mat4& projectionMatrix) {
             std::cerr << "OpenGL error: " << err << std::endl;
         }
     #endif
+}
+
+void VectorGraphics::addLayer(std::shared_ptr<Rendering::Layer> layer) {
+    layers.push_back(layer);
+    sortLayers();
+}
+
+void VectorGraphics::removeLayer(std::shared_ptr<Rendering::Layer> layer) {
+    layers.erase(
+        std::remove_if(layers.begin(), layers.end(),
+            [&layer](const std::shared_ptr<Rendering::Layer>& l) {
+                return l == layer;
+            }
+        ),
+        layers.end()
+    );
+}
+
+void VectorGraphics::clearLayers() {
+    layers.clear();
+}
+
+void VectorGraphics::sortLayers() {
+    std::sort(layers.begin(), layers.end(),
+        [](const std::shared_ptr<Rendering::Layer>& a, const std::shared_ptr<Rendering::Layer>& b) {
+            return a->getZIndex() < b->getZIndex();
+        }
+    );
 } 

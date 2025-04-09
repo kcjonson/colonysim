@@ -4,6 +4,8 @@
 #include <glm/glm.hpp>
 #include <glad/glad.h>
 #include <string>
+#include <memory>
+#include <map>
 
 struct Vertex {
     glm::vec2 position;  // Position in world/screen coordinates
@@ -23,6 +25,11 @@ private:
     GLuint program;
 };
 
+// Forward declare Layer for use in VectorGraphics
+namespace Rendering {
+    class Layer;
+}
+
 class VectorGraphics {
 public:
     VectorGraphics();
@@ -31,6 +38,11 @@ public:
     // Initialize OpenGL resources after GLAD is initialized
     bool initialize();
 
+    // Layer management
+    void addLayer(std::shared_ptr<Rendering::Layer> layer);
+    void removeLayer(std::shared_ptr<Rendering::Layer> layer);
+    void clearLayers();
+    
     // Rendering methods
     void render(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);  // Render in world space
     void renderScreenSpace(const glm::mat4& projectionMatrix);                    // Render in screen space
@@ -90,6 +102,7 @@ public:
 private:
     void updateBuffers();  // Update OpenGL buffers with current vertices and indices
     void renderText(const std::string& text, const glm::vec2& position, const glm::vec4& color);  // Internal text rendering method
+    void sortLayers();     // Sort layers by z-index
 
     Shader shader;
     std::vector<Vertex> vertices;      // List of vertices to render
@@ -98,4 +111,6 @@ private:
     GLuint VBO;                        // Vertex Buffer Object
     GLuint EBO;                        // Element Buffer Object
     bool initialized;                  // Whether the graphics system is initialized
+    
+    std::vector<std::shared_ptr<Rendering::Layer>> layers; // List of layers
 }; 
