@@ -13,6 +13,7 @@ find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(glm REQUIRED)
 find_package(nlohmann_json REQUIRED)
+find_package(freetype REQUIRED)
 
 # Add source files
 set(SOURCES
@@ -26,6 +27,7 @@ set(SOURCES
     src/VectorGraphics.cpp
     src/ConfigManager.cpp
     src/Interface.cpp
+    src/FontRenderer.cpp
 )
 
 # Add header files
@@ -39,8 +41,8 @@ set(HEADERS
     include/VectorGraphics.h
     include/ConfigManager.h
     include/Interface.h
+    include/FontRenderer.h
 )
-
 
 # Create executable
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
@@ -59,11 +61,19 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     $<TARGET_FILE_DIR:${PROJECT_NAME}>/config
 )
 
+# Copy fonts to build directory
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/fonts
+    $<TARGET_FILE_DIR:${PROJECT_NAME}>/fonts
+)
+
 # Include directories
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${OPENGL_INCLUDE_DIR}
     ${GLM_INCLUDE_DIRS}
+    ${FREETYPE_INCLUDE_DIRS}
     C:/vcpkg/installed/x64-windows/include
     C:/vcpkg/installed/x64-windows/include/KHR
 )
@@ -74,4 +84,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     glfw
     glm
     nlohmann_json::nlohmann_json
+    freetype
 ) 

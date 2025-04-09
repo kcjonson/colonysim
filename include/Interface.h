@@ -1,15 +1,21 @@
 #pragma once
 
+#include <memory>
 #include <glm/glm.hpp>
 #include <string>
 #include "VectorGraphics.h"
+#include "FontRenderer.h"
 #include <GLFW/glfw3.h>
+
+class VectorGraphics;
+struct GLFWwindow;
 
 class Interface {
 public:
     Interface();
     ~Interface() = default;
 
+    bool initialize();
     void update(float deltaTime);
     void render(VectorGraphics& graphics, GLFWwindow* window);
 
@@ -22,4 +28,5 @@ private:
     float currentFPS;
     float fpsUpdateTimer;
     int frameCount;
+    FontRenderer fontRenderer;
 }; 

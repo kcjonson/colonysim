@@ -63,6 +63,13 @@ Game::Game()
         return;
     }
 
+    // Initialize Interface
+    if (!interface.initialize()) {
+        std::cerr << "ERROR: Interface initialization failed!" << std::endl;
+        glfwTerminate();
+        return;
+    }
+
     // Set up viewport
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
