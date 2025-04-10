@@ -264,23 +264,23 @@ void Game::render() {
     screenProjection[3][0] = -1.0f;          // Translate x
     screenProjection[3][1] = 1.0f;           // Translate y
 
-    // Start a new batch for world rendering
+    // Make sure to clear any previous data
     vectorGraphics.beginBatch();
-    
-    // Render world (will add to the current batch)
     world.render(vectorGraphics, viewMatrix, projectionMatrix);
-    
-    // End batch and render world
     vectorGraphics.endBatch();
     vectorGraphics.render(viewMatrix, projectionMatrix);
-    
+
+    // Render entity manager
+    // TODO: should the entity manager be owned by world?
+    // I don't think so because entities may be moving but the world may not be.
+    vectorGraphics.beginBatch();
+    world.getEntityManager().render(vectorGraphics);
+    vectorGraphics.endBatch();
+    vectorGraphics.render(viewMatrix, projectionMatrix);
+
     // Start a new batch for UI rendering
     vectorGraphics.beginBatch();
-    
-    // Render UI (will add to the current batch)
     interface.render(vectorGraphics, screenProjection);
-    
-    // End batch and render UI
     vectorGraphics.endBatch();
     vectorGraphics.render(glm::mat4(1.0f), screenProjection); // Identity view matrix for screen space
 }

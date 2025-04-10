@@ -16,9 +16,9 @@ void Shape::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const 
 
     // Draw this shape
     draw(graphics);
+    
+    // NOTE: Shapes shouldn't have children, so don't call Layer::render
 
-    // Render all children (if any)
-    Layer::render(graphics, viewMatrix, projectionMatrix);
 }
 
 void Shape::renderScreenSpace(VectorGraphics& graphics, const glm::mat4& projectionMatrix) {
@@ -26,9 +26,9 @@ void Shape::renderScreenSpace(VectorGraphics& graphics, const glm::mat4& project
 
     // Draw this shape
     draw(graphics);
-
-    // Render all children (if any)
-    Layer::renderScreenSpace(graphics, projectionMatrix);
+    
+    // NOTE: Shapes shouldn't have children, so don't call Layer::renderScreenSpace
+    // We remove this call to avoid recursive rendering that might be causing performance issues
 }
 
 } // namespace Shapes

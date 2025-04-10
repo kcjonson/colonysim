@@ -1,5 +1,6 @@
 #include "Rendering/Layer.h"
 #include "VectorGraphics.h"
+#include <iostream>
 
 namespace Rendering {
 
@@ -15,14 +16,13 @@ void Layer::addItem(std::shared_ptr<Layer> item) {
 }
 
 void Layer::removeItem(std::shared_ptr<Layer> item) {
-    children.erase(
-        std::remove_if(children.begin(), children.end(),
-            [&item](const std::shared_ptr<Layer>& child) {
-                return child == item;
-            }
-        ),
-        children.end()
-    );
+    auto it = std::find(children.begin(), children.end(), item);
+    if (it == children.end()) {
+        std::cerr << "Warning: Attempted to remove an item that is not present in the layer." << std::endl;
+        return; // Item not found, exit the function
+    }
+    
+    children.erase(it);
 }
 
 void Layer::clearItems() {
@@ -38,7 +38,10 @@ void Layer::sortChildren() {
 }
 
 void Layer::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
-    if (!visible) return;
+    //std::cout << "Layer children count: " << children.size() << std::endl;
+    if (!visible) {
+        return;
+    }
 
     // Sort children if needed
     sortChildren();

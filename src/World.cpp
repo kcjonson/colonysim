@@ -2,12 +2,15 @@
 #include "ConfigManager.h"
 #include "Camera.h"
 #include "VectorGraphics.h"
+#include "Tile.h"
+#include "Rendering/Shapes/Rectangle.h"
 #include <iostream>
 #include <random>
 #include <cmath>
 #include <algorithm>
 #include <iomanip> // For std::setw and std::setprecision
 #include <unordered_map>
+#include <unordered_set>
 
 constexpr float PI = 3.14159265358979323846f;
 
@@ -67,20 +70,6 @@ World::World(const std::string& seed) : width(100), height(100), seed(seed) {
     generateTerrain();
 }
 
-World::~World() = default;
-
-void World::setTile(int x, int y, const Tile& tile) {
-    tiles[{x, y}] = tile;
-}
-
-Tile World::getTile(int x, int y) const {
-    auto it = tiles.find({x, y});
-    if (it != tiles.end()) {
-        return it->second;
-    }
-    return Tile{}; // Return default tile if not found
-}
-
 void World::update(float deltaTime) {
     entityManager.update(deltaTime);
 }
@@ -100,47 +89,102 @@ glm::vec4 World::getCameraBounds() const {
     );
 }
 
-// New render method with view and projection matrices
 void World::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
-    // Render all world elements to the current graphics batch
-    renderTiles(graphics);
-    renderEntities(graphics);
-}
-
-// Split the rendering into separate methods
-void World::renderTiles(VectorGraphics& graphics) {
-    // Draw centerpoint for debugging
-    graphics.drawCircle(glm::vec2(0.0f, 0.0f), 1.0f, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-
     // Get camera bounds
     glm::vec4 bounds = getCameraBounds();
-    float tileSize = 20.0f; // I feel like this should be somewhere else.
     
     // Calculate visible tile range with overscan
-    int minX = static_cast<int>((bounds.x - overscanAmount * tileSize) / tileSize) - 1;
-    int maxX = static_cast<int>((bounds.y + overscanAmount * tileSize) / tileSize) + 1;
-    int minY = static_cast<int>((bounds.z - overscanAmount * tileSize) / tileSize) - 1;
-    int maxY = static_cast<int>((bounds.w + overscanAmount * tileSize) / tileSize) + 1;
+    int minX = static_cast<int>(std::floor(bounds.x / TILE_SIZE)) - 1;
+    int maxX = static_cast<int>(std::ceil(bounds.y / TILE_SIZE)) + 1;
+    int minY = static_cast<int>(std::floor(bounds.z / TILE_SIZE)) - 1;
+    int maxY = static_cast<int>(std::ceil(bounds.w / TILE_SIZE)) + 1;
 
-    // Draw only visible tiles
+    // Create a set of tile coordinates that should be visible this frame
+    std::unordered_set<std::pair<int, int>> currentVisibleTiles;
+
+    // Update visible tiles and track which ones should be visible
     for (int y = minY; y <= maxY; y++) {
         for (int x = minX; x <= maxX; x++) {
-            auto it = tiles.find({x, y});
-            if (it != tiles.end()) {
-                const auto& tile = it->second;
-                graphics.drawRectangle(
-                    glm::vec2(x * tileSize, y * tileSize),
-                    glm::vec2(tileSize, tileSize),
-                    tile.color
+            auto pos = std::make_pair(x, y);
+            auto terrainIt = terrainData.find(pos);
+            if (terrainIt == terrainData.end()) continue;
+
+            auto tileIt = tiles.find(pos);
+            if (tileIt == tiles.end()) {
+                // Create new tile if it doesn't exist
+                const auto& data = terrainIt->second;
+                glm::vec2 tilePosition(x * TILE_SIZE, y * TILE_SIZE);
+                auto tile = std::make_shared<Rendering::Tile>(
+                    tilePosition,  // position
+                    data.height,   // height
+                    data.resource, // resource
+                    data.type,     // type
+                    data.color     // color
                 );
+                tiles[pos] = tile; // Add the new tile to the tiles map
+                currentVisibleTiles.insert(pos); // Add the new tile coordinates to the current visible tiles set
+                worldLayer->addItem(tile); // Add the new tile to the world layer
+            } else {
+                // Mark tile as visible in our tracking set
+                currentVisibleTiles.insert(pos);
+                
+                // Check if the tile was previously hidden
+                if (!tileIt->second->isVisible()) {
+                    // Set visible and add to worldLayer if it wasn't visible before
+                    tileIt->second->setVisible(true);
+                    worldLayer->addItem(tileIt->second);
+                }
+            }
+            
+        }
+    }
+
+    // Hide tiles that were visible last frame but aren't visible this frame
+    for (const auto& pos : lastVisibleTiles) {
+        if (currentVisibleTiles.find(pos) == currentVisibleTiles.end()) {
+            auto tileIt = tiles.find(pos);
+            if (tileIt != tiles.end()) {
+                tileIt->second->setVisible(false);
+                worldLayer->removeItem(tileIt->second);
             }
         }
     }
+
+    // std::cout << "Visible tiles: " << currentVisibleTiles.size() << std::endl;
+
+    // Update lastVisibleTiles for next frame
+    lastVisibleTiles = std::move(currentVisibleTiles);
+
+    worldLayer->render(graphics, viewMatrix, projectionMatrix);
+
+    // Log memory usage periodically
+    static float timeSinceLastLog = 0.0f;
+    timeSinceLastLog += 1.0f/60.0f; // Assuming 60 FPS
+    if (timeSinceLastLog >= 5.0f) { // Log every 5 seconds
+        logMemoryUsage();
+        timeSinceLastLog = 0.0f;
+    }
 }
 
-void World::renderEntities(VectorGraphics& graphics) {
-    // Render entities
-    entityManager.render(graphics);
+void World::logMemoryUsage() const {
+    size_t tileCount = tiles.size();
+    size_t totalShapes = 0;
+    
+    // Count total shapes across all tiles
+    for (const auto& [pos, tile] : tiles) {
+        totalShapes += tile->getShapes().size();
+    }
+    
+    size_t tileMemory = tileCount * sizeof(Rendering::Tile);
+    size_t shapeMemory = totalShapes * sizeof(Rendering::Shapes::Shape);
+    
+    std::cout << "World Memory Usage:" << std::endl;
+    std::cout << "  Tiles: " << tileCount << " (" << std::setprecision(2) << std::fixed 
+              << tileMemory / 1024.0f << " KB)" << std::endl;
+    std::cout << "  Total Shapes: " << totalShapes << " (" << std::setprecision(2) << std::fixed 
+              << shapeMemory / 1024.0f << " KB)" << std::endl;
+    std::cout << "  Total: " << std::setprecision(2) << std::fixed 
+              << (tileMemory + shapeMemory) / 1024.0f << " KB" << std::endl;
 }
 
 void World::generateTerrain() {
@@ -148,9 +192,16 @@ void World::generateTerrain() {
     generateTilesInRadius();
 }
 
+struct TerrainData {
+    float height;
+    float resource;
+    int type;
+    glm::vec4 color;
+};
+
 void World::generateTilesInRadius() {
     unsigned int hashedSeed = getHashedSeed(); // Get numeric hash
-    tiles.clear();
+    terrainData.clear();
 
     for (int y = -generateDistance; y <= generateDistance; y++) {
         for (int x = -generateDistance; x <= generateDistance; x++) {
@@ -162,28 +213,28 @@ void World::generateTilesInRadius() {
             heightValue = (heightValue + 1.0f) * 0.5f;
             float resourceValue = fbm(nx * 0.5f, ny * 0.5f, 4, 0.5f, hashedSeed);
 
-            Tile tile;
-            tile.height = heightValue;
-            tile.resource = resourceValue;
+            TerrainData data;
+            data.height = heightValue;
+            data.resource = resourceValue;
 
             // Smooth terrain transitions
             if (heightValue > 0.7f) {
-                tile.type = 2; // Mountain
-                tile.color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+                data.type = 2; // Mountain
+                data.color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
             } 
             else if (heightValue > 0.5f) {
-                tile.type = 1; // Land
+                data.type = 1; // Land
                 float blend = (heightValue - 0.5f) / 0.2f;
-                tile.color = glm::mix(
+                data.color = glm::mix(
                     glm::vec4(0.0f, 0.5f, 0.0f, 1.0f),
                     glm::vec4(0.5f, 0.5f, 0.5f, 1.0f),
                     blend
                 );
             }
             else {
-                tile.type = 0; // Water
+                data.type = 0; // Water
                 float blend = heightValue / 0.5f;
-                tile.color = glm::mix(
+                data.color = glm::mix(
                     glm::vec4(0.0f, 0.2f, 0.5f, 1.0f),
                     glm::vec4(0.0f, 0.5f, 0.8f, 1.0f),
                     blend
@@ -192,10 +243,10 @@ void World::generateTilesInRadius() {
 
             // Resource tint
             if (resourceValue > 0.5f) {
-                tile.color.r = resourceValue;
+                data.color.r = resourceValue;
             }
 
-            setTile(x, y, tile);
+            terrainData[{x, y}] = data;
         }
     }
 }

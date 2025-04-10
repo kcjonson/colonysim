@@ -34,6 +34,9 @@ public:
     bool isVisible() const { return visible; }
     void setVisible(bool v) { visible = v; }
 
+    // Access to children
+    const std::vector<std::shared_ptr<Layer>>& getChildren() const { return children; }
+
     // Rendering methods
     virtual void render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
     virtual void renderScreenSpace(VectorGraphics& graphics, const glm::mat4& projectionMatrix);

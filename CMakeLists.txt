@@ -36,6 +36,7 @@ set(SOURCES
     src/Rendering/Shapes/Line.cpp
     src/Rendering/Shapes/Polygon.cpp
     src/Rendering/Shapes/Text.cpp
+    src/Tile.cpp
 )
 
 # Add header files
@@ -58,6 +59,7 @@ set(HEADERS
     include/Rendering/Shapes/Line.h
     include/Rendering/Shapes/Polygon.h
     include/Rendering/Shapes/Text.h
+    include/Tile.h
 )
 
 # Create executable

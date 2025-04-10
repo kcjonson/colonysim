@@ -189,7 +189,8 @@ void VectorGraphics::render(const glm::mat4& viewMatrix, const glm::mat4& projec
     }
     
     // Render all text commands after other geometry has been drawn
-    // This allows for proper layer ordering
+    // This allows for proper layer ordering if no z-index is set
+    // This might be a problem if we want text under things.
     for (const auto& cmd : textCommands) {
         // Convert RGBA color to RGB for font renderer
         glm::vec3 textColor(cmd.color.r, cmd.color.g, cmd.color.b);
@@ -211,18 +212,21 @@ void VectorGraphics::clear() {
     vertices.clear();
     indices.clear();
     textCommands.clear();
-    updateBuffers();
+    updateBuffers(); // Why is this here?
 }
 
 void VectorGraphics::beginBatch() {
-    vertices.clear();
-    indices.clear();
-    textCommands.clear();
-    isBatching = true;
+    if (!isBatching) {
+        vertices.clear();
+        indices.clear();
+        textCommands.clear();
+        isBatching = true;
+    }
 }
 
 void VectorGraphics::endBatch() {
     isBatching = false;
+    // Do not clear the vertices and indices here, as we probally have not rendered yet!
 }
 
 void VectorGraphics::drawRectangle(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color) {
