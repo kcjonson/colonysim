@@ -4,14 +4,14 @@
 namespace Rendering {
 namespace Shapes {
 
-Circle::Circle(const glm::vec2& position, float radius, const glm::vec4& color, float zIndex, int segments)
-    : Shape(position, color, zIndex)
+Circle::Circle(const glm::vec2& position, float radius, const Styles::Circle& style, float zIndex)
+    : Shape(position, style, zIndex)
     , radius(radius)
-    , segments(segments) {
+    , style(style) {
 }
 
 void Circle::draw(VectorGraphics& graphics) {
-    graphics.drawCircle(position, radius, color, segments);
+    graphics.drawCircle(position, radius, style.color);
 }
 
 } // namespace Shapes

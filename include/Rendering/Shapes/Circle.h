@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Rendering/Shapes/Shape.h"
+#include "Rendering/Styles/Shape.h"
 #include <glm/glm.hpp>
 
 namespace Rendering {
@@ -11,9 +12,8 @@ public:
     Circle(
         const glm::vec2& position = glm::vec2(0.0f),
         float radius = 1.0f,
-        const glm::vec4& color = glm::vec4(1.0f),
-        float zIndex = 0.0f,
-        int segments = 32
+        const Styles::Circle& style = Styles::Circle(),
+        float zIndex = 0.0f
     );
     virtual ~Circle() = default;
 
@@ -21,15 +21,15 @@ public:
     float getRadius() const { return radius; }
     void setRadius(float r) { radius = r; markDirty(); }
 
-    int getSegments() const { return segments; }
-    void setSegments(int s) { segments = s; markDirty(); }
+    const Styles::Circle& getStyle() const { return style; }
+    void setStyle(const Styles::Circle& s) { style = s; markDirty(); }
 
     // Implementation of the draw method
     virtual void draw(VectorGraphics& graphics) override;
 
 private:
     float radius;
-    int segments;
+    Styles::Circle style;
 };
 
 } // namespace Shapes

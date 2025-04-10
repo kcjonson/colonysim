@@ -7,6 +7,7 @@
 #include "Rendering/Shapes/Text.h"
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include "Rendering/Styles/Shape.h"
 
 const std::vector<std::string> Interface::GAME_STATE_PROPERTIES = {
     "world.tileCount",
@@ -69,7 +70,7 @@ void Interface::initializeUIComponents() {
         auto text = std::make_shared<Rendering::Shapes::Text>(
             GAME_STATE_PROPERTIES[i] + ": ...",
             textPos,
-            glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            Rendering::Styles::Text(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)),
             1000.5f
         );
         

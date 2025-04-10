@@ -33,6 +33,9 @@ set(SOURCES
     src/Rendering/Shapes/Rectangle.cpp
     src/Rendering/Shapes/Shape.cpp
     src/Rendering/Shapes/Text.cpp
+    src/Rendering/Styles/Base.cpp
+    src/Rendering/Styles/Border.cpp
+    src/Rendering/Styles/Shape.cpp
     src/Tile.cpp
     src/VectorGraphics.cpp
     src/World.cpp
@@ -56,6 +59,9 @@ set(HEADERS
     include/Rendering/Shapes/Rectangle.h
     include/Rendering/Shapes/Shape.h
     include/Rendering/Shapes/Text.h
+    include/Rendering/Styles/Base.h
+    include/Rendering/Styles/Border.h
+    include/Rendering/Styles/Shape.h
     include/Tile.h
     include/VectorGraphics.h
     include/World.h

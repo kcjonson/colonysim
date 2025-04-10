@@ -4,16 +4,19 @@
 namespace Rendering {
 namespace Shapes {
 
-Polygon::Polygon(const std::vector<glm::vec2>& points, const glm::vec4& color, float zIndex)
-    : Shape(glm::vec2(0.0f), color, zIndex) // Position is not used directly for polygons
-    , points(points) {
+Polygon::Polygon(const glm::vec2& position, const std::vector<glm::vec2>& vertices, const Styles::Polygon& style, float zIndex)
+    : Shape(position, style, zIndex)
+    , vertices(vertices)
+    , style(style) {
 }
 
 void Polygon::draw(VectorGraphics& graphics) {
-    // Only draw if we have enough points
-    if (points.size() >= 3) {
-        graphics.drawPolygon(points, color);
+    // Create a copy of vertices with position offset
+    std::vector<glm::vec2> offsetVertices = vertices;
+    for (auto& vertex : offsetVertices) {
+        vertex += position;
     }
+    graphics.drawPolygon(offsetVertices, style.color);
 }
 
 } // namespace Shapes

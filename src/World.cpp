@@ -103,6 +103,17 @@ glm::vec4 World::getCameraBounds() const {
 void World::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
     // Get camera bounds
     glm::vec4 bounds = getCameraBounds();
+
+    // Draw camera bounds rectangle
+    glm::vec2 rectPos((bounds.x + bounds.y) / 2.0f, (bounds.z + bounds.w) / 2.0f);
+    glm::vec2 rectSize(bounds.y - bounds.x - 10.0f, bounds.w - bounds.z - 10.0f);
+    auto boundsRect = std::make_shared<Rendering::Shapes::Rectangle>(
+        rectPos,
+        rectSize,
+        glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), // Red color
+        0.0f // Z-index
+    );
+    worldLayer->addItem(boundsRect);
     
     // Calculate visible tile range with overscan
     int minX = static_cast<int>(std::floor(bounds.x / TILE_SIZE)) - 1;
