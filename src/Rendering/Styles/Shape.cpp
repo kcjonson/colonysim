@@ -3,40 +3,27 @@
 namespace Rendering {
 namespace Styles {
 
-Rectangle::Rectangle(const glm::vec4& color,
-                    float opacity,
-                    const glm::vec4& borderColor,
-                    float borderWidth,
-                    BorderPosition borderPosition,
-                    float cornerRadius)
-    : Base(color, opacity)
-    , Border(borderColor, borderWidth, borderPosition, cornerRadius) {
+Rectangle::Rectangle(const RectangleStyleParams& params)
+    : Base(params.color, params.opacity)
+    , Border(params.borderColor, params.borderWidth, params.borderPosition, params.cornerRadius) {
 }
 
-Circle::Circle(const glm::vec4& color,
-              float opacity,
-              const glm::vec4& borderColor,
-              float borderWidth,
-              BorderPosition borderPosition)
-    : Base(color, opacity)
-    , Border(borderColor, borderWidth, borderPosition) {
+Circle::Circle(const CircleStyleParams& params)
+    : Base(params.color, params.opacity)
+    , Border(params.borderColor, params.borderWidth, params.borderPosition) {
 }
 
-Line::Line(const glm::vec4& color, float opacity)
-    : Base(color, opacity) {
+Line::Line(const LineStyleParams& params)
+    : Base(params.color, params.opacity) {
 }
 
-Text::Text(const glm::vec4& color, float opacity)
-    : Base(color, opacity) {
+Text::Text(const TextStyleParams& params)
+    : Base(params.color, params.opacity) {
 }
 
-Polygon::Polygon(const glm::vec4& color,
-                float opacity,
-                const glm::vec4& borderColor,
-                float borderWidth,
-                BorderPosition borderPosition)
-    : Base(color, opacity)
-    , Border(borderColor, borderWidth, borderPosition) {
+Polygon::Polygon(const PolygonStyleParams& params)
+    : Base(params.color, params.opacity)
+    , Border(params.borderColor, params.borderWidth, params.borderPosition) {
 }
 
 } // namespace Styles

@@ -107,10 +107,18 @@ void World::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const 
     // Draw camera bounds rectangle
     glm::vec2 rectPos((bounds.x + bounds.y) / 2.0f, (bounds.z + bounds.w) / 2.0f);
     glm::vec2 rectSize(bounds.y - bounds.x - 10.0f, bounds.w - bounds.z - 10.0f);
+    
+    // Create a style with transparent fill and red border using named parameters
     auto boundsRect = std::make_shared<Rendering::Shapes::Rectangle>(
         rectPos,
         rectSize,
-        glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), // Red color
+        Rendering::Styles::Rectangle({
+            .color = glm::vec4(0.0f, 0.0f, 0.0f, 0.1f),      // Semi-transparent fill
+            .borderColor = glm::vec4(1.0f, 0.0f, 0.0f, 0.8f), // Semi-transparent red border
+            .borderWidth = 2.0f,                             // 2px border width
+            .borderPosition = BorderPosition::Outside,       // Border outside the rectangle
+            .cornerRadius = 5.0f                             // Rounded corners
+        }),
         0.0f // Z-index
     );
     worldLayer->addItem(boundsRect);

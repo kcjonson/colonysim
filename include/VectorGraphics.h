@@ -8,6 +8,13 @@
 #include <map>
 #include "FontRenderer.h"
 
+// Border position enum for shape rendering
+enum class BorderPosition {
+    Inside,
+    Outside,
+    Center
+};
+
 struct Vertex {
     glm::vec2 position;  // Position in world/screen coordinates
     glm::vec4 color;     // RGBA color (0-1 range)
@@ -60,8 +67,20 @@ public:
      * @param position Center point of the rectangle
      * @param size Width and height of the rectangle
      * @param color RGBA color (0-1 range)
+     * @param borderColor Border color (if borderWidth > 0)
+     * @param borderWidth Width of the border (0 for no border)
+     * @param borderPosition Position of the border (inside, outside, center)
+     * @param cornerRadius Radius of rounded corners (0 for sharp corners)
      */
-    void drawRectangle(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color);
+    void drawRectangle(
+        const glm::vec2& position, 
+        const glm::vec2& size, 
+        const glm::vec4& color,
+        const glm::vec4& borderColor = glm::vec4(0.0f),
+        float borderWidth = 0.0f,
+        BorderPosition borderPosition = BorderPosition::Outside,
+        float cornerRadius = 0.0f
+    );
 
     /**
      * Draw a circle centered at the given position

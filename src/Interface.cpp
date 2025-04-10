@@ -54,7 +54,9 @@ void Interface::initializeUIComponents() {
     infoPanelBackground = std::make_shared<Rendering::Shapes::Rectangle>(
         boxPos,
         glm::vec2(INFO_PANEL_WIDTH, panelHeight),
-        glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),
+        Rendering::Styles::Rectangle({
+            .color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)  // Black background
+        }),
         1000.1f
     );
     uiLayer->addItem(infoPanelBackground);
@@ -70,7 +72,9 @@ void Interface::initializeUIComponents() {
         auto text = std::make_shared<Rendering::Shapes::Text>(
             GAME_STATE_PROPERTIES[i] + ": ...",
             textPos,
-            Rendering::Styles::Text(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)),
+            Rendering::Styles::Text({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)  // White text
+            }),
             1000.5f
         );
         

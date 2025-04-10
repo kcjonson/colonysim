@@ -1,14 +1,9 @@
 #pragma once
 #include <glm/glm.hpp>
+#include "VectorGraphics.h"
 
 namespace Rendering {
 namespace Styles {
-
-enum class BorderPosition {
-    Inside,
-    Outside,
-    Center
-};
 
 class Border {
 public:

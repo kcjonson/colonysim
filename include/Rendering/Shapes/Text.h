@@ -12,7 +12,7 @@ class Text : public Shape {
 public:
     Text(const std::string& text = "",
          const glm::vec2& position = glm::vec2(0.0f),
-         const Styles::Text& style = Styles::Text(),
+         const Styles::Text& style = Styles::Text({}),
          float zIndex = 0.0f);
     virtual ~Text() = default;
 

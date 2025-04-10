@@ -229,22 +229,94 @@ void VectorGraphics::endBatch() {
     // Do not clear the vertices and indices here, as we probally have not rendered yet!
 }
 
-void VectorGraphics::drawRectangle(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color) {
-    size_t startIndex = vertices.size();
-    
-    // Add vertices
-    vertices.push_back({position + glm::vec2(-size.x/2, -size.y/2), color});
-    vertices.push_back({position + glm::vec2(size.x/2, -size.y/2), color});
-    vertices.push_back({position + glm::vec2(size.x/2, size.y/2), color});
-    vertices.push_back({position + glm::vec2(-size.x/2, size.y/2), color});
+void VectorGraphics::drawRectangle(
+    const glm::vec2& position, 
+    const glm::vec2& size, 
+    const glm::vec4& color,
+    const glm::vec4& borderColor,
+    float borderWidth,
+    BorderPosition borderPosition,
+    float cornerRadius
+) {
+    // If there's no border, just draw a normal rectangle
+    if (borderWidth <= 0.0f) {
+        size_t startIndex = vertices.size();
+        
+        // Add vertices
+        vertices.push_back({position + glm::vec2(-size.x/2, -size.y/2), color});
+        vertices.push_back({position + glm::vec2(size.x/2, -size.y/2), color});
+        vertices.push_back({position + glm::vec2(size.x/2, size.y/2), color});
+        vertices.push_back({position + glm::vec2(-size.x/2, size.y/2), color});
 
-    // Add indices
-    indices.push_back(static_cast<unsigned int>(startIndex));
-    indices.push_back(static_cast<unsigned int>(startIndex + 1));
-    indices.push_back(static_cast<unsigned int>(startIndex + 2));
-    indices.push_back(static_cast<unsigned int>(startIndex));
-    indices.push_back(static_cast<unsigned int>(startIndex + 2));
-    indices.push_back(static_cast<unsigned int>(startIndex + 3));
+        // Add indices
+        indices.push_back(static_cast<unsigned int>(startIndex));
+        indices.push_back(static_cast<unsigned int>(startIndex + 1));
+        indices.push_back(static_cast<unsigned int>(startIndex + 2));
+        indices.push_back(static_cast<unsigned int>(startIndex));
+        indices.push_back(static_cast<unsigned int>(startIndex + 2));
+        indices.push_back(static_cast<unsigned int>(startIndex + 3));
+
+        if (!isBatching) {
+            updateBuffers();
+        }
+        return;
+    }
+
+    // Calculate inner and outer rectangles based on border position
+    glm::vec2 innerSize = size;
+    glm::vec2 outerSize = size;
+    
+    switch (borderPosition) {
+        case BorderPosition::Inside:
+            innerSize -= glm::vec2(borderWidth * 2.0f);
+            break;
+        case BorderPosition::Outside:
+            outerSize += glm::vec2(borderWidth * 2.0f);
+            break;
+        case BorderPosition::Center:
+            innerSize -= glm::vec2(borderWidth);
+            outerSize += glm::vec2(borderWidth);
+            break;
+    }
+
+    // Ensure inner rectangle doesn't have negative dimensions
+    innerSize = glm::max(innerSize, glm::vec2(0.0f));
+
+    // Draw the outer rectangle with border color
+    size_t outerStartIndex = vertices.size();
+    
+    // Add vertices for outer rectangle
+    vertices.push_back({position + glm::vec2(-outerSize.x/2, -outerSize.y/2), borderColor});
+    vertices.push_back({position + glm::vec2(outerSize.x/2, -outerSize.y/2), borderColor});
+    vertices.push_back({position + glm::vec2(outerSize.x/2, outerSize.y/2), borderColor});
+    vertices.push_back({position + glm::vec2(-outerSize.x/2, outerSize.y/2), borderColor});
+
+    // Add indices for outer rectangle
+    indices.push_back(static_cast<unsigned int>(outerStartIndex));
+    indices.push_back(static_cast<unsigned int>(outerStartIndex + 1));
+    indices.push_back(static_cast<unsigned int>(outerStartIndex + 2));
+    indices.push_back(static_cast<unsigned int>(outerStartIndex));
+    indices.push_back(static_cast<unsigned int>(outerStartIndex + 2));
+    indices.push_back(static_cast<unsigned int>(outerStartIndex + 3));
+
+    // Draw the inner rectangle with fill color if it has area
+    if (innerSize.x > 0 && innerSize.y > 0) {
+        size_t innerStartIndex = vertices.size();
+        
+        // Add vertices for inner rectangle
+        vertices.push_back({position + glm::vec2(-innerSize.x/2, -innerSize.y/2), color});
+        vertices.push_back({position + glm::vec2(innerSize.x/2, -innerSize.y/2), color});
+        vertices.push_back({position + glm::vec2(innerSize.x/2, innerSize.y/2), color});
+        vertices.push_back({position + glm::vec2(-innerSize.x/2, innerSize.y/2), color});
+
+        // Add indices for inner rectangle
+        indices.push_back(static_cast<unsigned int>(innerStartIndex));
+        indices.push_back(static_cast<unsigned int>(innerStartIndex + 1));
+        indices.push_back(static_cast<unsigned int>(innerStartIndex + 2));
+        indices.push_back(static_cast<unsigned int>(innerStartIndex));
+        indices.push_back(static_cast<unsigned int>(innerStartIndex + 2));
+        indices.push_back(static_cast<unsigned int>(innerStartIndex + 3));
+    }
 
     if (!isBatching) {
         updateBuffers();

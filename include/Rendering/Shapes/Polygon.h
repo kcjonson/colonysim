@@ -12,7 +12,7 @@ class Polygon : public Shape {
 public:
     Polygon(const glm::vec2& position = glm::vec2(0.0f),
             const std::vector<glm::vec2>& vertices = {},
-            const Styles::Polygon& style = Styles::Polygon(),
+            const Styles::Polygon& style = Styles::Polygon({}),
             float zIndex = 0.0f);
     virtual ~Polygon() = default;
 

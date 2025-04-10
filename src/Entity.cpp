@@ -50,9 +50,12 @@ void Entity::update(float deltaTime) {
 void Entity::render(VectorGraphics& graphics) {
     // Draw entity
     graphics.drawRectangle(
-        position - size * 0.5f,
+        position,
         size,
-        color
+        color,
+        glm::vec4(0.0f), // No border
+        0.0f,            // No border width
+        BorderPosition::Outside
     );
 
     // Draw health bar if entity has health
@@ -61,9 +64,12 @@ void Entity::render(VectorGraphics& graphics) {
         float healthBarHeight = 2.0f;
         glm::vec4 healthColor(1.0f - health, health, 0.0f, 1.0f);
         graphics.drawRectangle(
-            position - glm::vec2(healthBarWidth * 0.5f, size.y * 0.5f + healthBarHeight),
+            position - glm::vec2(0.0f, size.y * 0.5f + healthBarHeight),
             glm::vec2(healthBarWidth * health, healthBarHeight),
-            healthColor
+            healthColor,
+            glm::vec4(0.0f), // No border
+            0.0f,            // No border width
+            BorderPosition::Outside
         );
     }
 
@@ -73,9 +79,12 @@ void Entity::render(VectorGraphics& graphics) {
         float progressBarHeight = 2.0f;
         glm::vec4 progressColor(0.0f, 1.0f, 0.0f, 1.0f);
         graphics.drawRectangle(
-            position - glm::vec2(progressBarWidth * 0.5f, size.y * 0.5f + progressBarHeight * 2.0f),
+            position - glm::vec2(0.0f, size.y * 0.5f + progressBarHeight * 2.0f),
             glm::vec2(progressBarWidth * workProgress, progressBarHeight),
-            progressColor
+            progressColor,
+            glm::vec4(0.0f), // No border
+            0.0f,            // No border width
+            BorderPosition::Outside
         );
     }
 } 

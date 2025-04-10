@@ -12,9 +12,10 @@ public:
     Rectangle(
         const glm::vec2& position = glm::vec2(0.0f),
         const glm::vec2& size = glm::vec2(1.0f),
-        const Styles::Rectangle& style = Styles::Rectangle(),
+        const Styles::Rectangle& style = Styles::Rectangle({}),
         float zIndex = 0.0f
     );
+    
     virtual ~Rectangle() = default;
 
     // Getters and setters

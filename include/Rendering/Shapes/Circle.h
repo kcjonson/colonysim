@@ -12,7 +12,7 @@ public:
     Circle(
         const glm::vec2& position = glm::vec2(0.0f),
         float radius = 1.0f,
-        const Styles::Circle& style = Styles::Circle(),
+        const Styles::Circle& style = Styles::Circle({}),
         float zIndex = 0.0f
     );
     virtual ~Circle() = default;

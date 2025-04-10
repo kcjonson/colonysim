@@ -26,7 +26,9 @@ void Tile::initializeDefaultShape() {
     auto rect = std::make_shared<Shapes::Rectangle>(
         glm::vec2(0.0f),
         glm::vec2(TILE_SIZE),
-        color
+        Styles::Rectangle({
+            .color = color
+        })
     );
     addShape(rect);
 }
