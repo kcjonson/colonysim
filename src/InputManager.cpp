@@ -6,10 +6,11 @@
 // Static member to store the instance pointer
 static InputManager* s_instance = nullptr;
 
-InputManager::InputManager(GLFWwindow* window, Camera& camera, EntityManager& entityManager)
+InputManager::InputManager(GLFWwindow* window, Camera& camera, EntityManager& entityManager, GameState& gameState)
     : window(window)
     , camera(camera)
     , entityManager(entityManager)
+    , gameState(gameState)
     , isDragging(false) {
     
     // Store instance pointer
@@ -109,7 +110,17 @@ void InputManager::handleMouseMove(double x, double y) {
         if (invertPan) delta = -delta;
         applyPan(delta, panSpeed * 0.1f, 1.0f / 60.0f);
     }
+
+    // Format window position as "x, y" with no decimals
+    gameState.set("input.cursorWindowPosition", 
+                 std::to_string((int)currentPos.x) + ", " + std::to_string((int)currentPos.y));
     
+    // Format world position with 1 decimal place
+    glm::vec2 worldPos = glm::vec2(camera.screenToWorld(glm::vec3(currentPos, 0.0f)));
+    char worldPosStr[50];
+    snprintf(worldPosStr, sizeof(worldPosStr), "%.1f, %.1f", worldPos.x, worldPos.y);
+    gameState.set("input.cursorWorldPosition", worldPosStr);
+
     lastMousePos = currentPos;
 }
 
@@ -180,9 +191,9 @@ void InputManager::handleEntitySelection(const glm::vec2& mousePos) {
     selectedEntity = -1;
 }
 
-glm::vec2 InputManager::getCursorWorldPos() {
-    return camera.screenToWorld(glm::vec3(lastMousePos, 0.0f));
-}
+// glm::vec2 InputManager::getCursorWorldPos() {
+//     return camera.screenToWorld(glm::vec3(lastMousePos, 0.0f));
+// }
 
 void InputManager::loadConfig(const std::string& configPath) {
     std::ifstream file(configPath);

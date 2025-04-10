@@ -12,6 +12,7 @@
 #include <string>
 #include <memory>
 #include <glm/glm.hpp>
+#include "GameState.h"
 
 // Hash function for std::pair (since it's not provided by default)
 namespace std {
@@ -25,7 +26,7 @@ namespace std {
 
 class World {
 public:
-    World(const std::string& seed = "I am a seed, how novel!");
+    World(GameState& gameState, const std::string& seed = "I am a seed, how novel!");
     ~World() = default;
 
     // Initialize world resources
@@ -88,4 +89,6 @@ private:
     static constexpr float TILE_SIZE = 20.0f;
     static constexpr float TILE_Z_INDEX = 0.1f;
     std::unordered_set<std::pair<int, int>> lastVisibleTiles;
+    GameState& gameState;
+    float timeSinceLastLog = 0.0f;
 }; 

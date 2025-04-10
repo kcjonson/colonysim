@@ -65,13 +65,24 @@ float fbm(float x, float y, int octaves, float persistence, unsigned int seed) {
     return total / maxValue;
 }
 
-World::World(const std::string& seed) : width(100), height(100), seed(seed) {
+World::World(GameState& gameState, const std::string& seed) 
+    : width(100), 
+      height(100), 
+      seed(seed), 
+      gameState(gameState) {
     worldLayer = std::make_shared<Rendering::Layer>(0.0f);
     generateTerrain();
 }
 
 void World::update(float deltaTime) {
     entityManager.update(deltaTime);
+    
+    // Update memory usage logging
+    timeSinceLastLog += deltaTime;
+    if (timeSinceLastLog >= 0.5f) { // Log every 0.5 seconds
+        logMemoryUsage();
+        timeSinceLastLog = 0.0f;
+    }
 }
 
 glm::vec4 World::getCameraBounds() const {
@@ -150,41 +161,29 @@ void World::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const 
         }
     }
 
-    // std::cout << "Visible tiles: " << currentVisibleTiles.size() << std::endl;
-
     // Update lastVisibleTiles for next frame
     lastVisibleTiles = std::move(currentVisibleTiles);
 
     worldLayer->render(graphics, viewMatrix, projectionMatrix);
-
-    // Log memory usage periodically
-    static float timeSinceLastLog = 0.0f;
-    timeSinceLastLog += 1.0f/60.0f; // Assuming 60 FPS
-    if (timeSinceLastLog >= 5.0f) { // Log every 5 seconds
-        logMemoryUsage();
-        timeSinceLastLog = 0.0f;
-    }
 }
 
 void World::logMemoryUsage() const {
     size_t tileCount = tiles.size();
     size_t totalShapes = 0;
     
-    // Count total shapes across all tiles
     for (const auto& [pos, tile] : tiles) {
         totalShapes += tile->getShapes().size();
     }
     
-    size_t tileMemory = tileCount * sizeof(Rendering::Tile);
-    size_t shapeMemory = totalShapes * sizeof(Rendering::Shapes::Shape);
+    float tileMemoryKB = tileCount * sizeof(Rendering::Tile) / 1024.0f;
+    float shapeMemoryKB = totalShapes * sizeof(Rendering::Shapes::Shape) / 1024.0f;
+    float totalMemoryKB = tileMemoryKB + shapeMemoryKB;
     
-    std::cout << "World Memory Usage:" << std::endl;
-    std::cout << "  Tiles: " << tileCount << " (" << std::setprecision(2) << std::fixed 
-              << tileMemory / 1024.0f << " KB)" << std::endl;
-    std::cout << "  Total Shapes: " << totalShapes << " (" << std::setprecision(2) << std::fixed 
-              << shapeMemory / 1024.0f << " KB)" << std::endl;
-    std::cout << "  Total: " << std::setprecision(2) << std::fixed 
-              << (tileMemory + shapeMemory) / 1024.0f << " KB" << std::endl;
+    gameState.set("world.tileCount", std::to_string(tileCount));
+    gameState.set("world.totalShapes", std::to_string(totalShapes));
+    gameState.set("world.tileMemoryKB", std::to_string(tileMemoryKB) + " KB");
+    gameState.set("world.shapeMemoryKB", std::to_string(shapeMemoryKB) + " KB");
+    gameState.set("world.totalMemoryKB", std::to_string(totalMemoryKB) + " KB");
 }
 
 void World::generateTerrain() {

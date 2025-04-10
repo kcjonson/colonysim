@@ -8,10 +8,11 @@
 #include "Camera.h"
 #include "Entity.h"
 #include "EntityManager.h"
+#include "GameState.h"
 
 class InputManager {
 public:
-    InputManager(GLFWwindow* window, Camera& camera, EntityManager& entityManager);
+    InputManager(GLFWwindow* window, Camera& camera, EntityManager& entityManager, GameState& gameState);
     ~InputManager();
 
     // Set window after construction
@@ -38,13 +39,11 @@ public:
     static void cursorPosCallback(GLFWwindow* window, double xpos, double ypos);
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
-    // Getters
-    glm::vec2 getCursorWorldPos();
-
 private:
     GLFWwindow* window;
     Camera& camera;
     EntityManager& entityManager;
+    GameState& gameState;
     
     // Camera control settings
     float panSpeed = 100.0f;

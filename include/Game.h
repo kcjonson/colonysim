@@ -10,6 +10,7 @@
 #include "Interface.h"
 #include "Rendering/Layer.h"
 #include <memory>
+#include "GameState.h"
 
 class Game {
 public:
@@ -37,4 +38,5 @@ private:
     VectorGraphics vectorGraphics;
     Interface interface;
     bool isRunning;
+    GameState gameState;
 }; 

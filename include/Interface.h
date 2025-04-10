@@ -9,13 +9,14 @@
 #include "Rendering/Shapes/Rectangle.h"
 #include "Rendering/Shapes/Text.h"
 #include <GLFW/glfw3.h>
+#include "GameState.h"
 
 class VectorGraphics;
 struct GLFWwindow;
 
 class Interface {
 public:
-    Interface();
+    Interface(GameState& gameState);
     ~Interface() = default;
 
     // Initialize font renderer
@@ -32,24 +33,11 @@ public:
     // Getter for FontRenderer
     FontRenderer& getFontRenderer() { return fontRenderer; }
 
-    // Setters for display information
-    void setCursorWorldPosition(const glm::vec2& position) { 
-        cursorWorldPosition = position; 
-        updateCursorText();
-    }
-    
-    void setFPS(float fps) { 
-        currentFPS = fps; 
-        updateFPSText();
-    }
-
 private:
+    // Static list of GameState properties to display
+    static const std::vector<std::string> GAME_STATE_PROPERTIES;
     // Initialize UI components
     void initializeUIComponents();
-    
-    // Update UI component texts
-    void updateCursorText();
-    void updateFPSText();
     
     // UI properties
     const float UI_FONT_SCALE = 0.3f;
@@ -58,19 +46,17 @@ private:
     const float INFO_PANEL_X = 90.0f;
     const float INFO_PANEL_Y = 90.0f;
     const float INFO_PANEL_WIDTH = 200.0f;
-    const float INFO_PANEL_HEIGHT = 60.0f;
     
     // Member variables
-    glm::vec2 cursorWorldPosition;
-    float currentFPS;
     FontRenderer fontRenderer;
     
     // For organizing UI rendering
     std::shared_ptr<Rendering::Layer> uiLayer;
     GLFWwindow* targetWindow;
     
-    // UI components (stored to avoid recreation on each render)
+    // UI components
     std::shared_ptr<Rendering::Shapes::Rectangle> infoPanelBackground;
-    std::shared_ptr<Rendering::Shapes::Text> cursorPositionText;
-    std::shared_ptr<Rendering::Shapes::Text> fpsText;
+    std::vector<std::shared_ptr<Rendering::Shapes::Text>> propertyTexts;
+
+    GameState& gameState;
 }; 

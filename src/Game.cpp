@@ -14,10 +14,11 @@
 Game::Game() 
     : window(nullptr)
     , camera()
-    , world()
-    , inputManager(nullptr, camera, world.getEntityManager())
+    , world(gameState)
+    , inputManager(window, camera, world.getEntityManager(), gameState)
     , vectorGraphics(interface.getFontRenderer())
-    , isRunning(true) {
+    , isRunning(true)
+    , interface(gameState) {
     
     std::cout << "Initializing game..." << std::endl;
     
@@ -226,7 +227,7 @@ void Game::run() {
         if (frameDuration > 0.0) {
             float fps = 1.0f / static_cast<float>(frameDuration);
             // std::cout << "FPS: " << fps << std::endl;  // Output FPS
-            interface.setFPS(fps);
+            gameState.set("system.fps", std::to_string(fps));
         }
     }
     
@@ -242,7 +243,6 @@ void Game::processInput() {
 void Game::update(float deltaTime) {
     inputManager.update(deltaTime);
     world.update(deltaTime);
-    interface.setCursorWorldPosition(inputManager.getCursorWorldPos());
     interface.update(deltaTime);
 }
 
@@ -327,7 +327,6 @@ void Game::mouseMoveCallback(GLFWwindow* window, double xpos, double ypos) {
         glm::vec4 worldPos = glm::inverse(game->camera.getProjectionMatrix() * game->camera.getViewMatrix()) * 
                             glm::vec4(ndcX, ndcY, 0.0f, 1.0f);
         
-        game->interface.setCursorWorldPosition(glm::vec2(worldPos.x, worldPos.y));
     }
 }
 

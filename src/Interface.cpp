@@ -8,15 +8,22 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
-Interface::Interface()
-    : cursorWorldPosition(0.0f, 0.0f)
-    , currentFPS(0.0f)
-    , uiLayer(nullptr)
-    , targetWindow(nullptr)
-    , infoPanelBackground(nullptr)
-    , cursorPositionText(nullptr)
-    , fpsText(nullptr) {
-    std::cout << "Interface constructor called" << std::endl;
+const std::vector<std::string> Interface::GAME_STATE_PROPERTIES = {
+    "world.tileCount",
+    "world.totalShapes",
+    "world.tileMemoryKB",
+    "world.shapeMemoryKB",
+    "world.totalMemoryKB",
+    "system.fps",
+    "input.cursorWindowPosition",
+    "input.cursorWorldPosition"
+};
+
+Interface::Interface(GameState& gameState)
+    : gameState(gameState),
+      uiLayer(nullptr),
+      targetWindow(nullptr),
+      infoPanelBackground(nullptr) {
     uiLayer = std::make_shared<Rendering::Layer>(1000.0f);
 }
 
@@ -32,75 +39,54 @@ bool Interface::initialize() {
 
 bool Interface::initializeGraphics(GLFWwindow* window) {
     targetWindow = window;
-    
-    // Initialize all UI components
     initializeUIComponents();
-    
     return true;
 }
 
 void Interface::initializeUIComponents() {
+    // Calculate required height based on number of properties
+    const float lineSpacing = UI_LINE_HEIGHT + 5.0f;
+    const float panelHeight = UI_PADDING * 2 + GAME_STATE_PROPERTIES.size() * lineSpacing;
+    
     // Create info panel background
-    glm::vec2 boxPos(INFO_PANEL_X + INFO_PANEL_WIDTH/2, INFO_PANEL_Y + INFO_PANEL_HEIGHT/2);
+    glm::vec2 boxPos(INFO_PANEL_X + INFO_PANEL_WIDTH/2, INFO_PANEL_Y + panelHeight/2);
     infoPanelBackground = std::make_shared<Rendering::Shapes::Rectangle>(
-        boxPos,                                  // position
-        glm::vec2(INFO_PANEL_WIDTH, INFO_PANEL_HEIGHT), // size
-        glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),       // color
-        1000.1f                                  // z-index
+        boxPos,
+        glm::vec2(INFO_PANEL_WIDTH, panelHeight),
+        glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),
+        1000.1f
     );
-    
-    // Create cursor position text (starting with a placeholder)
-    cursorPositionText = std::make_shared<Rendering::Shapes::Text>(
-        "Cursor: (0.0, 0.0)",                                      // initial text
-        glm::vec2(INFO_PANEL_X + UI_PADDING, INFO_PANEL_Y + UI_PADDING), // position
-        glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),                         // color
-        1000.5f                                                    // z-index (increased to render on top)
-    );
-    
-    // Create FPS text (starting with a placeholder)
-    fpsText = std::make_shared<Rendering::Shapes::Text>(
-        "FPS: 0.0",                                                        // initial text
-        glm::vec2(INFO_PANEL_X + UI_PADDING, INFO_PANEL_Y + UI_PADDING + UI_LINE_HEIGHT), // position
-        glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),                                 // color
-        1000.5f                                                            // z-index (increased to render on top)
-    );
-    
-    // Add all components to the UI layer
     uiLayer->addItem(infoPanelBackground);
-    uiLayer->addItem(cursorPositionText);
-    uiLayer->addItem(fpsText);
-    
-    // Update texts with initial values
-    updateCursorText();
-    updateFPSText();
-}
 
-void Interface::updateCursorText() {
-    if (cursorPositionText) {
-        std::stringstream cursorText;
-        cursorText << "Cursor: (" << std::fixed << std::setprecision(1) 
-                  << cursorWorldPosition.x << ", " << cursorWorldPosition.y << ")";
-        cursorPositionText->setText(cursorText.str());
-    }
-}
+    // Create text objects for each property
+    propertyTexts.clear();
+    for (size_t i = 0; i < GAME_STATE_PROPERTIES.size(); i++) {
+        glm::vec2 textPos(
+            INFO_PANEL_X + UI_PADDING,
+            INFO_PANEL_Y + UI_PADDING + i * lineSpacing
+        );
 
-void Interface::updateFPSText() {
-    if (fpsText) {
-        std::stringstream fpsTextStr;
-        fpsTextStr << "FPS: " << std::fixed << std::setprecision(1) << currentFPS;
-        fpsText->setText(fpsTextStr.str());
+        auto text = std::make_shared<Rendering::Shapes::Text>(
+            GAME_STATE_PROPERTIES[i] + ": ...",
+            textPos,
+            glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            1000.5f
+        );
+        
+        propertyTexts.push_back(text);
+        uiLayer->addItem(text);
     }
 }
 
 void Interface::update(float deltaTime) {
-   // No update needed - texts are updated when values change via setters
+    for (size_t i = 0; i < GAME_STATE_PROPERTIES.size(); i++) {
+        const auto& property = GAME_STATE_PROPERTIES[i];
+        propertyTexts[i]->setText(property + ": " + gameState.get(property));
+    }
 }
 
 void Interface::render(VectorGraphics& graphics, const glm::mat4& projectionMatrix) {
-    // Set projection for font renderer (still need this for text rendering)
     fontRenderer.setProjection(projectionMatrix);
-    
-    // Draw all UI components via their layers
     if (uiLayer) {
         uiLayer->render(graphics, glm::mat4(1.0f), projectionMatrix);
     }
