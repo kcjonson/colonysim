@@ -16,7 +16,7 @@ Game::Game()
     , camera()
     , world()
     , inputManager(nullptr, camera, world.getEntityManager())
-    , vectorGraphics()
+    , vectorGraphics(interface.getFontRenderer())
     , isRunning(true) {
     
     std::cout << "Initializing game..." << std::endl;

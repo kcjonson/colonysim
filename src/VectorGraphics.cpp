@@ -101,7 +101,9 @@ void Shader::setUniform(const char* name, const glm::mat4& value) const {
     glUniformMatrix4fv(glGetUniformLocation(program, name), 1, GL_FALSE, &value[0][0]);
 }
 
-VectorGraphics::VectorGraphics() : initialized(false) {
+VectorGraphics::VectorGraphics(FontRenderer& fontRenderer) 
+    : initialized(false)
+    , fontRenderer(fontRenderer) {
     // Initialize member variables
     VAO = 0;
     VBO = 0;
@@ -185,17 +187,37 @@ void VectorGraphics::render(const glm::mat4& viewMatrix, const glm::mat4& projec
             }
         #endif
     }
+    
+    // Render all text commands after other geometry has been drawn
+    // This allows for proper layer ordering
+    for (const auto& cmd : textCommands) {
+        // Convert RGBA color to RGB for font renderer
+        glm::vec3 textColor(cmd.color.r, cmd.color.g, cmd.color.b);
+        
+        // Adjust the y-position for baseline alignment
+        // The FontRenderer's algorithm works with the top-left position,
+        // but we need to offset it to get baseline alignment
+        glm::vec2 adjustedPosition = cmd.position;
+        adjustedPosition.y += 12.0f * 0.3f; // Apply an upward offset based on font size and scale
+        
+        fontRenderer.renderText(cmd.text, adjustedPosition, 0.3f, textColor);
+    }
+    
+    // Clear the text commands for the next frame
+    textCommands.clear();
 }
 
 void VectorGraphics::clear() {
     vertices.clear();
     indices.clear();
+    textCommands.clear();
     updateBuffers();
 }
 
 void VectorGraphics::beginBatch() {
     vertices.clear();
     indices.clear();
+    textCommands.clear();
     isBatching = true;
 }
 
@@ -307,28 +329,12 @@ void VectorGraphics::updateBuffers() {
 }
 
 void VectorGraphics::drawText(const std::string& text, const glm::vec2& position, const glm::vec4& color) {
-    // For now, we'll implement a simple text rendering using rectangles for each character
-    // This is a placeholder until we implement proper font rendering
-    const float charWidth = 8.0f;
-    const float charHeight = 12.0f;
-    const float spacing = 2.0f;
-    
-    glm::vec2 currentPos = position;
-    
-    for (char c : text) {
-        if (c == ' ') {
-            currentPos.x += charWidth + spacing;
-            continue;
-        }
-        
-        // Draw a simple rectangle for each character
-        drawRectangle(currentPos, glm::vec2(charWidth, charHeight), color);
-        currentPos.x += charWidth + spacing;
-    }
-}
-
-void VectorGraphics::renderText(const std::string& text, const glm::vec2& position, const glm::vec4& color) {
-    // This is a placeholder for future proper font rendering implementation
-    // For now, we'll just call drawText
-    drawText(text, position, color);
+    // Store text rendering commands for later execution
+    // This ensures that text is rendered in the proper z-index order
+    // as part of the Layer rendering system
+    TextCommand cmd;
+    cmd.text = text;
+    cmd.position = position;
+    cmd.color = color;
+    textCommands.push_back(cmd);
 } 

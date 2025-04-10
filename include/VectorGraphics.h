@@ -6,10 +6,18 @@
 #include <string>
 #include <memory>
 #include <map>
+#include "FontRenderer.h"
 
 struct Vertex {
     glm::vec2 position;  // Position in world/screen coordinates
     glm::vec4 color;     // RGBA color (0-1 range)
+};
+
+// For storing text rendering commands to be executed in order
+struct TextCommand {
+    std::string text;
+    glm::vec2 position;
+    glm::vec4 color;
 };
 
 class Shader {
@@ -27,7 +35,7 @@ private:
 
 class VectorGraphics {
 public:
-    VectorGraphics();
+    VectorGraphics(FontRenderer& fontRenderer);
     ~VectorGraphics();
 
     // Initialize OpenGL resources after GLAD is initialized
@@ -81,7 +89,7 @@ public:
     void drawPolygon(const std::vector<glm::vec2>& points, const glm::vec4& color);
     
     /**
-     * Draw text using simple rectangles for each character
+     * Draw text using the FontRenderer
      * @param text String to render
      * @param position Top-left position of the text
      * @param color RGBA color (0-1 range)
@@ -90,7 +98,6 @@ public:
 
 private:
     void updateBuffers();  // Update OpenGL buffers with current vertices and indices
-    void renderText(const std::string& text, const glm::vec2& position, const glm::vec4& color);  // Internal text rendering method
 
     Shader shader;
     std::vector<Vertex> vertices;      // List of vertices to render
@@ -99,4 +106,6 @@ private:
     GLuint VBO;                        // Vertex Buffer Object
     GLuint EBO;                        // Element Buffer Object
     bool initialized;                  // Whether the graphics system is initialized
+    FontRenderer& fontRenderer;        // Reference to the font renderer
+    std::vector<TextCommand> textCommands; // List of text commands to execute in order
 }; 
