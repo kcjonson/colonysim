@@ -24,7 +24,8 @@ Text::Text(const std::string& text, const glm::vec2& position, const Styles::Tex
 }
 
 void Text::draw(VectorGraphics& graphics) {
-    // In the future, could add support for text shadows, outlines, etc.
+    // Store text rendering commands to be executed by the unified renderer
+    // at the appropriate time
     graphics.drawText(text, position, style.color);
 }
 

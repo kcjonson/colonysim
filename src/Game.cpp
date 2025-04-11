@@ -14,13 +14,17 @@
 Game::Game() 
     : window(nullptr)
     , camera()
+    , gameState()
+    , vectorGraphics()
     , world(gameState)
     , inputManager(window, camera, world.getEntityManager(), gameState)
-    , vectorGraphics(interface.getFontRenderer())
-    , isRunning(true)
-    , interface(gameState) {
+    , interface(gameState)
+    , isRunning(true) {
     
     std::cout << "Initializing game..." << std::endl;
+    
+    // Set VectorGraphics to use the unified renderer
+    vectorGraphics.setRenderer(&renderer);
     
     // Load configuration
     if (!ConfigManager::getInstance().loadConfig("config/game_config.json")) {
@@ -66,6 +70,13 @@ Game::Game()
     // Initialize GLAD
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cerr << "Failed to initialize GLAD" << std::endl;
+        glfwTerminate();
+        return;
+    }
+    
+    // Initialize unified renderer first
+    if (!renderer.initialize()) {
+        std::cerr << "ERROR: Unified renderer initialization failed!" << std::endl;
         glfwTerminate();
         return;
     }
@@ -286,27 +297,27 @@ void Game::render() {
     screenProjection[3][0] = -1.0f;          // Translate x
     screenProjection[3][1] = 1.0f;           // Translate y
 
-
+    // Set unified renderer view/projection for world space
+    renderer.setView(viewMatrix);
+    renderer.setProjection(projectionMatrix);
     
     // IMPORTANT: We need to render all batches at once instead of rendering each batch separately
     // This allows proper z-ordering of transparent objects
-    // TRANSPARENCY WILL BREAK IF WE RENDER EACH BATCH SEPARATELY
     
     // Begin a single batch for all rendering
     vectorGraphics.beginBatch();
-
-    // Render examples
-    //examples.render(vectorGraphics, viewMatrix, projectionMatrix);
 
     // Render world
     world.render(vectorGraphics, viewMatrix, projectionMatrix);
 
     // Render entity manager
-    // TODO: should the entity manager be owned by world?
-    // TODO: make it independent of world and its own layer
-    // I don't think so because entities may be moving but the world may not be.
     world.getEntityManager().render(vectorGraphics);
     
+    // Set unified renderer projection for screen space UI
+    renderer.setView(glm::mat4(1.0f));  // Identity view for screen space
+    renderer.setProjection(screenProjection);
+    
+    // Interface uses screen-space projection
     interface.render(vectorGraphics, screenProjection);
     
     // End batch and render everything at once

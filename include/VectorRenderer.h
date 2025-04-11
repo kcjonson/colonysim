@@ -3,8 +3,8 @@
 #include <vector>
 #include <memory>
 #include <glm/glm.hpp>
-#include "Shader.h"
 #include "Vertex.h"
+#include "Shader.h"
 
 class VectorRenderer {
 public:

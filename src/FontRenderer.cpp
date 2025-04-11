@@ -3,14 +3,11 @@
 #include <fstream>
 #include <sstream>
 
-FontRenderer::FontRenderer() : shaderProgram(0), VAO(0), VBO(0), library(nullptr) {
+FontRenderer::FontRenderer() : VAO(0), VBO(0), library(nullptr) {
     std::cout << "FontRenderer constructor called" << std::endl;
 }
 
 FontRenderer::~FontRenderer() {
-    if (shaderProgram) {
-        glDeleteProgram(shaderProgram);
-    }
     if (VAO) {
         glDeleteVertexArrays(1, &VAO);
     }
@@ -39,9 +36,9 @@ bool FontRenderer::initialize() {
     }
     std::cout << "Font loaded successfully" << std::endl;
 
-    // Compile shaders
-    if (!compileShaders()) {
-        std::cerr << "Failed to compile shaders" << std::endl;
+    // Initialize the shader
+    if (!shader.loadFromFile("text.vert", "text.frag")) {
+        std::cerr << "Failed to load text shaders" << std::endl;
         return false;
     }
     std::cout << "Shaders compiled successfully" << std::endl;
@@ -115,83 +112,13 @@ bool FontRenderer::loadFont(const std::string& fontPath) {
     return true;
 }
 
-bool FontRenderer::compileShaders() {
-    std::cout << "Compiling shaders..." << std::endl;
-    
-    const char* vertexShaderSource = R"(
-        #version 330 core
-        layout (location = 0) in vec4 vertex;
-        out vec2 TexCoords;
-        uniform mat4 projection;
-        void main() {
-            gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);
-            TexCoords = vertex.zw;
-        }
-    )";
-
-    const char* fragmentShaderSource = R"(
-        #version 330 core
-        in vec2 TexCoords;
-        out vec4 color;
-        uniform sampler2D text;
-        uniform vec3 textColor;
-        void main() {
-            vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, TexCoords).r);
-            color = vec4(textColor, 1.0) * sampled;
-        }
-    )";
-
-    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-
-    int success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-        return false;
-    }
-
-    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-        return false;
-    }
-
-    shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-        return false;
-    }
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-
-    std::cout << "Shaders compiled and linked successfully" << std::endl;
-    return true;
-}
-
 void FontRenderer::renderText(const std::string& text, const glm::vec2& position, float scale, const glm::vec3& color) {
     // Enable blending for text transparency
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
-    // Set up shader and uniforms
-    glUseProgram(shaderProgram);
-    glUniform3f(glGetUniformLocation(shaderProgram, "textColor"), color.x, color.y, color.z);
+    // Set text color uniform (shader is already in use from setProjectionMatrix)
+    glUniform3f(glGetUniformLocation(shader.getProgram(), "textColor"), color.x, color.y, color.z);
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(VAO);
 
@@ -243,9 +170,4 @@ void FontRenderer::renderText(const std::string& text, const glm::vec2& position
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_BLEND);
-}
-
-void FontRenderer::setProjection(const glm::mat4& projection) {
-    glUseProgram(shaderProgram);
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, &projection[0][0]);
 } 

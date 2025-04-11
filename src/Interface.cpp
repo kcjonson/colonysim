@@ -25,13 +25,14 @@ Interface::Interface(GameState& gameState)
       uiLayer(nullptr),
       targetWindow(nullptr),
       infoPanelBackground(nullptr) {
-    uiLayer = std::make_shared<Rendering::Layer>(1000.0f);
+    // Create UI layer with high z-index and ScreenSpace projection
+    uiLayer = std::make_shared<Rendering::Layer>(1000.0f, Rendering::ProjectionType::ScreenSpace);
 }
 
 bool Interface::initialize() {
     std::cout << "Initializing Interface..." << std::endl;
-    if (!fontRenderer.initialize()) {
-        std::cerr << "Failed to initialize FontRenderer" << std::endl;
+    if (!renderer.initialize()) {
+        std::cerr << "Failed to initialize unified renderer" << std::endl;
         return false;
     }
     std::cout << "Interface initialization complete" << std::endl;
@@ -49,7 +50,9 @@ void Interface::initializeUIComponents() {
     const float lineSpacing = UI_LINE_HEIGHT + 5.0f;
     const float panelHeight = UI_PADDING * 2 + GAME_STATE_PROPERTIES.size() * lineSpacing;
     
-    // Create info panel background
+    // Create info panel background - position is top-left of the panel + half width/height
+    // Since we're using screen space coordinates (0,0 at top-left), position represents center point
+    // of the rectangle, which needs to be offset by half width/height from top-left corner
     glm::vec2 boxPos(INFO_PANEL_X + INFO_PANEL_WIDTH/2, INFO_PANEL_Y + panelHeight/2);
     infoPanelBackground = std::make_shared<Rendering::Shapes::Rectangle>(
         boxPos,
@@ -64,6 +67,7 @@ void Interface::initializeUIComponents() {
     // Create text objects for each property
     propertyTexts.clear();
     for (size_t i = 0; i < GAME_STATE_PROPERTIES.size(); i++) {
+        // Text positions start from top-left of panel plus padding
         glm::vec2 textPos(
             INFO_PANEL_X + UI_PADDING,
             INFO_PANEL_Y + UI_PADDING + i * lineSpacing
@@ -91,7 +95,13 @@ void Interface::update(float deltaTime) {
 }
 
 void Interface::render(VectorGraphics& graphics, const glm::mat4& projectionMatrix) {
-    fontRenderer.setProjection(projectionMatrix);
+    // Set projection for unified renderer
+    renderer.setProjection(projectionMatrix);
+    renderer.setView(glm::mat4(1.0f));  // Use identity view matrix for screen space
+    
+    // Render UI layer with proper screen space projection
+    // Identity view matrix (glm::mat4(1.0f)) is used for screen space coordinates
+    // since we don't want any camera transformation applied
     if (uiLayer) {
         uiLayer->render(graphics, glm::mat4(1.0f), projectionMatrix);
     }

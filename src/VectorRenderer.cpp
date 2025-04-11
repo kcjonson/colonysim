@@ -1,7 +1,8 @@
 #include "VectorRenderer.h"
 #include <glad/glad.h>
+#include <iostream>
 
-VectorRenderer::VectorRenderer() : VAO(0), VBO(0), EBO(0) {}
+VectorRenderer::VectorRenderer() : VAO(0), VBO(0), EBO(0), shader(std::make_unique<Shader>()) {}
 
 VectorRenderer::~VectorRenderer() {
     if (VAO != 0) glDeleteVertexArrays(1, &VAO);
@@ -29,12 +30,8 @@ void VectorRenderer::setupBuffers() {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
 
     // Position attribute
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
     glEnableVertexAttribArray(0);
-
-    // Texture coordinate attribute
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
-    glEnableVertexAttribArray(1);
 
     // Color attribute
     glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
@@ -44,9 +41,8 @@ void VectorRenderer::setupBuffers() {
 }
 
 void VectorRenderer::setupShader() {
-    shader = std::make_unique<Shader>();
-    if (!shader->loadFromFile("shaders/vector.vert", "shaders/vector.frag")) {
-        throw std::runtime_error("Failed to load vector shaders");
+    if (!shader->loadFromFile("vector.vert", "vector.frag")) {
+        std::cerr << "Failed to load vector shaders" << std::endl;
     }
 }
 
@@ -59,8 +55,6 @@ void VectorRenderer::render(const std::vector<Vertex>& vertices, const std::vect
     shader->setUniform("projection", projection);
     shader->setUniform("view", view);
     shader->setUniform("model", model);
-    shader->setUniform("thickness", thickness);
-    shader->setUniform("viewportSize", glm::vec2(1280.0f, 720.0f)); // TODO: Get from window
 
     // Update vertex data
     glBindVertexArray(VAO);

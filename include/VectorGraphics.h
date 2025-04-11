@@ -6,24 +6,17 @@
 #include <string>
 #include <memory>
 #include <map>
-#include "FontRenderer.h"
 #include <iostream>
+#include "Vertex.h"
+#include "Shader.h"
+
+class Renderer; // Forward declaration
 
 // Border position enum for shape rendering
 enum class BorderPosition {
     Inside,
     Outside,
     Center
-};
-
-struct Vertex {
-    glm::vec2 position;  // Position in world/screen coordinates
-    glm::vec4 color;     // RGBA color (0-1 range)
-    
-    Vertex(const glm::vec2& pos, const glm::vec4& col) 
-        : position(pos), color(col) {
-        // Make sure the color is exactly as passed in
-    }
 };
 
 // For storing text rendering commands to be executed in order
@@ -33,23 +26,13 @@ struct TextCommand {
     glm::vec4 color;
 };
 
-class Shader {
-public:
-    Shader() : program(0) {}
-    ~Shader() { if (program) glDeleteProgram(program); }
-    
-    bool loadFromFile(const char* vertexPath, const char* fragmentPath);
-    void use() const { glUseProgram(program); }
-    void setUniform(const char* name, const glm::mat4& value) const;
-    
-private:
-    GLuint program;
-};
-
 class VectorGraphics {
 public:
-    VectorGraphics(FontRenderer& fontRenderer);
+    VectorGraphics();
     ~VectorGraphics();
+
+    // Set the renderer to use for text rendering
+    void setRenderer(Renderer* rendererPtr) { renderer = rendererPtr; }
 
     // Initialize OpenGL resources after GLAD is initialized
     bool initialize();
@@ -134,7 +117,7 @@ public:
     );
     
     /**
-     * Draw text using the FontRenderer
+     * Draw text using the unified Renderer
      * @param text String to render
      * @param position Top-left position of the text
      * @param color RGBA color (0-1 range)
@@ -151,6 +134,6 @@ private:
     GLuint VBO;                        // Vertex Buffer Object
     GLuint EBO;                        // Element Buffer Object
     bool initialized;                  // Whether the graphics system is initialized
-    FontRenderer& fontRenderer;        // Reference to the font renderer
+    Renderer* renderer;                // Pointer to the unified renderer
     std::vector<TextCommand> textCommands; // List of text commands to execute in order
 }; 

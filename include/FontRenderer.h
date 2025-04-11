@@ -6,6 +6,7 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include <glad/glad.h>
+#include "Shader.h"
 
 class FontRenderer {
 public:
@@ -26,12 +27,21 @@ public:
      * @param color RGB color of the text (0-1 range)
      */
     void renderText(const std::string& text, const glm::vec2& position, float scale, const glm::vec3& color);
-
+    
     /**
-     * Set the projection matrix for text rendering
-     * @param projection The projection matrix to use for transforming text coordinates
+     * Get the shader program ID for external use (like setting uniforms)
+     * @return OpenGL shader program ID
      */
-    void setProjection(const glm::mat4& projection);
+    unsigned int getShaderProgram() const { return shader.getProgram(); }
+    
+    /**
+     * Set the projection matrix for the text shader
+     * @param projection The projection matrix to use
+     */
+    void setProjectionMatrix(const glm::mat4& projection) {
+        shader.use();
+        shader.setUniform("projection", projection);
+    }
 
 private:
     /**
@@ -51,14 +61,8 @@ private:
      */
     bool loadFont(const std::string& fontPath);
 
-    /**
-     * Compile the shaders used for text rendering
-     * @return true if shaders were compiled successfully, false otherwise
-     */
-    bool compileShaders();
-
     std::map<char, Character> characters;  // Map of loaded characters
-    unsigned int shaderProgram;            // OpenGL shader program
+    Shader shader;                         // Shader using the shared class
     unsigned int VAO;                      // Vertex Array Object
     unsigned int VBO;                      // Vertex Buffer Object
     FT_Library library;                    // FreeType library instance

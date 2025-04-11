@@ -1,5 +1,6 @@
 #include "VectorGraphics.h"
 #include "Rendering/Layer.h"
+#include "Renderer.h"
 #include <glad/glad.h>
 #include <fstream>
 #include <sstream>
@@ -7,103 +8,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <filesystem>
 
-bool Shader::loadFromFile(const char* vertexPath, const char* fragmentPath) {
-    // Get the executable's directory
-    std::filesystem::path exePath = std::filesystem::current_path();
-    std::filesystem::path shaderDir = exePath / "shaders";
-    
-    // Construct full paths
-    std::filesystem::path fullVertexPath = shaderDir / vertexPath;
-    std::filesystem::path fullFragmentPath = shaderDir / fragmentPath;
-
-    // Read vertex shader
-    std::string vertexCode;
-    std::ifstream vShaderFile;
-    vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    try {
-        vShaderFile.open(fullVertexPath);
-        std::stringstream vShaderStream;
-        vShaderStream << vShaderFile.rdbuf();
-        vShaderFile.close();
-        vertexCode = vShaderStream.str();
-    } catch (std::ifstream::failure& e) {
-        std::cerr << "ERROR::SHADER::VERTEX::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
-        std::cerr << "Tried to open: " << fullVertexPath << std::endl;
-        return false;
-    }
-
-    // Read fragment shader
-    std::string fragmentCode;
-    std::ifstream fShaderFile;
-    fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    try {
-        fShaderFile.open(fullFragmentPath);
-        std::stringstream fShaderStream;
-        fShaderStream << fShaderFile.rdbuf();
-        fShaderFile.close();
-        fragmentCode = fShaderStream.str();
-    } catch (std::ifstream::failure& e) {
-        std::cerr << "ERROR::SHADER::FRAGMENT::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
-        std::cerr << "Tried to open: " << fullFragmentPath << std::endl;
-        return false;
-    }
-
-    const char* vShaderCode = vertexCode.c_str();
-    const char* fShaderCode = fragmentCode.c_str();
-
-    // Compile shaders
-    unsigned int vertex, fragment;
-    int success;
-    char infoLog[512];
-
-    // Vertex shader
-    vertex = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex, 1, &vShaderCode, NULL);
-    glCompileShader(vertex);
-    glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(vertex, 512, NULL, infoLog);
-        std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-        return false;
-    }
-
-    // Fragment shader
-    fragment = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment, 1, &fShaderCode, NULL);
-    glCompileShader(fragment);
-    glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(fragment, 512, NULL, infoLog);
-        std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-        return false;
-    }
-
-    // Shader program
-    program = glCreateProgram();
-    glAttachShader(program, vertex);
-    glAttachShader(program, fragment);
-    glLinkProgram(program);
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(program, 512, NULL, infoLog);
-        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-        return false;
-    }
-
-    // Delete shaders
-    glDeleteShader(vertex);
-    glDeleteShader(fragment);
-
-    return true;
-}
-
-void Shader::setUniform(const char* name, const glm::mat4& value) const {
-    glUniformMatrix4fv(glGetUniformLocation(program, name), 1, GL_FALSE, &value[0][0]);
-}
-
-VectorGraphics::VectorGraphics(FontRenderer& fontRenderer) 
+VectorGraphics::VectorGraphics() 
     : initialized(false)
-    , fontRenderer(fontRenderer) {
+    , renderer(nullptr) {
     // Initialize member variables
     VAO = 0;
     VBO = 0;
@@ -188,20 +95,17 @@ void VectorGraphics::render(const glm::mat4& viewMatrix, const glm::mat4& projec
         #endif
     }
     
-    // Render all text commands after other geometry has been drawn
-    // This allows for proper layer ordering if no z-index is set
-    // This might be a problem if we want text under things.
-    for (const auto& cmd : textCommands) {
-        // Convert RGBA color to RGB for font renderer
-        glm::vec3 textColor(cmd.color.r, cmd.color.g, cmd.color.b);
-        
-        // Adjust the y-position for baseline alignment
-        // The FontRenderer's algorithm works with the top-left position,
-        // but we need to offset it to get baseline alignment
-        glm::vec2 adjustedPosition = cmd.position;
-        adjustedPosition.y += 12.0f * 0.3f; // Apply an upward offset based on font size and scale
-        
-        fontRenderer.renderText(cmd.text, adjustedPosition, 0.3f, textColor);
+    // Render all text commands using the unified renderer
+    if (renderer != nullptr) {
+        for (const auto& cmd : textCommands) {
+            // Convert RGBA color to RGB for text renderer
+            glm::vec3 textColor(cmd.color.r, cmd.color.g, cmd.color.b);
+            
+            // Use the unified renderer to render text
+            renderer->renderText(cmd.text, cmd.position, 0.3f, textColor);
+        }
+    } else {
+        std::cerr << "Warning: Text rendering attempted with null renderer" << std::endl;
     }
     
     // Clear the text commands for the next frame
@@ -989,9 +893,7 @@ void VectorGraphics::updateBuffers() {
 }
 
 void VectorGraphics::drawText(const std::string& text, const glm::vec2& position, const glm::vec4& color) {
-    // Store text rendering commands for later execution
-    // This ensures that text is rendered in the proper z-index order
-    // as part of the Layer rendering system
+    // Store text rendering commands for later execution by the unified renderer
     TextCommand cmd;
     cmd.text = text;
     cmd.position = position;

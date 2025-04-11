@@ -27,6 +27,7 @@ set(SOURCES
     src/InputManager.cpp
     src/Interface.cpp
     src/main.cpp
+    src/Renderer.cpp
     src/Rendering/Layer.cpp
     src/Rendering/Shapes/Circle.cpp
     src/Rendering/Shapes/Line.cpp
@@ -37,8 +38,10 @@ set(SOURCES
     src/Rendering/Styles/Base.cpp
     src/Rendering/Styles/Border.cpp
     src/Rendering/Styles/Shape.cpp
+    src/Shader.cpp
     src/Tile.cpp
     src/VectorGraphics.cpp
+    src/VectorRenderer.cpp
     src/World.cpp
 )
 
@@ -54,6 +57,7 @@ set(HEADERS
     include/GameState.h
     include/InputManager.h
     include/Interface.h
+    include/Renderer.h
     include/Rendering/Layer.h
     include/Rendering/Shapes/Circle.h
     include/Rendering/Shapes/Line.h
@@ -64,8 +68,11 @@ set(HEADERS
     include/Rendering/Styles/Base.h
     include/Rendering/Styles/Border.h
     include/Rendering/Styles/Shape.h
+    include/Shader.h
     include/Tile.h
+    include/Vertex.h
     include/VectorGraphics.h
+    include/VectorRenderer.h
     include/World.h
 )
 

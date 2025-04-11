@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include "VectorGraphics.h"
+#include "Renderer.h"
 #include "World.h"
 #include "Camera.h"
 #include "InputManager.h"
@@ -34,11 +35,12 @@ private:
     // Members in initialization order
     GLFWwindow* window;
     Camera camera;
+    GameState gameState;
+    Renderer renderer;
+    VectorGraphics vectorGraphics;
     World world;
     InputManager inputManager;
-    VectorGraphics vectorGraphics;
     Interface interface;
     Examples examples;
     bool isRunning;
-    GameState gameState;
 }; 

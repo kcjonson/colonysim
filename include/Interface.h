@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 #include <string>
 #include "VectorGraphics.h"
-#include "FontRenderer.h"
+#include "Renderer.h"
 #include "Rendering/Layer.h"
 #include "Rendering/Shapes/Rectangle.h"
 #include "Rendering/Shapes/Text.h"
@@ -19,7 +19,7 @@ public:
     Interface(GameState& gameState);
     ~Interface() = default;
 
-    // Initialize font renderer
+    // Initialize renderer
     bool initialize();
     
     // Initialize with graphics and window reference
@@ -30,8 +30,8 @@ public:
     // Main render method for UI elements
     void render(VectorGraphics& graphics, const glm::mat4& projectionMatrix);
 
-    // Getter for FontRenderer
-    FontRenderer& getFontRenderer() { return fontRenderer; }
+    // Getter for unified renderer
+    Renderer& getRenderer() { return renderer; }
 
 private:
     // Static list of GameState properties to display
@@ -47,8 +47,8 @@ private:
     const float INFO_PANEL_Y = 10.0f;
     const float INFO_PANEL_WIDTH = 200.0f;
     
-    // Member variables
-    FontRenderer fontRenderer;
+    // Member variables - unified renderer instead of separate FontRenderer
+    Renderer renderer;
     
     // For organizing UI rendering
     std::shared_ptr<Rendering::Layer> uiLayer;
