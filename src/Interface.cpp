@@ -55,7 +55,7 @@ void Interface::initializeUIComponents() {
         boxPos,
         glm::vec2(INFO_PANEL_WIDTH, panelHeight),
         Rendering::Styles::Rectangle({
-            .color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)  // Black background
+            .color = glm::vec4(0.0f, 0.0f, 0.0f, 0.9f)  // Black background
         }),
         1000.1f
     );

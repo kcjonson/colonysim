@@ -44,7 +44,7 @@ Game::Game()
     
     // Explicitly request an alpha channel
     glfwWindowHint(GLFW_ALPHA_BITS, 8);
-    glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
+    glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_FALSE);
 
     // Create window using config settings
     window = glfwCreateWindow(
@@ -260,7 +260,7 @@ void Game::update(float deltaTime) {
 }
 
 void Game::render() {
-    // Set clear color with alpha - use black for better contrast
+    // Set clear color with alpha - use black for better contrast 
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
@@ -286,31 +286,35 @@ void Game::render() {
     screenProjection[3][0] = -1.0f;          // Translate x
     screenProjection[3][1] = 1.0f;           // Translate y
 
+
+    
+    // IMPORTANT: We need to render all batches at once instead of rendering each batch separately
+    // This allows proper z-ordering of transparent objects
+    // TRANSPARENCY WILL BREAK IF WE RENDER EACH BATCH SEPARATELY
+    
+    // Begin a single batch for all rendering
+    vectorGraphics.beginBatch();
+
     // Render examples
     //examples.render(vectorGraphics, viewMatrix, projectionMatrix);
-    
 
-    // Make sure to clear any previous data
-    vectorGraphics.beginBatch();
+    // Render world
     world.render(vectorGraphics, viewMatrix, projectionMatrix);
-    vectorGraphics.endBatch();
-    vectorGraphics.render(viewMatrix, projectionMatrix);
 
     // Render entity manager
     // TODO: should the entity manager be owned by world?
     // TODO: make it independent of world and its own layer
     // I don't think so because entities may be moving but the world may not be.
-    vectorGraphics.beginBatch();
     world.getEntityManager().render(vectorGraphics);
+    
+    interface.render(vectorGraphics, screenProjection);
+    
+    // End batch and render everything at once
     vectorGraphics.endBatch();
     vectorGraphics.render(viewMatrix, projectionMatrix);
 
-    // Start a new batch for UI rendering
-    vectorGraphics.beginBatch();
-    interface.render(vectorGraphics, screenProjection);
-    vectorGraphics.endBatch();
-    vectorGraphics.render(glm::mat4(1.0f), screenProjection); // Identity view matrix for screen space
-
+    // Swap buffers
+    glfwSwapBuffers(window);
 }
 
 void Game::framebufferSizeCallback(GLFWwindow* window, int width, int height) {

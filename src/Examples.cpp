@@ -20,11 +20,7 @@ void Examples::initialize() {
 }
 
 void Examples::render(VectorGraphics& vectorGraphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
-    // Begin batch and render the examples layer
-    vectorGraphics.beginBatch();
     examplesLayer->render(vectorGraphics, viewMatrix, projectionMatrix);
-    vectorGraphics.endBatch();
-    vectorGraphics.render(viewMatrix, projectionMatrix);
 }
 
 void Examples::createRectangleExamples() {

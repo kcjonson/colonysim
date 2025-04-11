@@ -43,8 +43,8 @@ private:
     const float UI_FONT_SCALE = 0.3f;
     const float UI_PADDING = 10.0f;
     const float UI_LINE_HEIGHT = 20.0f;
-    const float INFO_PANEL_X = 90.0f;
-    const float INFO_PANEL_Y = 90.0f;
+    const float INFO_PANEL_X = 10.0f;
+    const float INFO_PANEL_Y = 10.0f;
     const float INFO_PANEL_WIDTH = 200.0f;
     
     // Member variables

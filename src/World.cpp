@@ -121,8 +121,8 @@ void World::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const 
             rectPos,
             rectSize,
             Rendering::Styles::Rectangle({
-                .color = glm::vec4(0.0f, 0.0f, 0.0f, 0.3f),      // Semi-transparent blue fill                               // Full opacity multiplier
-                .borderColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), // Semi-transparent red border
+                .color = glm::vec4(0.2f, 0.2f, 0.8f, 0.15f),     // Light blue with minimal transparency
+                .borderColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), // Red border with full opacity
                 .borderWidth = 2.0f,                             // 2px border width
                 .borderPosition = BorderPosition::Outside,       // Border outside the rectangle
                 .cornerRadius = 5.0f                             // Rounded corners
