@@ -109,8 +109,8 @@ void World::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const 
     // Get camera bounds
     glm::vec4 bounds = getCameraBounds();
 
-    // Draw camera bounds rectangle - update position and size instead of creating a new one each frame
-    glm::vec2 rectPos((bounds.x + bounds.y) / 2.0f, (bounds.z + bounds.w) / 2.0f);
+    // Draw camera bounds rectangle - convert from bounds to top-left and size
+    glm::vec2 topLeft(bounds.x + 5.0f, bounds.z + 5.0f); // Add 5px inset
     glm::vec2 rectSize(bounds.y - bounds.x - 10.0f, bounds.w - bounds.z - 10.0f);
     
     // Update the existing rectangle or create a new one if it doesn't exist
@@ -118,7 +118,7 @@ void World::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const 
     if (!boundsRect) {
         std::cout << "Creating camera bounds debug rectangle" << std::endl;
         boundsRect = std::make_shared<Rendering::Shapes::Rectangle>(
-            rectPos,
+            topLeft,
             rectSize,
             Rendering::Styles::Rectangle({
                 .color = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),     // Light blue with minimal transparency
@@ -132,7 +132,7 @@ void World::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const 
         worldLayer->addItem(boundsRect);
     } else {
         // Just update position and size
-        boundsRect->setPosition(rectPos);
+        boundsRect->setPosition(topLeft);
         boundsRect->setSize(rectSize);
     }
 

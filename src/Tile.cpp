@@ -24,7 +24,7 @@ Tile::Tile(const glm::vec2& position, float height, float resource, int type, co
 void Tile::initializeDefaultShape() {
     // Create a default rectangle shape for the tile
     auto rect = std::make_shared<Shapes::Rectangle>(
-        glm::vec2(0.0f),
+        glm::vec2(-TILE_SIZE/2.0f, -TILE_SIZE/2.0f),
         glm::vec2(TILE_SIZE),
         Styles::Rectangle({
             .color = color

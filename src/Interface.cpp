@@ -50,12 +50,10 @@ void Interface::initializeUIComponents() {
     const float lineSpacing = UI_LINE_HEIGHT + 5.0f;
     const float panelHeight = UI_PADDING * 2 + GAME_STATE_PROPERTIES.size() * lineSpacing;
     
-    // Create info panel background - position is top-left of the panel + half width/height
-    // Since we're using screen space coordinates (0,0 at top-left), position represents center point
-    // of the rectangle, which needs to be offset by half width/height from top-left corner
-    glm::vec2 boxPos(INFO_PANEL_X + INFO_PANEL_WIDTH/2, INFO_PANEL_Y + panelHeight/2);
+    // Create info panel background using top-left coordinates
+    glm::vec2 topLeftPos(INFO_PANEL_X, INFO_PANEL_Y);
     infoPanelBackground = std::make_shared<Rendering::Shapes::Rectangle>(
-        boxPos,
+        topLeftPos,
         glm::vec2(INFO_PANEL_WIDTH, panelHeight),
         Rendering::Styles::Rectangle({
             .color = glm::vec4(0.0f, 0.0f, 0.0f, 0.9f)  // Black background

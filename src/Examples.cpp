@@ -26,7 +26,7 @@ void Examples::render(VectorGraphics& vectorGraphics, const glm::mat4& viewMatri
 void Examples::createRectangleExamples() {
     // Example of rectangle with transparency
     auto transRect = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(300.0f, 300.0f),
+        glm::vec2(250.0f, 250.0f),  // Top-left position
         glm::vec2(100.0f, 100.0f),
         Rendering::Styles::Rectangle({
             .color = glm::vec4(1.0f, 0.0f, 0.0f, 0.5f) // Red with 50% transparency
@@ -37,7 +37,7 @@ void Examples::createRectangleExamples() {
     
     // Example of rectangle with border and corner radius
     auto roundedRect = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(350.0f, 350.0f),
+        glm::vec2(300.0f, 300.0f),  // Top-left position
         glm::vec2(100.0f, 100.0f),
         Rendering::Styles::Rectangle({
             .color = glm::vec4(0.0f, 0.0f, 1.0f, 0.3f),    // Blue with 30% transparency
@@ -52,7 +52,7 @@ void Examples::createRectangleExamples() {
     
     // Example of rectangle with green color
     auto greenRect = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(250.0f, 350.0f),
+        glm::vec2(200.0f, 300.0f),  // Top-left position
         glm::vec2(100.0f, 100.0f),
         Rendering::Styles::Rectangle({
             .color = glm::vec4(0.0f, 1.0f, 0.0f, 0.7f)  // Green with 70% transparency
@@ -63,7 +63,7 @@ void Examples::createRectangleExamples() {
     
     // Example of rectangle with yellow border
     auto borderedRect = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(400.0f, 250.0f),
+        glm::vec2(340.0f, 210.0f),  // Top-left position
         glm::vec2(120.0f, 80.0f),
         Rendering::Styles::Rectangle({
             .color = glm::vec4(0.0f, 0.0f, 1.0f, 0.4f),      // Blue with 40% transparency
@@ -77,7 +77,7 @@ void Examples::createRectangleExamples() {
     
     // Example of rectangle with high corner radius (pill shape)
     auto pillRect = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(450.0f, 450.0f),
+        glm::vec2(370.0f, 410.0f),  // Top-left position
         glm::vec2(160.0f, 80.0f),
         Rendering::Styles::Rectangle({
             .color = glm::vec4(1.0f, 0.5f, 0.0f, 0.8f),      // Orange with 80% transparency
