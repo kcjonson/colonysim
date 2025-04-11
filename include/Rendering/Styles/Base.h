@@ -10,7 +10,7 @@ public:
     virtual ~Base() = default;
 
     glm::vec4 color;
-    float opacity;
+    float opacity; // this will change the opacity of both the fill and border
 };
 
 } // namespace Styles

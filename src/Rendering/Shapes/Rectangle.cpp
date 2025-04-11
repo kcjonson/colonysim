@@ -11,7 +11,6 @@ Rectangle::Rectangle(const glm::vec2& position, const glm::vec2& size, const Sty
 }
 
 void Rectangle::draw(VectorGraphics& graphics) {
-    // Draw the rectangle with both fill and border in a single draw call
     graphics.drawRectangle(
         position,
         size,

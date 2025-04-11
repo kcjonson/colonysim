@@ -272,6 +272,7 @@ void Game::render() {
 
     // Render entity manager
     // TODO: should the entity manager be owned by world?
+    // TODO: make it independent of world and its own layer
     // I don't think so because entities may be moving but the world may not be.
     vectorGraphics.beginBatch();
     world.getEntityManager().render(vectorGraphics);
