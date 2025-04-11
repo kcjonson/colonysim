@@ -38,6 +38,13 @@ Game::Game()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    
+    // Enable anti-aliasing
+    glfwWindowHint(GLFW_SAMPLES, 4); // 4x MSAA
+    
+    // Explicitly request an alpha channel
+    glfwWindowHint(GLFW_ALPHA_BITS, 8);
+    glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
 
     // Create window using config settings
     window = glfwCreateWindow(
@@ -110,6 +117,9 @@ Game::Game()
     // Enable blending
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    // Enable anti-aliasing
+    glEnable(GL_MULTISAMPLE);
 
     // Generate terrain
     world.generateTerrain();
@@ -120,6 +130,9 @@ Game::Game()
         glfwTerminate();
         return;
     }
+    
+    // Initialize Examples
+    examples.initialize();
 
     // Create some test entities
     std::cout << "Creating test entities..." << std::endl;
@@ -212,8 +225,8 @@ void Game::run() {
 
         // Render the frame
         render();
-
-        // Swap buffers
+        
+        // Swap buffers and poll events
         glfwSwapBuffers(window);
 
         // Poll events
@@ -247,9 +260,18 @@ void Game::update(float deltaTime) {
 }
 
 void Game::render() {
-    // Set clear color to teal
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    // Set clear color with alpha - use black for better contrast
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+    
+    // Set up OpenGL state for the entire frame
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    
+    // Use standard alpha blending to preserve color values
+    // SRC_ALPHA for source factor, ONE_MINUS_SRC_ALPHA for destination factor
+    // This means: result = src.rgb * src.a + dst.rgb * (1 - src.a)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     // Get camera matrices once per frame
     const glm::mat4& viewMatrix = camera.getViewMatrix();
@@ -263,6 +285,10 @@ void Game::render() {
     screenProjection[1][1] = -2.0f / height; // Scale y (negative to flip y-axis)
     screenProjection[3][0] = -1.0f;          // Translate x
     screenProjection[3][1] = 1.0f;           // Translate y
+
+    // Render examples
+    //examples.render(vectorGraphics, viewMatrix, projectionMatrix);
+    
 
     // Make sure to clear any previous data
     vectorGraphics.beginBatch();
@@ -284,6 +310,7 @@ void Game::render() {
     interface.render(vectorGraphics, screenProjection);
     vectorGraphics.endBatch();
     vectorGraphics.render(glm::mat4(1.0f), screenProjection); // Identity view matrix for screen space
+
 }
 
 void Game::framebufferSizeCallback(GLFWwindow* window, int width, int height) {

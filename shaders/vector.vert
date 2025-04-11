@@ -6,5 +6,7 @@ uniform mat4 projection;
 uniform mat4 view;
 void main() {
     gl_Position = projection * view * vec4(position, 0.0, 1.0);
-    Color = color;
+    
+    // Explicitly pass through all channels including alpha
+    Color = vec4(color.rgb, color.a);
 }

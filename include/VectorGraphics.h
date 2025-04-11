@@ -7,6 +7,7 @@
 #include <memory>
 #include <map>
 #include "FontRenderer.h"
+#include <iostream>
 
 // Border position enum for shape rendering
 enum class BorderPosition {
@@ -18,6 +19,11 @@ enum class BorderPosition {
 struct Vertex {
     glm::vec2 position;  // Position in world/screen coordinates
     glm::vec4 color;     // RGBA color (0-1 range)
+    
+    Vertex(const glm::vec2& pos, const glm::vec4& col) 
+        : position(pos), color(col) {
+        // Make sure the color is exactly as passed in
+    }
 };
 
 // For storing text rendering commands to be executed in order

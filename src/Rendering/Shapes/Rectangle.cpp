@@ -1,5 +1,6 @@
 #include "Rendering/Shapes/Rectangle.h"
 #include "VectorGraphics.h"
+#include <iostream>
 
 namespace Rendering {
 namespace Shapes {

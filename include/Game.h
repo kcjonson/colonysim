@@ -11,6 +11,7 @@
 #include "Rendering/Layer.h"
 #include <memory>
 #include "GameState.h"
+#include "Examples.h"
 
 class Game {
 public:
@@ -37,6 +38,7 @@ private:
     InputManager inputManager;
     VectorGraphics vectorGraphics;
     Interface interface;
+    Examples examples;
     bool isRunning;
     GameState gameState;
 }; 

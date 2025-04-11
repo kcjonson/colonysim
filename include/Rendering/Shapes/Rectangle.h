@@ -20,7 +20,7 @@ public:
 
     // Getters and setters
     const glm::vec2& getSize() const { return size; }
-    void setSize(const glm::vec2& s) { size = s; markDirty(); }
+    void setSize(const glm::vec2& newSize) { size = newSize; markDirty(); }
 
     const Styles::Rectangle& getStyle() const { return style; }
     void setStyle(const Styles::Rectangle& s) { style = s; markDirty(); }

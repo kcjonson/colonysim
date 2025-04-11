@@ -109,25 +109,33 @@ void World::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const 
     // Get camera bounds
     glm::vec4 bounds = getCameraBounds();
 
-    // Draw camera bounds rectangle
+    // Draw camera bounds rectangle - update position and size instead of creating a new one each frame
     glm::vec2 rectPos((bounds.x + bounds.y) / 2.0f, (bounds.z + bounds.w) / 2.0f);
     glm::vec2 rectSize(bounds.y - bounds.x - 10.0f, bounds.w - bounds.z - 10.0f);
     
-    // Create a style with transparent fill and red border using named parameters
-    auto boundsRect = std::make_shared<Rendering::Shapes::Rectangle>(
-        rectPos,
-        rectSize,
-        Rendering::Styles::Rectangle({
-            .color = glm::vec4(0.0f, 0.0f, 0.0f, 0.1f),      // Semi-transparent fill
-            .borderColor = glm::vec4(1.0f, 0.0f, 0.0f, 0.8f), // Semi-transparent red border
-            .borderWidth = 2.0f,                             // 2px border width
-            .borderPosition = BorderPosition::Outside,       // Border outside the rectangle
-            .cornerRadius = 5.0f                             // Rounded corners
-        }),
-        0.0f // Z-index
-    );
-    worldLayer->addItem(boundsRect);
-    
+    // Update the existing rectangle or create a new one if it doesn't exist
+    static std::shared_ptr<Rendering::Shapes::Rectangle> boundsRect = nullptr;
+    if (!boundsRect) {
+        std::cout << "Creating camera bounds debug rectangle" << std::endl;
+        boundsRect = std::make_shared<Rendering::Shapes::Rectangle>(
+            rectPos,
+            rectSize,
+            Rendering::Styles::Rectangle({
+                .color = glm::vec4(0.0f, 0.0f, 0.0f, 0.3f),      // Semi-transparent blue fill                               // Full opacity multiplier
+                .borderColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), // Semi-transparent red border
+                .borderWidth = 2.0f,                             // 2px border width
+                .borderPosition = BorderPosition::Outside,       // Border outside the rectangle
+                .cornerRadius = 5.0f                             // Rounded corners
+            }),
+            500.0f // Z-index
+        );
+        worldLayer->addItem(boundsRect);
+    } else {
+        // Just update position and size
+        boundsRect->setPosition(rectPos);
+        boundsRect->setSize(rectSize);
+    }
+
     // Calculate visible tile range with overscan
     int minX = static_cast<int>(std::floor(bounds.x / TILE_SIZE)) - 1;
     int maxX = static_cast<int>(std::ceil(bounds.y / TILE_SIZE)) + 1;
@@ -189,7 +197,6 @@ void World::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const 
     lastVisibleTiles = std::move(currentVisibleTiles);
 
     worldLayer->render(graphics, viewMatrix, projectionMatrix);
-
 }
 
 void World::logMemoryUsage() const {
@@ -224,6 +231,26 @@ struct TerrainData {
 };
 
 void World::generateTilesInRadius() {
+
+/* 
+    TODO: Generate a spherical world
+    - divide the sphere into a grid of hexagons
+    - generate major world features in the hexagons
+    - each hexagon will have a number of world features (e.g. it can have a mountain, river and forest)
+
+
+    TODO: generate sectors of terrain
+    - each sector should be a hexagon
+    - sectors may have a number of influence regions around their edge
+    - the influence regions will be expressed as a side (top, bottom, left, right) and a start/end distance from the edge vector start
+    - the influence points will be used to connect features between sectors (like rivers)
+
+    TODO: generate the tiles within each sector
+    - the tiles will be generated respecting the edge influence regions
+
+
+*/
+
     unsigned int hashedSeed = getHashedSeed(); // Get numeric hash
     terrainData.clear();
 

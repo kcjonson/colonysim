@@ -21,6 +21,7 @@ set(SOURCES
     src/ConfigManager.cpp
     src/Entity.cpp
     src/EntityManager.cpp
+    src/Examples.cpp
     src/FontRenderer.cpp
     src/Game.cpp
     src/InputManager.cpp
@@ -47,6 +48,7 @@ set(HEADERS
     include/ConfigManager.h
     include/Entity.h
     include/EntityManager.h
+    include/Examples.h
     include/FontRenderer.h
     include/Game.h
     include/GameState.h
