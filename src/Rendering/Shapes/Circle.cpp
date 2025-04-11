@@ -11,7 +11,16 @@ Circle::Circle(const glm::vec2& position, float radius, const Styles::Circle& st
 }
 
 void Circle::draw(VectorGraphics& graphics) {
-    graphics.drawCircle(position, radius, style.color);
+    // Draw the circle with both fill and border in a single draw call
+    // Note: VectorGraphics API for drawCircle needs to be updated to match this
+    graphics.drawCircle(
+        position,
+        radius,
+        style.color,                // Use base color
+        style.borderColor,          // Use border color
+        style.borderWidth,          // Use border width
+        static_cast<BorderPosition>(style.borderPosition)  // Convert to VectorGraphics border position
+    );
 }
 
 } // namespace Shapes

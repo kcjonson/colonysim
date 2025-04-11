@@ -26,6 +26,7 @@ struct CircleStyleParams {
 struct LineStyleParams {
     glm::vec4 color = glm::vec4(1.0f);
     float opacity = 1.0f;
+    float width = 1.0f;  // Width of the line
 };
 
 struct TextStyleParams {
@@ -59,6 +60,8 @@ class Line : public Base {
 public:
     // Only use named parameters
     Line(const LineStyleParams& params = {});
+    
+    float width;  // Width of the line
 };
 
 class Text : public Base {

@@ -16,7 +16,15 @@ void Polygon::draw(VectorGraphics& graphics) {
     for (auto& vertex : offsetVertices) {
         vertex += position;
     }
-    graphics.drawPolygon(offsetVertices, style.color);
+    
+    // Draw the polygon with both fill and border
+    graphics.drawPolygon(
+        offsetVertices,
+        style.color,                // Use base color
+        style.borderColor,          // Use border color
+        style.borderWidth,          // Use border width
+        static_cast<BorderPosition>(style.borderPosition)  // Convert to VectorGraphics border position
+    );
 }
 
 } // namespace Shapes

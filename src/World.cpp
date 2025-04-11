@@ -3,7 +3,6 @@
 #include "Camera.h"
 #include "VectorGraphics.h"
 #include "Tile.h"
-#include "Rendering/Shapes/Rectangle.h"
 #include <iostream>
 #include <random>
 #include <cmath>
@@ -11,6 +10,12 @@
 #include <iomanip> // For std::setw and std::setprecision
 #include <unordered_map>
 #include <unordered_set>
+
+// Include shape classes for testing
+#include "Rendering/Shapes/Rectangle.h"
+
+// Include style classes
+#include "Rendering/Styles/Shape.h"
 
 constexpr float PI = 3.14159265358979323846f;
 
@@ -184,6 +189,7 @@ void World::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const 
     lastVisibleTiles = std::move(currentVisibleTiles);
 
     worldLayer->render(graphics, viewMatrix, projectionMatrix);
+
 }
 
 void World::logMemoryUsage() const {

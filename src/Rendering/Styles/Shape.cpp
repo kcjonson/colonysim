@@ -14,7 +14,8 @@ Circle::Circle(const CircleStyleParams& params)
 }
 
 Line::Line(const LineStyleParams& params)
-    : Base(params.color, params.opacity) {
+    : Base(params.color, params.opacity)
+    , width(params.width) {
 }
 
 Text::Text(const TextStyleParams& params)

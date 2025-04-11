@@ -323,24 +323,102 @@ void VectorGraphics::drawRectangle(
     }
 }
 
-void VectorGraphics::drawCircle(const glm::vec2& center, float radius, const glm::vec4& color, int segments) {
-    size_t startIndex = vertices.size();
-    
-    // Add center vertex
-    vertices.push_back({center, color});
-    
-    // Add vertices around the circle
-    for (int i = 0; i <= segments; ++i) {
-        float angle = 2.0f * glm::pi<float>() * i / segments;
-        glm::vec2 offset(radius * cos(angle), radius * sin(angle));
-        vertices.push_back({center + offset, color});
+void VectorGraphics::drawCircle(
+    const glm::vec2& center, 
+    float radius, 
+    const glm::vec4& color,
+    const glm::vec4& borderColor,
+    float borderWidth,
+    BorderPosition borderPosition,
+    int segments
+) {
+    // If there's no border, just draw a normal circle
+    if (borderWidth <= 0.0f) {
+        size_t startIndex = vertices.size();
+        
+        // Add center vertex
+        vertices.push_back({center, color});
+        
+        // Add vertices around the circle
+        for (int i = 0; i <= segments; ++i) {
+            float angle = 2.0f * glm::pi<float>() * i / segments;
+            glm::vec2 offset(radius * cos(angle), radius * sin(angle));
+            vertices.push_back({center + offset, color});
+        }
+
+        // Add indices for triangles
+        for (int i = 0; i < segments; ++i) {
+            indices.push_back(static_cast<unsigned int>(startIndex));
+            indices.push_back(static_cast<unsigned int>(startIndex + i + 1));
+            indices.push_back(static_cast<unsigned int>(startIndex + i + 2));
+        }
+
+        if (!isBatching) {
+            updateBuffers();
+        }
+        return;
     }
 
-    // Add indices for triangles
+    // Calculate inner and outer radius based on border position
+    float innerRadius = radius;
+    float outerRadius = radius;
+    
+    switch (borderPosition) {
+        case BorderPosition::Inside:
+            innerRadius -= borderWidth;
+            break;
+        case BorderPosition::Outside:
+            outerRadius += borderWidth;
+            break;
+        case BorderPosition::Center:
+            innerRadius -= borderWidth / 2.0f;
+            outerRadius += borderWidth / 2.0f;
+            break;
+    }
+
+    // Ensure inner radius doesn't go negative
+    innerRadius = std::max(innerRadius, 0.0f);
+
+    // Draw the outer circle with border color
+    size_t outerStartIndex = vertices.size();
+    
+    // Add center vertex for outer circle
+    vertices.push_back({center, borderColor});
+    
+    // Add vertices around the outer circle
+    for (int i = 0; i <= segments; ++i) {
+        float angle = 2.0f * glm::pi<float>() * i / segments;
+        glm::vec2 offset(outerRadius * cos(angle), outerRadius * sin(angle));
+        vertices.push_back({center + offset, borderColor});
+    }
+
+    // Add indices for outer circle triangles
     for (int i = 0; i < segments; ++i) {
-        indices.push_back(static_cast<unsigned int>(startIndex));
-        indices.push_back(static_cast<unsigned int>(startIndex + i + 1));
-        indices.push_back(static_cast<unsigned int>(startIndex + i + 2));
+        indices.push_back(static_cast<unsigned int>(outerStartIndex));
+        indices.push_back(static_cast<unsigned int>(outerStartIndex + i + 1));
+        indices.push_back(static_cast<unsigned int>(outerStartIndex + i + 2));
+    }
+
+    // Draw the inner circle with fill color if it has area
+    if (innerRadius > 0) {
+        size_t innerStartIndex = vertices.size();
+        
+        // Add center vertex for inner circle
+        vertices.push_back({center, color});
+        
+        // Add vertices around the inner circle
+        for (int i = 0; i <= segments; ++i) {
+            float angle = 2.0f * glm::pi<float>() * i / segments;
+            glm::vec2 offset(innerRadius * cos(angle), innerRadius * sin(angle));
+            vertices.push_back({center + offset, color});
+        }
+
+        // Add indices for inner circle triangles
+        for (int i = 0; i < segments; ++i) {
+            indices.push_back(static_cast<unsigned int>(innerStartIndex));
+            indices.push_back(static_cast<unsigned int>(innerStartIndex + i + 1));
+            indices.push_back(static_cast<unsigned int>(innerStartIndex + i + 2));
+        }
     }
 
     if (!isBatching) {
@@ -374,21 +452,92 @@ void VectorGraphics::drawLine(const glm::vec2& start, const glm::vec2& end, cons
     }
 }
 
-void VectorGraphics::drawPolygon(const std::vector<glm::vec2>& points, const glm::vec4& color) {
+void VectorGraphics::drawPolygon(
+    const std::vector<glm::vec2>& points, 
+    const glm::vec4& color,
+    const glm::vec4& borderColor,
+    float borderWidth,
+    BorderPosition borderPosition
+) {
     if (points.size() < 3) return;
 
-    size_t startIndex = vertices.size();
-    
-    // Add vertices
-    for (const auto& point : points) {
-        vertices.push_back({point, color});
+    // If there's no border, just draw a normal polygon
+    if (borderWidth <= 0.0f) {
+        size_t startIndex = vertices.size();
+        
+        // Add vertices
+        for (const auto& point : points) {
+            vertices.push_back({point, color});
+        }
+
+        // Add indices for triangles using triangle fan
+        for (size_t i = 1; i < points.size() - 1; ++i) {
+            indices.push_back(static_cast<unsigned int>(startIndex));
+            indices.push_back(static_cast<unsigned int>(startIndex + i));
+            indices.push_back(static_cast<unsigned int>(startIndex + i + 1));
+        }
+
+        if (!isBatching) {
+            updateBuffers();
+        }
+        return;
     }
 
-    // Add indices for triangles using triangle fan
+    // For polygons with borders, we'll draw two polygons:
+    // 1. The outer polygon with the border color
+    // 2. The inner polygon with the fill color (if applicable)
+
+    // For simplicity, we'll just support the BorderPosition::Inside for polygons for now
+    // A more complex implementation would need to calculate offset polygons
+
+    // Draw the outer polygon with border color
+    size_t outerStartIndex = vertices.size();
+    
+    // Add vertices for outer polygon
+    for (const auto& point : points) {
+        vertices.push_back({point, borderColor});
+    }
+
+    // Add indices for outer polygon
     for (size_t i = 1; i < points.size() - 1; ++i) {
-        indices.push_back(static_cast<unsigned int>(startIndex));
-        indices.push_back(static_cast<unsigned int>(startIndex + i));
-        indices.push_back(static_cast<unsigned int>(startIndex + i + 1));
+        indices.push_back(static_cast<unsigned int>(outerStartIndex));
+        indices.push_back(static_cast<unsigned int>(outerStartIndex + i));
+        indices.push_back(static_cast<unsigned int>(outerStartIndex + i + 1));
+    }
+
+    // Calculate and draw inner polygon with fill color
+    if (borderWidth > 0) {
+        // Calculate the centroid of the polygon
+        glm::vec2 centroid(0.0f, 0.0f);
+        for (const auto& point : points) {
+            centroid += point;
+        }
+        centroid /= static_cast<float>(points.size());
+        
+        // Calculate scaled-down inner polygon points
+        std::vector<glm::vec2> innerPoints;
+        float scaleFactor = std::max(0.0f, 1.0f - (borderWidth / 100.0f)); // Simple approximation
+        
+        for (const auto& point : points) {
+            // Scale each point toward the centroid
+            glm::vec2 innerPoint = centroid + scaleFactor * (point - centroid);
+            innerPoints.push_back(innerPoint);
+        }
+        
+        // Draw the inner polygon with fill color
+        size_t innerStartIndex = vertices.size();
+        
+        // Add vertices for inner polygon
+        for (const auto& point : innerPoints) {
+            vertices.push_back({point, color});
+        }
+
+        // Add indices for inner polygon
+        for (size_t i = 1; i < innerPoints.size() - 1; ++i) {
+            indices.push_back(static_cast<unsigned int>(innerStartIndex));
+            indices.push_back(static_cast<unsigned int>(innerStartIndex + i));
+            indices.push_back(static_cast<unsigned int>(innerStartIndex + i + 1));
+        }
     }
 
     if (!isBatching) {

@@ -87,9 +87,20 @@ public:
      * @param center Center point of the circle
      * @param radius Radius of the circle
      * @param color RGBA color (0-1 range)
+     * @param borderColor Border color (if borderWidth > 0)
+     * @param borderWidth Width of the border (0 for no border)
+     * @param borderPosition Position of the border (inside, outside, center)
      * @param segments Number of segments to approximate the circle (default: 32)
      */
-    void drawCircle(const glm::vec2& center, float radius, const glm::vec4& color, int segments = 32);
+    void drawCircle(
+        const glm::vec2& center, 
+        float radius, 
+        const glm::vec4& color,
+        const glm::vec4& borderColor = glm::vec4(0.0f),
+        float borderWidth = 0.0f,
+        BorderPosition borderPosition = BorderPosition::Outside,
+        int segments = 32
+    );
 
     /**
      * Draw a line between two points
@@ -104,8 +115,17 @@ public:
      * Draw a polygon defined by a list of points
      * @param points List of points defining the polygon vertices
      * @param color RGBA color (0-1 range)
+     * @param borderColor Border color (if borderWidth > 0)
+     * @param borderWidth Width of the border (0 for no border)
+     * @param borderPosition Position of the border (inside, outside, center)
      */
-    void drawPolygon(const std::vector<glm::vec2>& points, const glm::vec4& color);
+    void drawPolygon(
+        const std::vector<glm::vec2>& points, 
+        const glm::vec4& color,
+        const glm::vec4& borderColor = glm::vec4(0.0f),
+        float borderWidth = 0.0f,
+        BorderPosition borderPosition = BorderPosition::Outside
+    );
     
     /**
      * Draw text using the FontRenderer
