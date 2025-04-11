@@ -30,23 +30,7 @@ void Tile::initializeDefaultShape() {
             .color = color
         })
     );
-    addShape(rect);
-}
-
-void Tile::addShape(std::shared_ptr<Shapes::Shape> shape) {
-    addItem(shape);
-}
-
-void Tile::removeShape(std::shared_ptr<Shapes::Shape> shape) {
-    removeItem(shape);
-}
-
-void Tile::clearShapes() {
-    clearItems();
-}
-
-const std::vector<std::shared_ptr<Layer>>& Tile::getShapes() const {
-    return children;
+    addItem(rect);
 }
 
 void Tile::setVisible(bool visible) {

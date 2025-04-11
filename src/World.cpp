@@ -204,7 +204,7 @@ void World::logMemoryUsage() const {
     size_t totalShapes = 0;
     
     for (const auto& [pos, tile] : tiles) {
-        totalShapes += tile->getShapes().size();
+        totalShapes += tile->getChildren().size();
     }
     
     float tileMemoryKB = tileCount * sizeof(Rendering::Tile) / 1024.0f;

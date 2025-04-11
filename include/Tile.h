@@ -32,12 +32,6 @@ public:
     const glm::vec4& getColor() const { return color; }
     void setColor(const glm::vec4& c) { color = c; }
 
-    // Shape management
-    void addShape(std::shared_ptr<Shapes::Shape> shape);
-    void removeShape(std::shared_ptr<Shapes::Shape> shape);
-    void clearShapes();
-    const std::vector<std::shared_ptr<Layer>>& getShapes() const;
-
     // Layer method implementations
     void setVisible(bool visible);
 
