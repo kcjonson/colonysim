@@ -108,15 +108,21 @@ Game::Game()
     glfwGetFramebufferSize(window, &width, &height);
     glViewport(0, 0, width, height);
 
-    // Set up camera projection using config settings
-    float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
-    float viewHeight = ConfigManager::getInstance().getViewHeight();
-    float viewWidth = viewHeight * aspectRatio;
+    // Set up camera projection using direct window dimensions for 1:1 pixel-to-world mapping
+    float halfWidth = width / 2.0f;
+    float halfHeight = height / 2.0f;
+    
+    // Debug output
+    // std::cout << "Setting up camera projection:" << std::endl;
+    // std::cout << "  Window size: " << width << "x" << height << std::endl;
+    // std::cout << "  Projection: left=" << -halfWidth << ", right=" << halfWidth 
+    //           << ", bottom=" << -halfHeight << ", top=" << halfHeight << std::endl;
+    
+    // Set camera projection to exactly match window dimensions in world units
     camera.setOrthographicProjection(
-        -viewWidth/2.0f, viewWidth/2.0f,
-        -viewHeight/2.0f, viewHeight/2.0f,
-        ConfigManager::getInstance().getNearPlane(),
-        ConfigManager::getInstance().getFarPlane()
+        -halfWidth, halfWidth,
+        -halfHeight, halfHeight,
+        -1000.0f, 1000.0f
     );
 
     // Set up callbacks
@@ -325,19 +331,26 @@ void Game::render() {
 }
 
 void Game::framebufferSizeCallback(GLFWwindow* window, int width, int height) {
+    // Update viewport to match window dimensions exactly
     glViewport(0, 0, width, height);
     
     // Update camera projection
     Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
     if (game) {
-        float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
-        float viewHeight = ConfigManager::getInstance().getViewHeight();
-        float viewWidth = viewHeight * aspectRatio;
+        // Use direct window dimensions for 1:1 pixel-to-world mapping
+        float halfWidth = width / 2.0f;
+        float halfHeight = height / 2.0f;
+        
+        // Debug output
+        // std::cout << "Window resized to: " << width << "x" << height << std::endl;
+        // std::cout << "  New projection: left=" << -halfWidth << ", right=" << halfWidth 
+        //           << ", bottom=" << -halfHeight << ", top=" << halfHeight << std::endl;
+        
+        // Set camera projection to exactly match window dimensions in world units
         game->camera.setOrthographicProjection(
-            -viewWidth/2.0f, viewWidth/2.0f,
-            -viewHeight/2.0f, viewHeight/2.0f,
-            ConfigManager::getInstance().getNearPlane(),
-            ConfigManager::getInstance().getFarPlane()
+            -halfWidth, halfWidth,
+            -halfHeight, halfHeight,
+            -1000.0f, 1000.0f
         );
     }
 }

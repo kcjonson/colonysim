@@ -9,6 +9,7 @@
 #include <iomanip> // For std::setw and std::setprecision
 #include <unordered_map>
 #include <unordered_set>
+#include <GLFW/glfw3.h>
 
 // Include shape classes for testing
 #include "Rendering/Shapes/Rectangle.h"
@@ -39,17 +40,28 @@ void World::update(float deltaTime) {
 }
 
 glm::vec4 World::getCameraBounds() const {
-    float viewWidth = ConfigManager::getInstance().getViewHeight() * camera.getAspectRatio();
-    float viewHeight = ConfigManager::getInstance().getViewHeight();
+    // Get the actual window size for direct pixel-to-world mapping
+    int width, height;
+    if (GLFWwindow* win = worldLayer->getWindow()) {
+        glfwGetWindowSize(win, &width, &height);
+    } else {
+        // Fallback to ConfigManager if window not available
+        width = ConfigManager::getInstance().getWindowWidth();
+        height = ConfigManager::getInstance().getWindowHeight();
+    }
     
-    // Get camera position (convert to 2D if using orthographic projection)
+    // Get half-dimensions for calculating bounds
+    float halfWidth = width / 2.0f;
+    float halfHeight = height / 2.0f;
+    
+    // Get camera position
     glm::vec3 cameraPos = camera.getPosition();
     
     return glm::vec4(
-        cameraPos.x - viewWidth/2.0f,   // left
-        cameraPos.x + viewWidth/2.0f,   // right
-        cameraPos.y - viewHeight/2.0f,  // bottom
-        cameraPos.y + viewHeight/2.0f   // top
+        cameraPos.x - halfWidth,   // left
+        cameraPos.x + halfWidth,   // right
+        cameraPos.y - halfHeight,  // bottom
+        cameraPos.y + halfHeight   // top
     );
 }
 
@@ -57,7 +69,8 @@ void World::render(VectorGraphics& graphics) {
     // Get camera bounds
     glm::vec4 bounds = getCameraBounds();
 
-    // Draw camera bounds rectangle - convert from bounds to top-left and size
+    // Debug: Draw camera bounds rectangle - convert from bounds to top-left and size
+    // The inset is just to make the rectangle visible
     glm::vec2 topLeft(bounds.x + 5.0f, bounds.z + 5.0f); // Add 5px inset
     glm::vec2 rectSize(bounds.y - bounds.x - 10.0f, bounds.w - bounds.z - 10.0f);
     
@@ -69,11 +82,11 @@ void World::render(VectorGraphics& graphics) {
             topLeft,
             rectSize,
             Rendering::Styles::Rectangle({
-                .color = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),     // Light blue with minimal transparency
-                .borderColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), // Red border with full opacity
+                .color = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),     // Transparent fill
+                .borderColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), // Red border
                 .borderWidth = 2.0f,                             // 2px border width
-                .borderPosition = BorderPosition::Outside,       // Border outside the rectangle
-                .cornerRadius = 5.0f                             // Rounded corners
+                .borderPosition = BorderPosition::Inside,        // Border inside the rectangle
+                .cornerRadius = 0.0f                             // No rounded corners
             }),
             500.0f // Z-index
         );
@@ -84,11 +97,11 @@ void World::render(VectorGraphics& graphics) {
         boundsRect->setSize(rectSize);
     }
 
-    // Calculate visible tile range with overscan
-    int minX = static_cast<int>(std::floor(bounds.x / TILE_SIZE)) - 1;
-    int maxX = static_cast<int>(std::ceil(bounds.y / TILE_SIZE)) + 1;
-    int minY = static_cast<int>(std::floor(bounds.z / TILE_SIZE)) - 1;
-    int maxY = static_cast<int>(std::ceil(bounds.w / TILE_SIZE)) + 1;
+    // Calculate visible tile range with increased overscan
+    int minX = static_cast<int>(std::floor(bounds.x / TILE_SIZE)) - 3; // Increase overscan from 1 to 3
+    int maxX = static_cast<int>(std::ceil(bounds.y / TILE_SIZE)) + 3;
+    int minY = static_cast<int>(std::floor(bounds.z / TILE_SIZE)) - 3;
+    int maxY = static_cast<int>(std::ceil(bounds.w / TILE_SIZE)) + 3;
 
     // Create a set of tile coordinates that should be visible this frame
     std::unordered_set<std::pair<int, int>> currentVisibleTiles;

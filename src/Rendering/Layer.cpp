@@ -5,6 +5,7 @@
 #include "Camera.h"
 #include "Renderer.h"
 #include <glm/gtc/matrix_transform.hpp>
+#include "ConfigManager.h"
 
 namespace Rendering {
 
@@ -121,25 +122,21 @@ glm::mat4 Layer::getProjectionMatrix() const {
         // For world space, get projection matrix from camera
         return camera->getProjectionMatrix();
     } else if (projectionType == ProjectionType::WorldSpace && window != nullptr) {
-        // Create a default world space projection if no camera is available
+        // Create a direct pixel-to-world-unit mapping for WorldSpace projection
         int width, height;
         glfwGetWindowSize(window, &width, &height);
         
-        // Default to orthographic projection
-        float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
-        float viewHeight = 1000.0f; // Default view height
-        float viewWidth = viewHeight * aspectRatio;
+        // In pixel coordinates, (0,0) is top-left, but we want (0,0) to be center
+        float halfWidth = width / 2.0f;
+        float halfHeight = height / 2.0f;
         
-        // Create orthographic projection matrix
-        glm::mat4 orthoProjection = glm::mat4(1.0f);
-        orthoProjection[0][0] = 2.0f / viewWidth;
-        orthoProjection[1][1] = 2.0f / viewHeight;
-        orthoProjection[2][2] = -2.0f / 1000.0f;     // Near/far planes at 0 and 1000
-        orthoProjection[3][0] = 0.0f;                // No X translation (centered)
-        orthoProjection[3][1] = 0.0f;                // No Y translation (centered)
-        orthoProjection[3][2] = -1.0f;               // Z translation to fit near/far into -1 to 1 range
-        
-        return orthoProjection;
+        // Map pixels directly to world units for 1:1 correspondence
+        // The view will span exactly from -halfWidth to +halfWidth, -halfHeight to +halfHeight
+        return glm::ortho(
+            -halfWidth, halfWidth,       // Left, Right
+            -halfHeight, halfHeight,     // Bottom, Top
+            -1000.0f, 1000.0f           // Near, Far
+        );
     }
     
     // Default to identity if no camera or window is available

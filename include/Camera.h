@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <cmath>
 
 class Camera {
 public:
@@ -25,7 +26,10 @@ public:
     glm::vec3 screenToWorld(const glm::vec3& screenPos) const;
 
     float getAspectRatio() const {
-        return (projectionRight - projectionLeft) / (projectionTop - projectionBottom);
+        // Calculate the width-to-height ratio, taking absolute values to handle negative values
+        float width = std::abs(projectionRight - projectionLeft);
+        float height = std::abs(projectionTop - projectionBottom);
+        return width / height;
     }
 
 private:
