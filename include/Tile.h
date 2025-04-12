@@ -36,7 +36,7 @@ public:
     void setVisible(bool visible);
 
     // Virtual method overrides
-    void render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) override;
+    void renderWithMatrices(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) override;
     void renderScreenSpace(VectorGraphics& graphics, const glm::mat4& projectionMatrix) override;
     void beginBatch(VectorGraphics& graphics) override;
     void endBatch(VectorGraphics& graphics) override;

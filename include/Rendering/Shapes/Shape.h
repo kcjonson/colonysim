@@ -23,8 +23,9 @@ public:
     const Styles::Base& getStyle() const { return style; }
     void setStyle(const Styles::Base& s) { style = s; markDirty(); }
 
-    // Rendering methods
-    virtual void render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) override;
+    // Rendering methods - match the Layer class signatures
+    virtual void render(VectorGraphics& graphics) override;
+    virtual void renderWithMatrices(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) override;
     virtual void renderScreenSpace(VectorGraphics& graphics, const glm::mat4& projectionMatrix) override;
 
     // Pure virtual method that each shape must implement

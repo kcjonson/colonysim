@@ -95,7 +95,7 @@ Game::Game()
         return;
     }
     
-    // Initialize Interface graphics
+    // Initialize Interface graphics with window
     if (!interface.initializeGraphics(window)) {
         std::cerr << "ERROR: Interface graphics initialization failed!" << std::endl;
         glfwTerminate();
@@ -135,12 +135,20 @@ Game::Game()
     // Generate terrain
     world.generateTerrain();
     
-    // Initialize World
+    // Initialize World (should be called after camera is set up)
     if (!world.initialize()) {
         std::cerr << "ERROR: World initialization failed!" << std::endl;
         glfwTerminate();
         return;
     }
+    
+    // Set up references for world and interface
+    world.setCamera(&camera);
+    world.setWindow(window);
+    world.setRenderer(&renderer);
+    
+    // Set renderer for interface
+    interface.setRenderer(&renderer);
     
     // Initialize Examples
     examples.initialize();
@@ -284,46 +292,20 @@ void Game::render() {
     // This means: result = src.rgb * src.a + dst.rgb * (1 - src.a)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
-    // Get camera matrices once per frame
-    const glm::mat4& viewMatrix = camera.getViewMatrix();
-    const glm::mat4& projectionMatrix = camera.getProjectionMatrix();
-
-    // Create screen-space projection matrix manually for UI
-    int width, height;
-    glfwGetWindowSize(window, &width, &height);
-    glm::mat4 screenProjection = glm::mat4(1.0f);
-    screenProjection[0][0] = 2.0f / width;  // Scale x
-    screenProjection[1][1] = -2.0f / height; // Scale y (negative to flip y-axis)
-    screenProjection[3][0] = -1.0f;          // Translate x
-    screenProjection[3][1] = 1.0f;           // Translate y
-
-    // Set unified renderer view/projection for world space
-    renderer.setView(viewMatrix);
-    renderer.setProjection(projectionMatrix);
+    // For transparency to work correctly across batches, we need to:
+    // 1. Render from back to front (world first, UI last)
+    // 2. Make sure each batch uses the correct projection matrix
     
-    // IMPORTANT: We need to render all batches at once instead of rendering each batch separately
-    // This allows proper z-ordering of transparent objects
-    
-    // Begin a single batch for all rendering
+    // First batch: Render world and entities (background layer)
     vectorGraphics.beginBatch();
-
-    // Render world
-    world.render(vectorGraphics, viewMatrix, projectionMatrix);
-
-    // Render entity manager
-    world.getEntityManager().render(vectorGraphics);
-    
-    // Set unified renderer projection for screen space UI
-    renderer.setView(glm::mat4(1.0f));  // Identity view for screen space
-    renderer.setProjection(screenProjection);
-    
-    // Interface uses screen-space projection
-    interface.render(vectorGraphics, screenProjection);
-    
-    // End batch and render everything at once
+    world.render(vectorGraphics);
     vectorGraphics.endBatch();
-    vectorGraphics.render(viewMatrix, projectionMatrix);
-
+    
+    // Second batch: Render interface elements (foreground layer)
+    vectorGraphics.beginBatch();
+    interface.render(vectorGraphics);
+    vectorGraphics.endBatch();
+    
     // Swap buffers
     glfwSwapBuffers(window);
 }

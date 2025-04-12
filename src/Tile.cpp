@@ -46,17 +46,13 @@ void Tile::updatePosition(const glm::vec2& tilePosition) {
     }
 }
 
-void Tile::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+void Tile::renderWithMatrices(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
     if (!visible) {
         return;
     }
 
-    // Render all shapes
-    for (const auto& child : children) {
-        if (auto shape = std::dynamic_pointer_cast<Shapes::Shape>(child)) {
-            shape->render(graphics, viewMatrix, projectionMatrix);
-        }
-    }
+    // Render all children using the base implementation
+    Layer::renderWithMatrices(graphics, viewMatrix, projectionMatrix);
 }
 
 void Tile::renderScreenSpace(VectorGraphics& graphics, const glm::mat4& projectionMatrix) {

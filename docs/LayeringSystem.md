@@ -45,7 +45,7 @@ auto myLayer = std::make_shared<Rendering::Layer>(1.5f);
 
 // Add a child layer
 auto childLayer = std::make_shared<Rendering::Layer>(0.1f);  // z-index relative to parent
-myLayer->addLayer(childLayer);
+myLayer->addItem(childLayer);
 
 // Set visibility
 myLayer->setVisible(true);  // or false to hide
@@ -63,7 +63,9 @@ Each shape type inherits from the base Shape class which itself extends Layer:
 auto rectangle = std::make_shared<Rendering::Shapes::Rectangle>(
     glm::vec2(100.0f, 100.0f),  // position
     glm::vec2(50.0f, 30.0f),    // size
-    glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),  // color (red)
+    Rendering::Styles::Rectangle({
+        .color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)  // color (red)
+    }),
     0.5f  // z-index
 );
 
@@ -71,13 +73,15 @@ auto rectangle = std::make_shared<Rendering::Shapes::Rectangle>(
 auto circle = std::make_shared<Rendering::Shapes::Circle>(
     glm::vec2(150.0f, 150.0f),  // position
     25.0f,  // radius
-    glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),  // color (green)
+    Rendering::Styles::Circle({
+        .color = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f)  // color (green)
+    }),
     0.6f  // z-index
 );
 
 // Add shapes to a layer
-myLayer->addLayer(rectangle);
-myLayer->addLayer(circle);
+myLayer->addItem(rectangle);
+myLayer->addItem(circle);
 ```
 
 ## Available Shape Types
@@ -98,16 +102,19 @@ myLayer->addLayer(circle);
 
 To integrate with existing game systems:
 
-1. Access the world and UI root layers:
+1. Access the world and UI layers in the respective classes:
    ```cpp
-   auto worldLayer = game.getWorldLayer();
-   auto uiLayer = game.getUILayer();
+   // In World class
+   std::shared_ptr<Rendering::Layer> worldLayer;
+   
+   // In Interface class
+   std::shared_ptr<Rendering::Layer> uiLayer;
    ```
 
 2. Add game elements to appropriate layers:
    ```cpp
-   worldLayer->addLayer(entityShape);
-   uiLayer->addLayer(uiElement);
+   worldLayer->addItem(entityShape);
+   uiLayer->addItem(uiElement);
    ```
 
 ## Best Practices

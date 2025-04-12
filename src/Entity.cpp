@@ -1,5 +1,7 @@
 #include "Entity.h"
 #include <cmath>
+#include "Rendering/Layer.h"
+#include "Rendering/Shapes/Rectangle.h"
 
 Entity::Entity(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color)
     : type(EntityType::WORKER)
@@ -13,7 +15,22 @@ Entity::Entity(const glm::vec2& position, const glm::vec2& size, const glm::vec4
     , workProgress(0.0f)
     , name("Entity")
     , color(color)
+    , entityLayer(std::make_shared<Rendering::Layer>(50.0f, Rendering::ProjectionType::WorldSpace))
 {
+    // Create entity visual
+    entityVisual = std::make_shared<Rendering::Shapes::Rectangle>(
+        position,
+        size,
+        Rendering::Styles::Rectangle({
+            .color = color,
+            .borderColor = glm::vec4(0.0f), // No border
+            .borderWidth = 0.0f,            // No border width
+            .borderPosition = BorderPosition::Outside
+        }),
+        50.0f
+    );
+    
+    entityLayer->addItem(entityVisual);
 }
 
 void Entity::update(float deltaTime) {
@@ -38,6 +55,11 @@ void Entity::update(float deltaTime) {
             position = targetPosition;
             state = EntityState::IDLE;
         }
+        
+        // Update entity visual position
+        if (entityVisual) {
+            entityVisual->setPosition(position);
+        }
     } else if (state == EntityState::WORKING) {
         workProgress += deltaTime * 0.5f; // Work at 50% speed
         if (workProgress >= 1.0f) {
@@ -48,15 +70,10 @@ void Entity::update(float deltaTime) {
 }
 
 void Entity::render(VectorGraphics& graphics) {
-    // Draw entity
-    graphics.drawRectangle(
-        position,
-        size,
-        color,
-        glm::vec4(0.0f), // No border
-        0.0f,            // No border width
-        BorderPosition::Outside
-    );
+    // Use entity layer to handle rendering
+    // This will only handle the actual drawing, not the finalization
+    // Finalization is done by the EntityManager
+    entityLayer->render(graphics);
 
     // Draw health bar if entity has health
     if (health < 1.0f) {

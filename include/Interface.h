@@ -27,11 +27,14 @@ public:
     
     void update(float deltaTime);
     
-    // Main render method for UI elements
-    void render(VectorGraphics& graphics, const glm::mat4& projectionMatrix);
+    // Main render method for UI elements - no longer requires projection matrix
+    void render(VectorGraphics& graphics);
 
     // Getter for unified renderer
     Renderer& getRenderer() { return renderer; }
+    
+    // Set renderer for UI layer
+    void setRenderer(Renderer* r);
 
 private:
     // Static list of GameState properties to display

@@ -5,7 +5,12 @@
 #include <cmath>
 #include <iostream>
 
-EntityManager::EntityManager() = default;
+EntityManager::EntityManager() {
+    // Create entity layer with WorldSpace projection
+    // Camera, window, and renderer will be set later
+    entityLayer = std::make_shared<Rendering::Layer>(100.0f, Rendering::ProjectionType::WorldSpace);
+}
+
 EntityManager::~EntityManager() = default;
 
 void EntityManager::update(float deltaTime) {
@@ -22,10 +27,22 @@ void EntityManager::render(VectorGraphics& graphics) {
             entity->render(graphics);
         }
     }
+    
+    // Let the entity layer handle rendering
+    // No need for finalization here since World handles the final rendering step
+    entityLayer->render(graphics);
 }
 
 size_t EntityManager::createEntity(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color) {
     entities.push_back(std::make_unique<Entity>(position, size, color));
+    
+    // Get the newly created entity
+    Entity* entity = entities.back().get();
+    
+    // No need to set camera, window, and renderer since Entity doesn't have these methods
+    // Just log that a new entity has been created
+    std::cout << "Created new entity at position: (" << position.x << ", " << position.y << ")" << std::endl;
+    
     return entities.size() - 1;
 }
 

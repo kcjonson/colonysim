@@ -34,8 +34,8 @@ public:
     
     void update(float deltaTime);
     
-    // Main render method - calls renderWorld or renderUI based on which graphics instance is passed
-    void render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
+    // Main render method - no longer requires view/projection matrices
+    void render(VectorGraphics& graphics);
     
     int getWidth() const { return width; }
     int getHeight() const { return height; }
@@ -52,7 +52,11 @@ public:
     size_t createEntity(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color);
     Entity* getEntity(size_t index);
     void removeEntity(size_t index);
-
+    
+    // Set camera, window, and renderer for the world
+    void setCamera(Camera* cam);
+    void setWindow(GLFWwindow* win);
+    void setRenderer(Renderer* renderer);
 
 private:
     struct TerrainData {

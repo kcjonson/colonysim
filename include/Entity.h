@@ -5,6 +5,8 @@
 #include <vector>
 #include <memory>
 #include "VectorGraphics.h"
+#include "Rendering/Layer.h"
+#include "Rendering/Shapes/Rectangle.h"
 
 enum class EntityType {
     WORKER,
@@ -39,11 +41,22 @@ public:
     float getWorkProgress() const { return workProgress; }
     const std::string& getName() const { return name; }
     const std::vector<std::pair<std::string, int>>& getInventory() const { return inventory; }
+    std::shared_ptr<Rendering::Layer> getLayer() const { return entityLayer; }
 
     void setType(EntityType newType) { type = newType; }
     void setState(EntityState newState) { state = newState; }
-    void setPosition(const glm::vec2& newPosition) { position = newPosition; }
-    void setSize(const glm::vec2& newSize) { size = newSize; }
+    void setPosition(const glm::vec2& newPosition) { 
+        position = newPosition; 
+        if (entityVisual) {
+            entityVisual->setPosition(newPosition);
+        }
+    }
+    void setSize(const glm::vec2& newSize) { 
+        size = newSize; 
+        if (entityVisual) {
+            entityVisual->setSize(newSize);
+        }
+    }
     void setTargetPosition(const glm::vec2& newTarget) { targetPosition = newTarget; }
     void setRotation(float newRotation) { rotation = newRotation; }
     void setSpeed(float newSpeed) { speed = newSpeed; }
@@ -64,4 +77,8 @@ private:
     std::string name;
     std::vector<std::pair<std::string, int>> inventory;
     glm::vec4 color;
+    
+    // Rendering components
+    std::shared_ptr<Rendering::Layer> entityLayer;
+    std::shared_ptr<Rendering::Shapes::Rectangle> entityVisual;
 }; 

@@ -11,7 +11,18 @@ Shape::Shape(const glm::vec2& position, const Styles::Base& style, float zIndex)
     , dirty(true) {
 }
 
-void Shape::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+void Shape::render(VectorGraphics& graphics) {
+    if (!visible) return;
+    
+    // Get matrices based on projection type
+    glm::mat4 viewMatrix = getViewMatrix();
+    glm::mat4 projectionMatrix = getProjectionMatrix();
+    
+    // Forward to renderWithMatrices
+    renderWithMatrices(graphics, viewMatrix, projectionMatrix);
+}
+
+void Shape::renderWithMatrices(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
     if (!visible) return;
     draw(graphics);
 }

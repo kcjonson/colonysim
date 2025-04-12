@@ -75,7 +75,14 @@ World::World(GameState& gameState, const std::string& seed)
       height(100), 
       seed(seed), 
       gameState(gameState) {
-    worldLayer = std::make_shared<Rendering::Layer>(0.0f);
+    // Create world layer with WorldSpace projection and set camera immediately
+    worldLayer = std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::WorldSpace);
+    worldLayer->setCamera(&camera);
+    
+    // Create entity manager's layer with the same camera
+    entityManager.getLayer()->setCamera(&camera);
+    
+    // Generate terrain after layer setup
     generateTerrain();
 }
 
@@ -105,7 +112,7 @@ glm::vec4 World::getCameraBounds() const {
     );
 }
 
-void World::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+void World::render(VectorGraphics& graphics) {
     // Get camera bounds
     glm::vec4 bounds = getCameraBounds();
 
@@ -196,7 +203,18 @@ void World::render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const 
     // Update lastVisibleTiles for next frame
     lastVisibleTiles = std::move(currentVisibleTiles);
 
-    worldLayer->render(graphics, viewMatrix, projectionMatrix);
+    // Add world objects to the batch
+    worldLayer->render(graphics);
+
+    // Render entity layer if needed
+    entityManager.getLayer()->render(graphics);
+
+    // Get the view and projection matrices
+    glm::mat4 viewMatrix = worldLayer->getViewMatrix();
+    glm::mat4 projectionMatrix = worldLayer->getProjectionMatrix();
+
+    // Finalize the world batch with the world-space projection
+    graphics.render(viewMatrix, projectionMatrix);
 }
 
 void World::logMemoryUsage() const {
@@ -332,4 +350,19 @@ bool World::initialize() {
     // No need to store VectorGraphics reference anymore
     // Just initialize any world resources
     return true;
+}
+
+void World::setCamera(Camera* cam) {
+    worldLayer->setCamera(cam);
+    entityManager.getLayer()->setCamera(cam);
+}
+
+void World::setWindow(GLFWwindow* win) {
+    worldLayer->setWindow(win);
+    entityManager.getLayer()->setWindow(win);
+}
+
+void World::setRenderer(Renderer* renderer) {
+    worldLayer->setRenderer(renderer);
+    entityManager.getLayer()->setRenderer(renderer);
 } 

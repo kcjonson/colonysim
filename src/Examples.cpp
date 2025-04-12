@@ -20,7 +20,7 @@ void Examples::initialize() {
 }
 
 void Examples::render(VectorGraphics& vectorGraphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
-    examplesLayer->render(vectorGraphics, viewMatrix, projectionMatrix);
+    examplesLayer->renderWithMatrices(vectorGraphics, viewMatrix, projectionMatrix);
 }
 
 void Examples::createRectangleExamples() {

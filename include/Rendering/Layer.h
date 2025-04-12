@@ -6,6 +6,9 @@
 #include <glm/glm.hpp>
 
 class VectorGraphics;
+struct GLFWwindow;
+class Camera;
+class Renderer;
 
 // Forward declaration for Shape
 namespace Rendering {
@@ -47,19 +50,42 @@ public:
     // Access to children
     const std::vector<std::shared_ptr<Layer>>& getChildren() const { return children; }
 
+    // Setup camera and window for projection calculations
+    void setCamera(Camera* cam) { camera = cam; }
+    void setWindow(GLFWwindow* win) { window = win; }
+    
+    // Get camera and window
+    Camera* getCamera() const { return camera; }
+    GLFWwindow* getWindow() const { return window; }
+    
+    // Set and get renderer
+    void setRenderer(Renderer* r) { renderer = r; }
+    Renderer* getRenderer() const { return renderer; }
+    
+    // Get matrices based on projection type
+    glm::mat4 getViewMatrix() const;
+    glm::mat4 getProjectionMatrix() const;
+
     // Rendering methods
-    virtual void render(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
+    virtual void render(VectorGraphics& graphics);
+    virtual void renderWithMatrices(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
     virtual void renderScreenSpace(VectorGraphics& graphics, const glm::mat4& projectionMatrix);
 
     // Begin/end batch needs to be propagated to ensure proper batching
     virtual void beginBatch(VectorGraphics& graphics);
     virtual void endBatch(VectorGraphics& graphics);
+    
+    // Finalize rendering (call VectorGraphics.render with appropriate matrices)
+    virtual void finalizeRender(VectorGraphics& graphics);
 
 protected:
     float zIndex;
     bool visible;
     ProjectionType projectionType;
     std::vector<std::shared_ptr<Layer>> children;
+    Camera* camera;
+    GLFWwindow* window;
+    Renderer* renderer;
 
     // Sort children by z-index before rendering
     void sortChildren();

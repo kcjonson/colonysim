@@ -4,6 +4,7 @@
 #include <memory>
 #include "Entity.h"
 #include "VectorGraphics.h"
+#include "Rendering/Layer.h"
 
 class EntityManager {
 public:
@@ -23,9 +24,13 @@ public:
     // Entity control
     void moveEntity(size_t index, const glm::vec2& target);
     void setEntityState(size_t index, EntityState state);
+    
+    // Get the layer used for entity rendering
+    std::shared_ptr<Rendering::Layer> getLayer() { return entityLayer; }
 
 private:
     std::vector<std::unique_ptr<Entity>> entities;
+    std::shared_ptr<Rendering::Layer> entityLayer;
 
     // Update methods
     void updateMovement(float deltaTime);

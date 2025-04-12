@@ -27,6 +27,7 @@ Interface::Interface(GameState& gameState)
       infoPanelBackground(nullptr) {
     // Create UI layer with high z-index and ScreenSpace projection
     uiLayer = std::make_shared<Rendering::Layer>(1000.0f, Rendering::ProjectionType::ScreenSpace);
+    // Window and renderer will be set in initializeGraphics
 }
 
 bool Interface::initialize() {
@@ -41,6 +42,8 @@ bool Interface::initialize() {
 
 bool Interface::initializeGraphics(GLFWwindow* window) {
     targetWindow = window;
+    // Set window on the UI layer for screen space projection calculation
+    uiLayer->setWindow(targetWindow);
     initializeUIComponents();
     return true;
 }
@@ -92,15 +95,23 @@ void Interface::update(float deltaTime) {
     }
 }
 
-void Interface::render(VectorGraphics& graphics, const glm::mat4& projectionMatrix) {
-    // Set projection for unified renderer
-    renderer.setProjection(projectionMatrix);
-    renderer.setView(glm::mat4(1.0f));  // Use identity view matrix for screen space
-    
-    // Render UI layer with proper screen space projection
-    // Identity view matrix (glm::mat4(1.0f)) is used for screen space coordinates
-    // since we don't want any camera transformation applied
+void Interface::render(VectorGraphics& graphics) {
+    // Render UI elements with screen-space projection
     if (uiLayer) {
-        uiLayer->render(graphics, glm::mat4(1.0f), projectionMatrix);
+        // Add UI elements to the batch
+        uiLayer->render(graphics);
+        
+        // Get the appropriate view and projection matrices for screen space
+        glm::mat4 viewMatrix = uiLayer->getViewMatrix(); // Identity for screen space
+        glm::mat4 projectionMatrix = uiLayer->getProjectionMatrix();
+        
+        // Finalize the UI batch with screen-space projection
+        graphics.render(viewMatrix, projectionMatrix);
+    }
+}
+
+void Interface::setRenderer(Renderer* r) {
+    if (uiLayer) {
+        uiLayer->setRenderer(r);
     }
 }

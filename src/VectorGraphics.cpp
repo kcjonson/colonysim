@@ -95,28 +95,32 @@ void VectorGraphics::render(const glm::mat4& viewMatrix, const glm::mat4& projec
         #endif
     }
     
-    // Render all text commands using the unified renderer
+    // Render all text commands using the unified renderer with the SAME view and projection matrices
     if (renderer != nullptr) {
+        // Set the view and projection matrices on the renderer
+        renderer->setView(viewMatrix);
+        renderer->setProjection(projectionMatrix);
+        
         for (const auto& cmd : textCommands) {
             // Convert RGBA color to RGB for text renderer
             glm::vec3 textColor(cmd.color.r, cmd.color.g, cmd.color.b);
             
-            // Use the unified renderer to render text
+            // Use the unified renderer to render text with the same matrices as shapes
             renderer->renderText(cmd.text, cmd.position, 0.3f, textColor);
         }
+        
+        // Clear text commands after rendering - just like we clear vertices after rendering
+        textCommands.clear();
     } else {
         std::cerr << "Warning: Text rendering attempted with null renderer" << std::endl;
     }
-    
-    // Clear the text commands for the next frame
-    textCommands.clear();
 }
 
 void VectorGraphics::clear() {
     vertices.clear();
     indices.clear();
-    textCommands.clear();
-    updateBuffers(); // Why is this here?
+    textCommands.clear(); // Clear text commands when explicitly asked to clear everything
+    updateBuffers();
 }
 
 void VectorGraphics::beginBatch() {
@@ -130,7 +134,11 @@ void VectorGraphics::beginBatch() {
 
 void VectorGraphics::endBatch() {
     isBatching = false;
-    // Do not clear the vertices and indices here, as we probally have not rendered yet!
+    // We'll clear text commands here after rendering the batch 
+    // This ensures text commands are preserved until they're actually rendered
+    
+    // Note: We're not clearing vertices and indices here since they may be 
+    // used later by the render method
 }
 
 void VectorGraphics::drawRectangle(
