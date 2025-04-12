@@ -42,6 +42,7 @@ public:
     const std::string& getName() const { return name; }
     const std::vector<std::pair<std::string, int>>& getInventory() const { return inventory; }
     std::shared_ptr<Rendering::Layer> getLayer() const { return entityLayer; }
+    std::shared_ptr<Rendering::Layer> getEntityLayer() const { return entityLayer; }
 
     void setType(EntityType newType) { type = newType; }
     void setState(EntityState newState) { state = newState; }

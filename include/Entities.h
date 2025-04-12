@@ -5,11 +5,14 @@
 #include "Entity.h"
 #include "VectorGraphics.h"
 #include "Rendering/Layer.h"
+#include "Camera.h"
+#include "Renderer.h"
+#include <GLFW/glfw3.h>
 
-class EntityManager {
+class Entities {
 public:
-    EntityManager();
-    ~EntityManager();
+    Entities();
+    ~Entities();
 
     void update(float deltaTime);
     void render(VectorGraphics& graphics);
@@ -25,8 +28,10 @@ public:
     void moveEntity(size_t index, const glm::vec2& target);
     void setEntityState(size_t index, EntityState state);
     
-    // Get the layer used for entity rendering
-    std::shared_ptr<Rendering::Layer> getLayer() { return entityLayer; }
+    // Set camera, window, and renderer
+    void setCamera(Camera* cam);
+    void setWindow(GLFWwindow* win);
+    void setRenderer(Renderer* renderer);
 
 private:
     std::vector<std::unique_ptr<Entity>> entities;

@@ -70,25 +70,25 @@ float fbm(float x, float y, int octaves, float persistence, unsigned int seed) {
     return total / maxValue;
 }
 
-World::World(GameState& gameState, const std::string& seed) 
-    : width(100), 
-      height(100), 
-      seed(seed), 
-      gameState(gameState) {
-    // Create world layer with WorldSpace projection and set camera immediately
-    worldLayer = std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::WorldSpace);
+World::World(GameState& gameState, const std::string& seed)
+    : gameState(gameState)
+    , seed(seed)
+    , worldLayer(std::make_shared<Rendering::Layer>(50.0f, Rendering::ProjectionType::WorldSpace)) {
+    std::cout << "Initializing world with seed: " << seed << std::endl;
+}
+
+bool World::initialize() {
+    // No need to store VectorGraphics reference anymore
+    // Just initialize any world resources
     worldLayer->setCamera(&camera);
-    
-    // Create entity manager's layer with the same camera
-    entityManager.getLayer()->setCamera(&camera);
     
     // Generate terrain after layer setup
     generateTerrain();
+    
+    return true;
 }
 
 void World::update(float deltaTime) {
-    entityManager.update(deltaTime);
-    
     // Update memory usage logging
     timeSinceLastLog += deltaTime;
     if (timeSinceLastLog >= 0.5f) { // Log every 0.5 seconds
@@ -206,9 +206,6 @@ void World::render(VectorGraphics& graphics) {
     // Add world objects to the batch
     worldLayer->render(graphics);
 
-    // Render entity layer if needed
-    entityManager.getLayer()->render(graphics);
-
     // Get the view and projection matrices
     glm::mat4 viewMatrix = worldLayer->getViewMatrix();
     glm::mat4 projectionMatrix = worldLayer->getProjectionMatrix();
@@ -320,18 +317,6 @@ void World::generateTilesInRadius() {
     }
 }
 
-size_t World::createEntity(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color) {
-    return entityManager.createEntity(position, size, color);
-}
-
-Entity* World::getEntity(size_t index) {
-    return entityManager.getEntity(index);
-}
-
-void World::removeEntity(size_t index) {
-    entityManager.removeEntity(index);
-}
-
 // Hash the string seed to a numeric value
 unsigned int World::getHashedSeed() const {
     if (seed.empty()) return 0; // Default seed if empty
@@ -345,24 +330,14 @@ unsigned int World::getHashedSeed() const {
     return hash;
 }
 
-// New initialize method that doesn't need VectorGraphics
-bool World::initialize() {
-    // No need to store VectorGraphics reference anymore
-    // Just initialize any world resources
-    return true;
-}
-
 void World::setCamera(Camera* cam) {
     worldLayer->setCamera(cam);
-    entityManager.getLayer()->setCamera(cam);
 }
 
 void World::setWindow(GLFWwindow* win) {
     worldLayer->setWindow(win);
-    entityManager.getLayer()->setWindow(win);
 }
 
 void World::setRenderer(Renderer* renderer) {
     worldLayer->setRenderer(renderer);
-    entityManager.getLayer()->setRenderer(renderer);
 } 

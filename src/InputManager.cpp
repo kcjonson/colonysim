@@ -8,10 +8,10 @@ using json = nlohmann::json;
 // Static member to store the instance pointer
 static InputManager* s_instance = nullptr;
 
-InputManager::InputManager(GLFWwindow* window, Camera& camera, EntityManager& entityManager, GameState& gameState)
+InputManager::InputManager(GLFWwindow* window, Camera& camera, Entities& entities, GameState& gameState)
     : window(window)
     , camera(camera)
-    , entityManager(entityManager)
+    , entities(entities)
     , gameState(gameState)
     , isDragging(false) {
     
@@ -187,8 +187,8 @@ void InputManager::handleEntitySelection(const glm::vec2& mousePos) {
     glm::vec3 worldPos = camera.screenToWorld(glm::vec3(mousePos, 0.0f));
     
     // Check each entity for selection
-    for (size_t i = 0; i < entityManager.getEntityCount(); ++i) {
-        const Entity* entity = entityManager.getEntity(i);
+    for (size_t i = 0; i < entities.getEntityCount(); ++i) {
+        const Entity* entity = entities.getEntity(i);
         if (entity) {
             glm::vec2 entityPos = entity->getPosition();
             glm::vec2 entitySize = entity->getSize();
@@ -199,14 +199,25 @@ void InputManager::handleEntitySelection(const glm::vec2& mousePos) {
                 worldPos.y >= entityPos.y - entitySize.y * 0.5f &&
                 worldPos.y <= entityPos.y + entitySize.y * 0.5f) {
                 
+                // Entity found, store its index
                 selectedEntity = static_cast<int>(i);
+                gameState.set("input.selectedEntity", std::to_string(selectedEntity));
+                
+                // Update entity state to selected
+                Entity* selectedEntity = entities.getEntity(i);
+                if (selectedEntity) {
+                    // Apply selection effect
+                    std::cout << "Selected entity " << i << std::endl;
+                }
+                
                 return;
             }
         }
     }
     
-    // If no entity was selected
+    // No entity selected
     selectedEntity = -1;
+    gameState.set("input.selectedEntity", "-1");
 }
 
 // glm::vec2 InputManager::getCursorWorldPos() {

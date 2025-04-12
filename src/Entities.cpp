@@ -1,72 +1,60 @@
-#include "EntityManager.h"
+#include "Entities.h"
 #include "Entity.h"
 #include "VectorGraphics.h"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 
-EntityManager::EntityManager() {
-    // Create entity layer with WorldSpace projection
-    // Camera, window, and renderer will be set later
-    entityLayer = std::make_shared<Rendering::Layer>(100.0f, Rendering::ProjectionType::WorldSpace);
+Entities::Entities() {
+    // Create entity layer with WorldSpace projection with a higher z-index than world layer
+    // World layer uses 50.0f, so we use 150.0f to ensure entities render on top
+    entityLayer = std::make_shared<Rendering::Layer>(150.0f, Rendering::ProjectionType::WorldSpace);
 }
 
-EntityManager::~EntityManager() = default;
+Entities::~Entities() = default;
 
-void EntityManager::update(float deltaTime) {
-    //std::cout << "Updating " << entities.size() << " entities" << std::endl;
+void Entities::update(float deltaTime) {
     updateMovement(deltaTime);
     updateWork(deltaTime);
 }
 
-void EntityManager::render(VectorGraphics& graphics) {
-    //std::cout << "Rendering " << entities.size() << " entities" << std::endl;
-    for (const auto& entity : entities) {
-        if (entity) {
-            //std::cout << "Rendering entity at: (" << entity->getPosition().x << ", " << entity->getPosition().y << ")" << std::endl;
-            entity->render(graphics);
-        }
-    }
-    
+void Entities::render(VectorGraphics& graphics) {
     // Let the entity layer handle rendering
-    // No need for finalization here since World handles the final rendering step
     entityLayer->render(graphics);
 }
 
-size_t EntityManager::createEntity(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color) {
+size_t Entities::createEntity(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color) {
     entities.push_back(std::make_unique<Entity>(position, size, color));
     
     // Get the newly created entity
     Entity* entity = entities.back().get();
     
-    // No need to set camera, window, and renderer since Entity doesn't have these methods
-    // Just log that a new entity has been created
     std::cout << "Created new entity at position: (" << position.x << ", " << position.y << ")" << std::endl;
     
     return entities.size() - 1;
 }
 
-void EntityManager::removeEntity(size_t index) {
+void Entities::removeEntity(size_t index) {
     if (index < entities.size()) {
         entities[index] = nullptr;
     }
 }
 
-Entity* EntityManager::getEntity(size_t index) {
+Entity* Entities::getEntity(size_t index) {
     if (index < entities.size()) {
         return entities[index].get();
     }
     return nullptr;
 }
 
-const Entity* EntityManager::getEntity(size_t index) const {
+const Entity* Entities::getEntity(size_t index) const {
     if (index < entities.size()) {
         return entities[index].get();
     }
     return nullptr;
 }
 
-void EntityManager::moveEntity(size_t index, const glm::vec2& target) {
+void Entities::moveEntity(size_t index, const glm::vec2& target) {
     if (index < entities.size() && entities[index]) {
         std::cout << "Moving entity " << index << " to position: (" << target.x << ", " << target.y << ")" << std::endl;
         entities[index]->setTargetPosition(target);
@@ -76,7 +64,7 @@ void EntityManager::moveEntity(size_t index, const glm::vec2& target) {
     }
 }
 
-void EntityManager::setEntityState(size_t index, EntityState state) {
+void Entities::setEntityState(size_t index, EntityState state) {
     if (index < entities.size() && entities[index]) {
         std::cout << "Setting entity " << index << " state to: " << static_cast<int>(state) << std::endl;
         entities[index]->setState(state);
@@ -85,7 +73,40 @@ void EntityManager::setEntityState(size_t index, EntityState state) {
     }
 }
 
-void EntityManager::updateMovement(float deltaTime) {
+void Entities::setCamera(Camera* cam) {
+    entityLayer->setCamera(cam);
+    
+    // Update all existing entities
+    for (auto& entity : entities) {
+        if (entity) {
+            entity->getEntityLayer()->setCamera(cam);
+        }
+    }
+}
+
+void Entities::setWindow(GLFWwindow* win) {
+    entityLayer->setWindow(win);
+    
+    // Update all existing entities
+    for (auto& entity : entities) {
+        if (entity) {
+            entity->getEntityLayer()->setWindow(win);
+        }
+    }
+}
+
+void Entities::setRenderer(Renderer* renderer) {
+    entityLayer->setRenderer(renderer);
+    
+    // Update all existing entities
+    for (auto& entity : entities) {
+        if (entity) {
+            entity->getEntityLayer()->setRenderer(renderer);
+        }
+    }
+}
+
+void Entities::updateMovement(float deltaTime) {
     for (size_t i = 0; i < entities.size(); ++i) {
         if (entities[i] && entities[i]->getState() == EntityState::MOVING) {
             glm::vec2 currentPos = entities[i]->getPosition();
@@ -110,7 +131,7 @@ void EntityManager::updateMovement(float deltaTime) {
     }
 }
 
-void EntityManager::updateWork(float deltaTime) {
+void Entities::updateWork(float deltaTime) {
     for (size_t i = 0; i < entities.size(); ++i) {
         if (entities[i] && entities[i]->getState() == EntityState::WORKING) {
             float progress = entities[i]->getWorkProgress() + deltaTime;

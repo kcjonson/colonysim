@@ -25,7 +25,7 @@ set(SOURCES
     src/Camera.cpp
     src/ConfigManager.cpp
     src/Entity.cpp
-    src/EntityManager.cpp
+    src/Entities.cpp
     src/Examples.cpp
     src/FontRenderer.cpp
     src/Game.cpp
@@ -55,7 +55,7 @@ set(HEADERS
     include/Camera.h
     include/ConfigManager.h
     include/Entity.h
-    include/EntityManager.h
+    include/Entities.h
     include/Examples.h
     include/FontRenderer.h
     include/Game.h

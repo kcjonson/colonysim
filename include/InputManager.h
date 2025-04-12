@@ -7,12 +7,12 @@
 #include <GLFW/glfw3.h>
 #include "Camera.h"
 #include "Entity.h"
-#include "EntityManager.h"
+#include "Entities.h"
 #include "GameState.h"
 
 class InputManager {
 public:
-    InputManager(GLFWwindow* window, Camera& camera, EntityManager& entityManager, GameState& gameState);
+    InputManager(GLFWwindow* window, Camera& camera, Entities& entities, GameState& gameState);
     ~InputManager();
 
     // Set window after construction
@@ -42,7 +42,7 @@ public:
 private:
     GLFWwindow* window;
     Camera& camera;
-    EntityManager& entityManager;
+    Entities& entities;
     GameState& gameState;
     
     // Camera control settings

@@ -10,6 +10,7 @@
 #include "InputManager.h"
 #include "Interface.h"
 #include "Rendering/Layer.h"
+#include "Entities.h"
 #include <memory>
 #include "GameState.h"
 #include "Examples.h"
@@ -39,6 +40,7 @@ private:
     Renderer renderer;
     VectorGraphics vectorGraphics;
     World world;
+    Entities entities;
     InputManager inputManager;
     Interface interface;
     Examples examples;

@@ -4,7 +4,6 @@
 #include <unordered_set>
 #include <utility>
 #include <functional> // For std::hash
-#include "EntityManager.h"
 #include "VectorGraphics.h"
 #include "Camera.h"
 #include "Rendering/Layer.h"
@@ -45,14 +44,6 @@ public:
     float getResourceAmount(int x, int y) const;
     void generateTerrain();
     
-
-    // Entities
-    EntityManager& getEntityManager() { return entityManager; }
-    const EntityManager& getEntityManager() const { return entityManager; }
-    size_t createEntity(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color);
-    Entity* getEntity(size_t index);
-    void removeEntity(size_t index);
-    
     // Set camera, window, and renderer for the world
     void setCamera(Camera* cam);
     void setWindow(GLFWwindow* win);
@@ -68,13 +59,11 @@ private:
 
     void generatePerlinNoise(std::unordered_map<std::pair<int, int>, TerrainData>& noiseMap, int width, int height, float scale);
     void renderTiles(VectorGraphics& graphics);
-    void renderEntities(VectorGraphics& graphics);
 
     int width = 100;
     int height = 100;
     std::unordered_map<std::pair<int, int>, TerrainData> terrainData;
     std::unordered_map<std::pair<int, int>, std::shared_ptr<Rendering::Tile>> tiles;
-    EntityManager entityManager;
     int generateDistance = 200;
     void generateTilesInRadius();
     int overscanAmount = 2; // Number of extra tiles to render beyond visible area

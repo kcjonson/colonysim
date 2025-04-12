@@ -15,7 +15,7 @@ Entity::Entity(const glm::vec2& position, const glm::vec2& size, const glm::vec4
     , workProgress(0.0f)
     , name("Entity")
     , color(color)
-    , entityLayer(std::make_shared<Rendering::Layer>(50.0f, Rendering::ProjectionType::WorldSpace))
+    , entityLayer(std::make_shared<Rendering::Layer>(150.0f, Rendering::ProjectionType::WorldSpace))
 {
     // Create entity visual
     entityVisual = std::make_shared<Rendering::Shapes::Rectangle>(
@@ -86,7 +86,8 @@ void Entity::render(VectorGraphics& graphics) {
             healthColor,
             glm::vec4(0.0f), // No border
             0.0f,            // No border width
-            BorderPosition::Outside
+            BorderPosition::Outside,
+            151.0f // Slightly higher z-index than the entity
         );
     }
 
@@ -101,7 +102,8 @@ void Entity::render(VectorGraphics& graphics) {
             progressColor,
             glm::vec4(0.0f), // No border
             0.0f,            // No border width
-            BorderPosition::Outside
+            BorderPosition::Outside,
+            152.0f // Slightly higher z-index than health bar
         );
     }
 } 

@@ -17,7 +17,8 @@ Game::Game()
     , gameState()
     , vectorGraphics()
     , world(gameState)
-    , inputManager(window, camera, world.getEntityManager(), gameState)
+    , entities()
+    , inputManager(window, camera, entities, gameState)
     , interface(gameState)
     , isRunning(true) {
     
@@ -147,6 +148,11 @@ Game::Game()
     world.setWindow(window);
     world.setRenderer(&renderer);
     
+    // Set up references for entities
+    entities.setCamera(&camera);
+    entities.setWindow(window);
+    entities.setRenderer(&renderer);
+    
     // Set renderer for interface
     interface.setRenderer(&renderer);
     
@@ -157,12 +163,12 @@ Game::Game()
     std::cout << "Creating test entities..." << std::endl;
     
     // Create a worker entity
-    size_t workerId = world.createEntity(
+    size_t workerId = entities.createEntity(
         glm::vec2(0.0f, 0.0f),
         glm::vec2(20.0f, 20.0f),
         glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) // Green
     );
-    Entity* worker = world.getEntity(workerId);
+    Entity* worker = entities.getEntity(workerId);
     if (worker) {
         worker->setSpeed(100.0f);
         worker->setState(EntityState::IDLE);
@@ -170,24 +176,24 @@ Game::Game()
     }
 
     // Create a resource entity
-    size_t resourceId = world.createEntity(
+    size_t resourceId = entities.createEntity(
         glm::vec2(100.0f, 100.0f),
         glm::vec2(30.0f, 30.0f),
         glm::vec4(1.0f, 0.5f, 0.0f, 1.0f) // Orange
     );
-    Entity* resource = world.getEntity(resourceId);
+    Entity* resource = entities.getEntity(resourceId);
     if (resource) {
         resource->setState(EntityState::IDLE);
         resource->setType(EntityType::RESOURCE);
     }
 
     // Create a building entity
-    size_t buildingId = world.createEntity(
+    size_t buildingId = entities.createEntity(
         glm::vec2(-100.0f, -100.0f),
         glm::vec2(50.0f, 50.0f),
         glm::vec4(0.5f, 0.5f, 0.5f, 1.0f) // Gray
     );
-    Entity* building = world.getEntity(buildingId);
+    Entity* building = entities.getEntity(buildingId);
     if (building) {
         building->setState(EntityState::IDLE);
         building->setType(EntityType::BUILDING);
@@ -276,6 +282,9 @@ void Game::update(float deltaTime) {
     inputManager.update(deltaTime);
     world.update(deltaTime);
     interface.update(deltaTime);
+    
+    // Update entities
+    entities.update(deltaTime);
 }
 
 void Game::render() {
@@ -296,12 +305,17 @@ void Game::render() {
     // 1. Render from back to front (world first, UI last)
     // 2. Make sure each batch uses the correct projection matrix
     
-    // First batch: Render world and entities (background layer)
+    // First batch: Render world (background layer)
     vectorGraphics.beginBatch();
     world.render(vectorGraphics);
     vectorGraphics.endBatch();
+
+    // Second batch: Render entities (foreground layer)
+    vectorGraphics.beginBatch();
+    entities.render(vectorGraphics);
+    vectorGraphics.endBatch();
     
-    // Second batch: Render interface elements (foreground layer)
+    // Third batch: Render interface elements (foreground layer)
     vectorGraphics.beginBatch();
     interface.render(vectorGraphics);
     vectorGraphics.endBatch();
