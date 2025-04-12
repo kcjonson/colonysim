@@ -12,16 +12,7 @@
 #include <memory>
 #include <glm/glm.hpp>
 #include "GameState.h"
-
-// Hash function for std::pair (since it's not provided by default)
-namespace std {
-    template <>
-    struct hash<std::pair<int, int>> {
-        size_t operator()(const std::pair<int, int>& p) const {
-            return hash<int>()(p.first) ^ (hash<int>()(p.second) << 1);
-        }
-    };
-}
+#include "World/TerrainGenerator.h"
 
 class World {
 public:
@@ -50,19 +41,12 @@ public:
     void setRenderer(Renderer* renderer);
 
 private:
-    struct TerrainData {
-        float height;
-        float resource;
-        int type;
-        glm::vec4 color;
-    };
-
-    void generatePerlinNoise(std::unordered_map<std::pair<int, int>, TerrainData>& noiseMap, int width, int height, float scale);
+    void generatePerlinNoise(std::unordered_map<std::pair<int, int>, WorldGen::TerrainData>& noiseMap, int width, int height, float scale);
     void renderTiles(VectorGraphics& graphics);
 
     int width = 100;
     int height = 100;
-    std::unordered_map<std::pair<int, int>, TerrainData> terrainData;
+    std::unordered_map<std::pair<int, int>, WorldGen::TerrainData> terrainData;
     std::unordered_map<std::pair<int, int>, std::shared_ptr<Rendering::Tile>> tiles;
     int generateDistance = 200;
     void generateTilesInRadius();
@@ -70,7 +54,6 @@ private:
     glm::vec4 getCameraBounds() const; // Helper to calculate visible area
     Camera camera;
     std::string seed;
-    unsigned int getHashedSeed() const;
     
     // For organizing world rendering
     std::shared_ptr<Rendering::Layer> worldLayer;

@@ -48,6 +48,7 @@ set(SOURCES
     src/VectorGraphics.cpp
     src/VectorRenderer.cpp
     src/World.cpp
+    src/World/TerrainGenerator.cpp
 )
 
 # Add header files
@@ -79,6 +80,7 @@ set(HEADERS
     include/VectorGraphics.h
     include/VectorRenderer.h
     include/World.h
+    include/World/TerrainGenerator.h
 )
 
 # Create executable
