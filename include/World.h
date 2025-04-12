@@ -52,7 +52,7 @@ private:
     void generateTilesInRadius();
     int overscanAmount = 2; // Number of extra tiles to render beyond visible area
     glm::vec4 getCameraBounds() const; // Helper to calculate visible area
-    Camera camera;
+    Camera* camera = nullptr; // Use a pointer instead of a direct instance
     std::string seed;
     
     // For organizing world rendering

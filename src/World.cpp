@@ -25,8 +25,7 @@ World::World(GameState& gameState, const std::string& seed)
 }
 
 bool World::initialize() {
-    // Is this needed? Isn't the camera already set in Game.cpp?
-    worldLayer->setCamera(&camera);
+    // We'll set the camera later in setCamera, so this is not needed here
     return true;
 }
 
@@ -54,8 +53,11 @@ glm::vec4 World::getCameraBounds() const {
     float halfWidth = width / 2.0f;
     float halfHeight = height / 2.0f;
     
-    // Get camera position
-    glm::vec3 cameraPos = camera.getPosition();
+    // Get camera position - check that camera is valid
+    glm::vec3 cameraPos(0.0f);
+    if (camera) {
+        cameraPos = camera->getPosition();
+    }
     
     return glm::vec4(
         cameraPos.x - halfWidth,   // left
@@ -68,6 +70,18 @@ glm::vec4 World::getCameraBounds() const {
 void World::render(VectorGraphics& graphics) {
     // Get camera bounds
     glm::vec4 bounds = getCameraBounds();
+
+    // Debug camera bounds movement (only log significant changes)
+    if (camera) {
+        static glm::vec3 lastPos = camera->getPosition();
+        glm::vec3 currentPos = camera->getPosition();
+        
+        // Log only if moved more than 50 units to reduce spam
+        if (glm::distance(lastPos, currentPos) > 50.0f) {
+            std::cout << "Camera at: (" << int(currentPos.x) << ", " << int(currentPos.y) << ") - viewing area updated" << std::endl;
+            lastPos = currentPos;
+        }
+    }
 
     // Debug: Draw camera bounds rectangle - convert from bounds to top-left and size
     // The inset is just to make the rectangle visible
@@ -200,7 +214,8 @@ void World::generateTilesInRadius() {
 }
 
 void World::setCamera(Camera* cam) {
-    worldLayer->setCamera(cam);
+    camera = cam;  // Store the camera reference directly
+    worldLayer->setCamera(cam);  // Also pass to the rendering layer
 }
 
 void World::setWindow(GLFWwindow* win) {
