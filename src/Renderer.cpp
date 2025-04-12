@@ -7,21 +7,34 @@ Renderer::Renderer()
 }
 
 bool Renderer::initialize() {
-    std::cout << "Initializing unified renderer..." << std::endl;
+    // Use a static flag to only print the messages once
+    static bool hasInitialized = false;
     
-    // Initialize vector renderer
-    if (!vectorRenderer.initialize()) {
-        std::cerr << "Failed to initialize vector renderer" << std::endl;
+    if (!hasInitialized) {
+        std::cout << "Initializing Renderer..." << std::endl;
+    
+        // Initialize vector renderer
+        if (!vectorRenderer.initialize()) {
+            std::cerr << "Failed to initialize vector renderer" << std::endl;
+            return false;
+        }
+        
+        // Initialize font renderer
+        if (!fontRenderer.initialize()) {
+            std::cerr << "Failed to initialize font renderer" << std::endl;
+            return false;
+        }
+        
+        std::cout << "Renderer initialization complete" << std::endl;
+        hasInitialized = true;
+        return true;
+    }
+    
+    // Silent reinitialization for subsequent calls
+    if (!vectorRenderer.initialize() || !fontRenderer.initialize()) {
         return false;
     }
     
-    // Initialize font renderer
-    if (!fontRenderer.initialize()) {
-        std::cerr << "Failed to initialize font renderer" << std::endl;
-        return false;
-    }
-    
-    std::cout << "Unified renderer initialization complete" << std::endl;
     return true;
 }
 

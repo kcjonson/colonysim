@@ -117,7 +117,7 @@ public:
     );
     
     /**
-     * Draw text using the unified Renderer
+     * Draw text using the Renderer
      * @param text String to render
      * @param position Top-left position of the text
      * @param color RGBA color (0-1 range)
@@ -134,6 +134,6 @@ private:
     GLuint VBO;                        // Vertex Buffer Object
     GLuint EBO;                        // Element Buffer Object
     bool initialized;                  // Whether the graphics system is initialized
-    Renderer* renderer;                // Pointer to the unified renderer
+    Renderer* renderer;                // Pointer to the renderer
     std::vector<TextCommand> textCommands; // List of text commands to execute in order
 }; 

@@ -78,13 +78,8 @@ World::World(GameState& gameState, const std::string& seed)
 }
 
 bool World::initialize() {
-    // No need to store VectorGraphics reference anymore
-    // Just initialize any world resources
+    // Is this needed? Isn't the camera already set in Game.cpp?
     worldLayer->setCamera(&camera);
-    
-    // Generate terrain after layer setup
-    generateTerrain();
-    
     return true;
 }
 
@@ -207,6 +202,7 @@ void World::render(VectorGraphics& graphics) {
     worldLayer->render(graphics);
 
     // Get the view and projection matrices
+    // TODO: this should be done in the layer
     glm::mat4 viewMatrix = worldLayer->getViewMatrix();
     glm::mat4 projectionMatrix = worldLayer->getProjectionMatrix();
 

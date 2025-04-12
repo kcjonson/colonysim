@@ -27,11 +27,8 @@ public:
     
     void update(float deltaTime);
     
-    // Main render method for UI elements - no longer requires projection matrix
+    // Main render method for UI elements
     void render(VectorGraphics& graphics);
-
-    // Getter for unified renderer
-    Renderer& getRenderer() { return renderer; }
     
     // Set renderer for UI layer
     void setRenderer(Renderer* r);
@@ -49,9 +46,6 @@ private:
     const float INFO_PANEL_X = 10.0f;
     const float INFO_PANEL_Y = 10.0f;
     const float INFO_PANEL_WIDTH = 200.0f;
-    
-    // Member variables - unified renderer instead of separate FontRenderer
-    Renderer renderer;
     
     // For organizing UI rendering
     std::shared_ptr<Rendering::Layer> uiLayer;

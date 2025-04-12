@@ -5,7 +5,7 @@
 #include "VectorRenderer.h"
 #include "FontRenderer.h"
 
-// Unified renderer that manages both vector and text rendering with consistent projections
+// renderer that manages both vector and text rendering with consistent projections
 class Renderer {
 public:
     Renderer();

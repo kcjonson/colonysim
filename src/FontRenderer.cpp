@@ -4,7 +4,7 @@
 #include <sstream>
 
 FontRenderer::FontRenderer() : VAO(0), VBO(0), library(nullptr) {
-    std::cout << "FontRenderer constructor called" << std::endl;
+    // std::cout << "FontRenderer constructor called" << std::endl;
 }
 
 FontRenderer::~FontRenderer() {

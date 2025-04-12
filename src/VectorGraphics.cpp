@@ -95,7 +95,7 @@ void VectorGraphics::render(const glm::mat4& viewMatrix, const glm::mat4& projec
         #endif
     }
     
-    // Render all text commands using the unified renderer with the SAME view and projection matrices
+    // Render all text commands using the Renderer with the SAME view and projection matrices
     if (renderer != nullptr) {
         // Set the view and projection matrices on the renderer
         renderer->setView(viewMatrix);
@@ -105,7 +105,7 @@ void VectorGraphics::render(const glm::mat4& viewMatrix, const glm::mat4& projec
             // Convert RGBA color to RGB for text renderer
             glm::vec3 textColor(cmd.color.r, cmd.color.g, cmd.color.b);
             
-            // Use the unified renderer to render text with the same matrices as shapes
+            // Use the Renderer to render text with the same matrices as shapes
             renderer->renderText(cmd.text, cmd.position, 0.3f, textColor);
         }
         
@@ -901,7 +901,7 @@ void VectorGraphics::updateBuffers() {
 }
 
 void VectorGraphics::drawText(const std::string& text, const glm::vec2& position, const glm::vec4& color) {
-    // Store text rendering commands for later execution by the unified renderer
+    // Store text rendering commands for later execution by the Renderer
     TextCommand cmd;
     cmd.text = text;
     cmd.position = position;

@@ -17,7 +17,8 @@ const std::vector<std::string> Interface::GAME_STATE_PROPERTIES = {
     "world.totalMemoryKB",
     "system.fps",
     "input.cursorWindowPosition",
-    "input.cursorWorldPosition"
+    "input.cursorWorldPosition",
+    "camera.position"
 };
 
 Interface::Interface(GameState& gameState)
@@ -32,15 +33,14 @@ Interface::Interface(GameState& gameState)
 
 bool Interface::initialize() {
     std::cout << "Initializing Interface..." << std::endl;
-    if (!renderer.initialize()) {
-        std::cerr << "Failed to initialize unified renderer" << std::endl;
-        return false;
-    }
     std::cout << "Interface initialization complete" << std::endl;
     return true;
 }
 
+// TODO: move to the other initialize function
 bool Interface::initializeGraphics(GLFWwindow* window) {
+    // std::cout << "Interface::initializeGraphics - Setting window and initializing UI components" << std::endl;
+    
     targetWindow = window;
     // Set window on the UI layer for screen space projection calculation
     uiLayer->setWindow(targetWindow);

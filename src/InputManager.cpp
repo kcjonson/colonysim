@@ -176,6 +176,12 @@ void InputManager::processEdgePan(float deltaTime) {
 void InputManager::applyPan(const glm::vec2& direction, float speed, float deltaTime) {
     glm::vec3 offset(direction.x * speed * deltaTime, direction.y * speed * deltaTime, 0.0f);
     camera.move(offset);
+
+    // Log the camera's new position
+    glm::vec3 cameraPos = camera.getPosition();
+    char posStr[50];
+    snprintf(posStr, sizeof(posStr), "%.1f, %.1f", cameraPos.x, cameraPos.y);
+    gameState.set("camera.position", posStr);
 }
 
 void InputManager::applyZoom(float amount) {

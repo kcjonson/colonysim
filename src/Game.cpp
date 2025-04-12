@@ -24,7 +24,7 @@ Game::Game()
     
     std::cout << "Initializing game..." << std::endl;
     
-    // Set VectorGraphics to use the unified renderer
+    // Set VectorGraphics to use the renderer
     vectorGraphics.setRenderer(&renderer);
     
     // Load configuration
@@ -75,9 +75,9 @@ Game::Game()
         return;
     }
     
-    // Initialize unified renderer first
+    // Initialize renderer first
     if (!renderer.initialize()) {
-        std::cerr << "ERROR: Unified renderer initialization failed!" << std::endl;
+        std::cerr << "ERROR: Renderer initialization failed!" << std::endl;
         glfwTerminate();
         return;
     }
