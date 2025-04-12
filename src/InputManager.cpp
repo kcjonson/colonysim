@@ -1,7 +1,9 @@
 #include "InputManager.h"
 #include <fstream>
 #include <iostream>
-#include <json/json.h>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 // Static member to store the instance pointer
 static InputManager* s_instance = nullptr;
@@ -16,27 +18,34 @@ InputManager::InputManager(GLFWwindow* window, Camera& camera, EntityManager& en
     // Store instance pointer
     s_instance = this;
     
-    // Get window size
-    int width, height;
-    glfwGetWindowSize(window, &width, &height);
-    windowSize = glm::vec2(static_cast<float>(width), static_cast<float>(height));
+    // Initialize with default window size and mouse position
+    windowSize = glm::vec2(800.0f, 600.0f);
+    lastMousePos = glm::vec2(0.0f, 0.0f);
     
-    // Get initial mouse position
-    double x, y;
-    glfwGetCursorPos(window, &x, &y);
-    lastMousePos = glm::vec2(static_cast<float>(x), static_cast<float>(y));
+    // If window is valid, update window size and mouse position
+    if (window) {
+        // Get window size
+        int width, height;
+        glfwGetWindowSize(window, &width, &height);
+        windowSize = glm::vec2(static_cast<float>(width), static_cast<float>(height));
+        
+        // Get initial mouse position
+        double x, y;
+        glfwGetCursorPos(window, &x, &y);
+        lastMousePos = glm::vec2(static_cast<float>(x), static_cast<float>(y));
+        
+        // Set GLFW callbacks
+        glfwSetKeyCallback(window, keyCallback);
+        glfwSetMouseButtonCallback(window, mouseButtonCallback);
+        glfwSetCursorPosCallback(window, cursorPosCallback);
+        glfwSetScrollCallback(window, scrollCallback);
+    }
     
     // Set default key mappings
     keyMappings["pan_up"] = GLFW_KEY_W;
     keyMappings["pan_down"] = GLFW_KEY_S;
     keyMappings["pan_left"] = GLFW_KEY_A;
     keyMappings["pan_right"] = GLFW_KEY_D;
-    
-    // Set GLFW callbacks
-    glfwSetKeyCallback(window, keyCallback);
-    glfwSetMouseButtonCallback(window, mouseButtonCallback);
-    glfwSetCursorPosCallback(window, cursorPosCallback);
-    glfwSetScrollCallback(window, scrollCallback);
 }
 
 InputManager::~InputManager() {
@@ -70,7 +79,11 @@ void InputManager::scrollCallback(GLFWwindow* window, double xoffset, double yof
 
 void InputManager::update(float deltaTime) {
     processKeyboardInput(deltaTime);
-    processEdgePan(deltaTime);
+    
+    // Only process edge pan if we have a valid window
+    if (window) {
+        processEdgePan(deltaTime);
+    }
 }
 
 void InputManager::handleKeyInput(int key, int action) {
@@ -135,6 +148,11 @@ void InputManager::processKeyboardInput(float deltaTime) {
 }
 
 void InputManager::processEdgePan(float deltaTime) {
+    // Skip if window is null
+    if (!window) {
+        return;
+    }
+    
     int width, height;
     glfwGetWindowSize(window, &width, &height);
     
@@ -202,30 +220,41 @@ void InputManager::loadConfig(const std::string& configPath) {
         return;
     }
     
-    Json::Value root;
-    Json::Reader reader;
-    if (!reader.parse(file, root)) {
-        std::cerr << "Failed to parse input config file: " << reader.getFormattedErrorMessages() << std::endl;
-        return;
-    }
-    
-    // Load key mappings
-    const Json::Value& keys = root["keys"];
-    if (keys.isObject()) {
-        for (const auto& key : keys.getMemberNames()) {
-            keyMappings[key] = keys[key].asInt();
+    try {
+        json root = json::parse(file);
+        
+        // Load key mappings
+        if (root.contains("keys") && root["keys"].is_object()) {
+            for (auto& [key, value] : root["keys"].items()) {
+                keyMappings[key] = value.get<int>();
+            }
+        }
+        
+        // Load camera settings
+        if (root.contains("camera") && root["camera"].is_object()) {
+            auto& camera = root["camera"];
+            
+            if (camera.contains("panSpeed")) 
+                panSpeed = camera["panSpeed"].get<float>();
+            
+            if (camera.contains("zoomSpeed")) 
+                zoomSpeed = camera["zoomSpeed"].get<float>();
+            
+            if (camera.contains("edgePanThreshold")) 
+                edgePanThreshold = camera["edgePanThreshold"].get<float>();
+            
+            if (camera.contains("edgePanSpeed")) 
+                edgePanSpeed = camera["edgePanSpeed"].get<float>();
+            
+            if (camera.contains("invertZoom")) 
+                invertZoom = camera["invertZoom"].get<bool>();
+            
+            if (camera.contains("invertPan")) 
+                invertPan = camera["invertPan"].get<bool>();
         }
     }
-    
-    // Load camera settings
-    const Json::Value& camera = root["camera"];
-    if (camera.isObject()) {
-        if (camera.isMember("pan_speed")) panSpeed = camera["pan_speed"].asFloat();
-        if (camera.isMember("zoom_speed")) zoomSpeed = camera["zoom_speed"].asFloat();
-        if (camera.isMember("edge_pan_threshold")) edgePanThreshold = camera["edge_pan_threshold"].asFloat();
-        if (camera.isMember("edge_pan_speed")) edgePanSpeed = camera["edge_pan_speed"].asFloat();
-        if (camera.isMember("invert_zoom")) invertZoom = camera["invert_zoom"].asBool();
-        if (camera.isMember("invert_pan")) invertPan = camera["invert_pan"].asBool();
+    catch (const json::parse_error& e) {
+        std::cerr << "Failed to parse input config file: " << e.what() << std::endl;
     }
 }
 

@@ -4,6 +4,9 @@ project(ColonySim)
 # Set vcpkg toolchain file
 set(CMAKE_TOOLCHAIN_FILE "C:/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
 
+# Set vcpkg installed packages path
+set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};C:/vcpkg/installed/x64-windows")
+
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -13,7 +16,9 @@ find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(glm REQUIRED)
 find_package(nlohmann_json REQUIRED)
-find_package(freetype REQUIRED)
+find_package(ZLIB REQUIRED)
+find_package(Freetype REQUIRED)
+find_package(glad CONFIG REQUIRED)
 
 # Add source files
 set(SOURCES
@@ -114,7 +119,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${OPENGL_LIBRARIES}
     glfw
-    glm
     nlohmann_json::nlohmann_json
-    freetype
+    Freetype::Freetype
+    glad::glad
 ) 
