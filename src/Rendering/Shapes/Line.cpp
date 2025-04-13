@@ -11,9 +11,9 @@ Line::Line(const glm::vec2& start, const glm::vec2& end, const Styles::Line& sty
     , style(style) {
 }
 
-void Line::draw(VectorGraphics& graphics) {
+void Line::draw() {
     // Use the width property from the style
-    graphics.drawLine(start, end, style.color, style.width);
+    VectorGraphics::getInstance().drawLine(start, end, style.color, style.width);
 }
 
 } // namespace Shapes

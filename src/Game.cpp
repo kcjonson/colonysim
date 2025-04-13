@@ -15,17 +15,17 @@ Game::Game()
     : window(nullptr)
     , camera()
     , gameState()
-    , vectorGraphics()
     , world(gameState)
     , entities()
     , inputManager(window, camera, entities, gameState)
     , interface(gameState)
-    , isRunning(true) {
+    , isRunning(true)
+    , timeSinceLastRenderLog(0.0f) {
     
     std::cout << "Initializing game..." << std::endl;
     
     // Set VectorGraphics to use the renderer
-    vectorGraphics.setRenderer(&renderer);
+    VectorGraphics::getInstance().setRenderer(&Renderer::getInstance());
     
     // Load configuration
     if (!ConfigManager::getInstance().loadConfig("config/game_config.json")) {
@@ -76,14 +76,14 @@ Game::Game()
     }
     
     // Initialize renderer first
-    if (!renderer.initialize()) {
+    if (!Renderer::getInstance().initialize()) {
         std::cerr << "ERROR: Renderer initialization failed!" << std::endl;
         glfwTerminate();
         return;
     }
 
     // Initialize VectorGraphics after GLAD is initialized
-    if (!vectorGraphics.initialize()) {
+    if (!VectorGraphics::getInstance().initialize()) {
         std::cerr << "ERROR: VectorGraphics initialization failed!" << std::endl;
         glfwTerminate();
         return;
@@ -152,15 +152,10 @@ Game::Game()
     // Set up references for world and interface
     world.setCamera(&camera);
     world.setWindow(window);
-    world.setRenderer(&renderer);
     
     // Set up references for entities
     entities.setCamera(&camera);
     entities.setWindow(window);
-    entities.setRenderer(&renderer);
-    
-    // Set renderer for interface
-    interface.setRenderer(&renderer);
     
     // Initialize Examples
     examples.initialize();
@@ -275,21 +270,40 @@ void Game::processInput() {
 }
 
 void Game::update(float deltaTime) {
+    // Update input manager
     inputManager.update(deltaTime);
+    
+    // Update world
     world.update(deltaTime);
-    interface.update(deltaTime);
+    
+    // Update entities
     entities.update(deltaTime);
+    
+    // Update interface
+    interface.update(deltaTime);
+    
+    // Log rendering statistics every 0.5 seconds
+    timeSinceLastRenderLog += deltaTime;
+    if (timeSinceLastRenderLog >= 0.5f) {
+        // Log rendering statistics
+        size_t totalVertices = VectorGraphics::getInstance().getTotalVertices();
+        size_t totalIndices = VectorGraphics::getInstance().getTotalIndices();
+        gameState.set("rend.vertices", std::to_string(totalVertices));
+        gameState.set("rend.indices", std::to_string(totalIndices));
+
+        timeSinceLastRenderLog = 0.0f; // Reset the timer
+    }
 }
 
 void Game::render() {
-    // Set clear color with alpha - use black for better contrast 
+    // Set clear color with alpha - use white for better contrast 
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
     // Set up OpenGL state for the entire frame
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
-    
+
     // Use standard alpha blending to preserve color values
     // SRC_ALPHA for source factor, ONE_MINUS_SRC_ALPHA for destination factor
     // This means: result = src.rgb * src.a + dst.rgb * (1 - src.a)
@@ -300,21 +314,19 @@ void Game::render() {
     // 2. Make sure each batch uses the correct projection matrix
     
     // First batch: Render world (background layer)
-    vectorGraphics.beginBatch();
-    world.render(vectorGraphics);
-    vectorGraphics.endBatch();
-
+    VectorGraphics::getInstance().beginBatch();
+    world.render();
+    VectorGraphics::getInstance().endBatch();
+    
     // Second batch: Render entities (foreground layer)
-    vectorGraphics.beginBatch();
-    entities.render(vectorGraphics);
-    vectorGraphics.endBatch();
+    VectorGraphics::getInstance().beginBatch();
+    entities.render();
+    VectorGraphics::getInstance().endBatch();
     
     // Third batch: Render interface elements (foreground layer)
-    vectorGraphics.beginBatch();
-    interface.render(vectorGraphics);
-    vectorGraphics.endBatch();
-
-    
+    VectorGraphics::getInstance().beginBatch();
+    interface.render();
+    VectorGraphics::getInstance().endBatch();
     
     // Swap buffers
     glfwSwapBuffers(window);

@@ -2,6 +2,7 @@
 #include <cmath>
 #include "Rendering/Layer.h"
 #include "Rendering/Shapes/Rectangle.h"
+#include "VectorGraphics.h"
 
 Entity::Entity(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color)
     : type(EntityType::WORKER)
@@ -25,7 +26,7 @@ Entity::Entity(const glm::vec2& position, const glm::vec2& size, const glm::vec4
             .color = color,
             .borderColor = glm::vec4(0.0f), // No border
             .borderWidth = 0.0f,            // No border width
-            .borderPosition = BorderPosition::Outside
+            .borderPosition = ::BorderPosition::Outside
         }),
         50.0f
     );
@@ -69,18 +70,18 @@ void Entity::update(float deltaTime) {
     }
 }
 
-void Entity::render(VectorGraphics& graphics) {
+void Entity::render() {
     // Use entity layer to handle rendering
     // This will only handle the actual drawing, not the finalization
     // Finalization is done by the EntityManager
-    entityLayer->render(graphics);
+    entityLayer->render();
 
     // Draw health bar if entity has health
     if (health < 1.0f) {
         float healthBarWidth = size.x;
         float healthBarHeight = 2.0f;
         glm::vec4 healthColor(1.0f - health, health, 0.0f, 1.0f);
-        graphics.drawRectangle(
+        VectorGraphics::getInstance().drawRectangle(
             position - glm::vec2(0.0f, size.y * 0.5f + healthBarHeight),
             glm::vec2(healthBarWidth * health, healthBarHeight),
             healthColor,
@@ -96,7 +97,7 @@ void Entity::render(VectorGraphics& graphics) {
         float progressBarWidth = size.x;
         float progressBarHeight = 2.0f;
         glm::vec4 progressColor(0.0f, 1.0f, 0.0f, 1.0f);
-        graphics.drawRectangle(
+        VectorGraphics::getInstance().drawRectangle(
             position - glm::vec2(0.0f, size.y * 0.5f + progressBarHeight * 2.0f),
             glm::vec2(progressBarWidth * workProgress, progressBarHeight),
             progressColor,

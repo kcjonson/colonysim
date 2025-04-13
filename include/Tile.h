@@ -36,10 +36,10 @@ public:
     void setVisible(bool visible);
 
     // Virtual method overrides
-    void renderWithMatrices(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) override;
-    void renderScreenSpace(VectorGraphics& graphics, const glm::mat4& projectionMatrix) override;
-    void beginBatch(VectorGraphics& graphics) override;
-    void endBatch(VectorGraphics& graphics) override;
+    void renderWithMatrices(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) override;
+    void renderScreenSpace(const glm::mat4& projectionMatrix) override;
+    void beginBatch() override;
+    void endBatch() override;
 
     // Update all shapes' position relative to tile position
     void updatePosition(const glm::vec2& tilePosition);

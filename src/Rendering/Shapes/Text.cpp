@@ -23,10 +23,10 @@ Text::Text(const std::string& text, const glm::vec2& position, const Styles::Tex
     , style(style) {
 }
 
-void Text::draw(VectorGraphics& graphics) {
+void Text::draw() {
     // Store text rendering commands to be executed by the Renderer
     // at the appropriate time
-    graphics.drawText(text, position, style.color);
+    VectorGraphics::getInstance().drawText(text, position, style.color);
 }
 
 } // namespace Shapes

@@ -27,7 +27,7 @@ public:
     ~Entity() = default;
 
     void update(float deltaTime);
-    void render(VectorGraphics& graphics);
+    void render();
 
     // Getters and setters
     EntityType getType() const { return type; }

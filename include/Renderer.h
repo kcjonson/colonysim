@@ -8,8 +8,17 @@
 // renderer that manages both vector and text rendering with consistent projections
 class Renderer {
 public:
-    Renderer();
-    ~Renderer() = default;
+    // Delete copy/move constructors and assignment operators
+    Renderer(const Renderer&) = delete;
+    Renderer& operator=(const Renderer&) = delete;
+    Renderer(Renderer&&) = delete;
+    Renderer& operator=(Renderer&&) = delete;
+
+    // Static method to access the singleton instance
+    static Renderer& getInstance() {
+        static Renderer instance;
+        return instance;
+    }
 
     // Initialize both renderers
     bool initialize();
@@ -34,7 +43,10 @@ public:
     void renderText(const std::string& text, const glm::vec2& position, float scale, const glm::vec3& color);
     
 private:
-    VectorRenderer vectorRenderer;
+    // Private constructor for singleton
+    Renderer();
+    ~Renderer() = default;
+    
     FontRenderer fontRenderer;
     
     glm::mat4 projectionMatrix;

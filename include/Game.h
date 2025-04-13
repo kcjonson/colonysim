@@ -33,12 +33,13 @@ private:
     static void mouseMoveCallback(GLFWwindow* window, double xpos, double ypos);
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 
+    // For render stats logging
+    float timeSinceLastRenderLog = 0.0f;
+
     // Members in initialization order
     GLFWwindow* window;
     Camera camera;
     GameState gameState;
-    Renderer renderer;
-    VectorGraphics vectorGraphics;
     World world;
     Entities entities;
     InputManager inputManager;

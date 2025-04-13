@@ -58,25 +58,22 @@ public:
     Camera* getCamera() const { return camera; }
     GLFWwindow* getWindow() const { return window; }
     
-    // Set and get renderer
-    void setRenderer(Renderer* r) { renderer = r; }
-    Renderer* getRenderer() const { return renderer; }
-    
     // Get matrices based on projection type
     glm::mat4 getViewMatrix() const;
     glm::mat4 getProjectionMatrix() const;
 
     // Rendering methods
-    virtual void render(VectorGraphics& graphics);
-    virtual void renderWithMatrices(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
-    virtual void renderScreenSpace(VectorGraphics& graphics, const glm::mat4& projectionMatrix);
+    virtual void render();
+    
+    virtual void renderWithMatrices(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
+    virtual void renderScreenSpace(const glm::mat4& projectionMatrix);
 
     // Begin/end batch needs to be propagated to ensure proper batching
-    virtual void beginBatch(VectorGraphics& graphics);
-    virtual void endBatch(VectorGraphics& graphics);
+    virtual void beginBatch();
+    virtual void endBatch();
     
     // Finalize rendering (call VectorGraphics.render with appropriate matrices)
-    virtual void finalizeRender(VectorGraphics& graphics);
+    virtual void finalizeRender();
 
 protected:
     float zIndex;
@@ -85,7 +82,6 @@ protected:
     std::vector<std::shared_ptr<Layer>> children;
     Camera* camera;
     GLFWwindow* window;
-    Renderer* renderer;
 
     // Sort children by z-index before rendering
     void sortChildren();

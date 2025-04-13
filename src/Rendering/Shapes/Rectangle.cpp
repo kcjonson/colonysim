@@ -11,12 +11,12 @@ Rectangle::Rectangle(const glm::vec2& position, const glm::vec2& size, const Sty
     , style(style) {
 }
 
-void Rectangle::draw(VectorGraphics& graphics) {
+void Rectangle::draw() {
     // Convert top-left position to center position for VectorGraphics::drawRectangle
     glm::vec2 centerPosition = position + size / 2.0f;
     
     // Draw the rectangle with its center position
-    graphics.drawRectangle(
+    VectorGraphics::getInstance().drawRectangle(
         centerPosition,
         size,
         style.color,                // Use base color

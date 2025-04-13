@@ -68,38 +68,9 @@ glm::vec4 World::getCameraBounds() const {
     );
 }
 
-void World::render(VectorGraphics& graphics) {
+void World::render() {
     // Get camera bounds
     glm::vec4 bounds = getCameraBounds();
-
-
-    // // Debug: Draw camera bounds rectangle - convert from bounds to top-left and size
-    // // The inset is just to make the rectangle visible
-    // glm::vec2 topLeft(bounds.x + 5.0f, bounds.z + 5.0f); // Add 5px inset
-    // glm::vec2 rectSize(bounds.y - bounds.x - 10.0f, bounds.w - bounds.z - 10.0f);
-    
-    // // Update the existing rectangle or create a new one if it doesn't exist
-    // static std::shared_ptr<Rendering::Shapes::Rectangle> boundsRect = nullptr;
-    // if (!boundsRect) {
-    //     std::cout << "Creating camera bounds debug rectangle" << std::endl;
-    //     boundsRect = std::make_shared<Rendering::Shapes::Rectangle>(
-    //         topLeft,
-    //         rectSize,
-    //         Rendering::Styles::Rectangle({
-    //             .color = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),     // Transparent fill
-    //             .borderColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), // Red border
-    //             .borderWidth = 2.0f,                             // 2px border width
-    //             .borderPosition = BorderPosition::Inside,        // Border inside the rectangle
-    //             .cornerRadius = 0.0f                             // No rounded corners
-    //         }),
-    //         500.0f // Z-index
-    //     );
-    //     worldLayer->addItem(boundsRect);
-    // } else {
-    //     // Just update position and size
-    //     boundsRect->setPosition(topLeft);
-    //     boundsRect->setSize(rectSize);
-    // }
 
     // Calculate visible tile range with increased overscan
     int minX = static_cast<int>(std::floor(bounds.x / TILE_SIZE)) - 3; // Increase overscan from 1 to 3
@@ -163,7 +134,7 @@ void World::render(VectorGraphics& graphics) {
     lastVisibleTiles = currentVisibleTiles;
 
     // Add world objects to the batch
-    worldLayer->render(graphics);
+    worldLayer->render();
 
     // Get the view and projection matrices
     // TODO: this should be done in the layer
@@ -171,7 +142,11 @@ void World::render(VectorGraphics& graphics) {
     glm::mat4 projectionMatrix = worldLayer->getProjectionMatrix();
 
     // Finalize the world batch with the world-space projection
-    graphics.render(viewMatrix, projectionMatrix);
+    VectorGraphics::getInstance().render(viewMatrix, projectionMatrix);
+}
+
+void World::renderTiles() {
+    // This is now handled in the render() method
 }
 
 void World::logMemoryUsage() const {
@@ -216,8 +191,4 @@ void World::setCamera(Camera* cam) {
 
 void World::setWindow(GLFWwindow* win) {
     worldLayer->setWindow(win);
-}
-
-void World::setRenderer(Renderer* renderer) {
-    worldLayer->setRenderer(renderer);
 } 

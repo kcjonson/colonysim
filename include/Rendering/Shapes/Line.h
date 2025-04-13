@@ -26,7 +26,7 @@ public:
     void setStyle(const Styles::Line& s) { style = s; markDirty(); }
 
     // Implementation of the draw method
-    virtual void draw(VectorGraphics& graphics) override;
+    virtual void draw() override;
 
 private:
     glm::vec2 start;

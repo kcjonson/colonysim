@@ -11,7 +11,7 @@ Shape::Shape(const glm::vec2& position, const Styles::Base& style, float zIndex)
     , dirty(true) {
 }
 
-void Shape::render(VectorGraphics& graphics) {
+void Shape::render() {
     if (!visible) return;
     
     // Get matrices based on projection type
@@ -19,17 +19,17 @@ void Shape::render(VectorGraphics& graphics) {
     glm::mat4 projectionMatrix = getProjectionMatrix();
     
     // Forward to renderWithMatrices
-    renderWithMatrices(graphics, viewMatrix, projectionMatrix);
+    renderWithMatrices(viewMatrix, projectionMatrix);
 }
 
-void Shape::renderWithMatrices(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+void Shape::renderWithMatrices(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
     if (!visible) return;
-    draw(graphics);
+    draw();
 }
 
-void Shape::renderScreenSpace(VectorGraphics& graphics, const glm::mat4& projectionMatrix) {
+void Shape::renderScreenSpace(const glm::mat4& projectionMatrix) {
     if (!visible) return;
-    draw(graphics);
+    draw();
 }
 
 } // namespace Shapes

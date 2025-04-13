@@ -28,8 +28,17 @@ struct TextCommand {
 
 class VectorGraphics {
 public:
-    VectorGraphics();
-    ~VectorGraphics();
+    // Delete copy/move constructors and assignment operators
+    VectorGraphics(const VectorGraphics&) = delete;
+    VectorGraphics& operator=(const VectorGraphics&) = delete;
+    VectorGraphics(VectorGraphics&&) = delete;
+    VectorGraphics& operator=(VectorGraphics&&) = delete;
+
+    // Static method to access the singleton instance
+    static VectorGraphics& getInstance() {
+        static VectorGraphics instance;
+        return instance;
+    }
 
     // Set the renderer to use for text rendering
     void setRenderer(Renderer* rendererPtr) { renderer = rendererPtr; }
@@ -124,7 +133,15 @@ public:
      */
     void drawText(const std::string& text, const glm::vec2& position, const glm::vec4& color);
 
+    // Get rendering statistics
+    size_t getTotalVertices() const { return vertices.size(); }
+    size_t getTotalIndices() const { return indices.size(); }
+
 private:
+    // Private constructor for singleton
+    VectorGraphics();
+    ~VectorGraphics();
+
     void updateBuffers();  // Update OpenGL buffers with current vertices and indices
 
     Shader shader;

@@ -25,7 +25,7 @@ public:
     void setStyle(const Styles::Circle& s) { style = s; markDirty(); }
 
     // Implementation of the draw method
-    virtual void draw(VectorGraphics& graphics) override;
+    virtual void draw() override;
 
 private:
     float radius;

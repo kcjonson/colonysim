@@ -15,7 +15,7 @@ public:
     ~Entities();
 
     void update(float deltaTime);
-    void render(VectorGraphics& graphics);
+    void render();
 
     // Entity management
     size_t createEntity(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color);
@@ -28,10 +28,9 @@ public:
     void moveEntity(size_t index, const glm::vec2& target);
     void setEntityState(size_t index, EntityState state);
     
-    // Set camera, window, and renderer
+    // Set camera and window
     void setCamera(Camera* cam);
     void setWindow(GLFWwindow* win);
-    void setRenderer(Renderer* renderer);
 
 private:
     std::vector<std::unique_ptr<Entity>> entities;

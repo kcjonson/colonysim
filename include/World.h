@@ -24,8 +24,8 @@ public:
     
     void update(float deltaTime);
     
-    // Main render method - no longer requires view/projection matrices
-    void render(VectorGraphics& graphics);
+    // Main render method - uses VectorGraphics singleton
+    void render();
     
     int getWidth() const { return width; }
     int getHeight() const { return height; }
@@ -35,14 +35,13 @@ public:
     float getResourceAmount(int x, int y) const;
     void generateTerrain();
     
-    // Set camera, window, and renderer for the world
+    // Set camera and window for the world
     void setCamera(Camera* cam);
     void setWindow(GLFWwindow* win);
-    void setRenderer(Renderer* renderer);
 
 private:
     void generatePerlinNoise(std::unordered_map<std::pair<int, int>, WorldGen::TerrainData>& noiseMap, int width, int height, float scale);
-    void renderTiles(VectorGraphics& graphics);
+    void renderTiles();
 
     int width = 100;
     int height = 100;

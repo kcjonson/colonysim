@@ -19,7 +19,7 @@ public:
     void initialize();
     
     // Render the examples
-    void render(VectorGraphics& vectorGraphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
+    void render(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
     
 private:
     // Create examples for different shapes

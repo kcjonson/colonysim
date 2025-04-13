@@ -10,8 +10,13 @@ namespace Rendering {
 // Match the tile size used in World.h (20.0f)
 constexpr float TILE_SIZE = 20.0f;
 
+// Default colors for different terrain types
+const glm::vec4 WATER_COLOR = glm::vec4(0.0f, 0.0f, 0.8f, 1.0f);  // Dark blue for water
+const glm::vec4 GRASS_COLOR = glm::vec4(0.0f, 0.5f, 0.0f, 1.0f);  // Green for grass
+const glm::vec4 MOUNTAIN_COLOR = glm::vec4(0.5f, 0.35f, 0.05f, 1.0f); // Brown for mountains
+
 Tile::Tile(const glm::vec2& position, float height, float resource, int type, const glm::vec4& color, bool visible)
-    : Layer(0.0f)
+    : Layer(0.1f) // Default z-index for tiles
     , height(height)
     , resource(resource)
     , type(type)
@@ -22,14 +27,16 @@ Tile::Tile(const glm::vec2& position, float height, float resource, int type, co
 }
 
 void Tile::initializeDefaultShape() {
-    // Create a default rectangle shape for the tile
+    // Create a 20x20 rectangle with the tile's color (top-left positioned)
     auto rect = std::make_shared<Shapes::Rectangle>(
-        glm::vec2(-TILE_SIZE/2.0f, -TILE_SIZE/2.0f),
-        glm::vec2(TILE_SIZE),
+        glm::vec2(0, 0),  // Position will be set by updatePosition
+        glm::vec2(20, 20), // Default tile size
         Styles::Rectangle({
-            .color = color
+            .color = color, // Use the tile's color
         })
     );
+    
+    // Add it to the tile's children
     addItem(rect);
 }
 
@@ -46,26 +53,26 @@ void Tile::updatePosition(const glm::vec2& tilePosition) {
     }
 }
 
-void Tile::renderWithMatrices(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+void Tile::renderWithMatrices(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
     if (!visible) {
         return;
     }
 
     // Render all children using the base implementation
-    Layer::renderWithMatrices(graphics, viewMatrix, projectionMatrix);
+    Layer::renderWithMatrices(viewMatrix, projectionMatrix);
 }
 
-void Tile::renderScreenSpace(VectorGraphics& graphics, const glm::mat4& projectionMatrix) {
+void Tile::renderScreenSpace(const glm::mat4& projectionMatrix) {
     if (!visible) return;
-    Layer::renderScreenSpace(graphics, projectionMatrix);
+    Layer::renderScreenSpace(projectionMatrix);
 }
 
-void Tile::beginBatch(VectorGraphics& graphics) {
-    Layer::beginBatch(graphics);
+void Tile::beginBatch() {
+    Layer::beginBatch();
 }
 
-void Tile::endBatch(VectorGraphics& graphics) {
-    Layer::endBatch(graphics);
+void Tile::endBatch() {
+    Layer::endBatch();
 }
 
 } // namespace Rendering 

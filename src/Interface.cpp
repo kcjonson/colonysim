@@ -19,7 +19,9 @@ const std::vector<std::string> Interface::GAME_STATE_PROPERTIES = {
     "system.fps",
     "input.windowPos",
     "input.worldPos",
-    "camera.position"
+    "camera.position",
+    "rend.vertices",
+    "rend.indices"
 };
 
 Interface::Interface(GameState& gameState)
@@ -97,23 +99,17 @@ void Interface::update(float deltaTime) {
     }
 }
 
-void Interface::render(VectorGraphics& graphics) {
+void Interface::render() {
     // Render UI elements with screen-space projection
     if (uiLayer) {
         // Add UI elements to the batch
-        uiLayer->render(graphics);
+        uiLayer->render();
         
         // Get the appropriate view and projection matrices for screen space
         glm::mat4 viewMatrix = uiLayer->getViewMatrix(); // Identity for screen space
         glm::mat4 projectionMatrix = uiLayer->getProjectionMatrix();
         
         // Finalize the UI batch with screen-space projection
-        graphics.render(viewMatrix, projectionMatrix);
-    }
-}
-
-void Interface::setRenderer(Renderer* r) {
-    if (uiLayer) {
-        uiLayer->setRenderer(r);
+        VectorGraphics::getInstance().render(viewMatrix, projectionMatrix);
     }
 }

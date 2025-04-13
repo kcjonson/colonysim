@@ -10,10 +10,10 @@ Circle::Circle(const glm::vec2& position, float radius, const Styles::Circle& st
     , style(style) {
 }
 
-void Circle::draw(VectorGraphics& graphics) {
+void Circle::draw() {
     // Draw the circle with both fill and border in a single draw call
     // Note: VectorGraphics API for drawCircle needs to be updated to match this
-    graphics.drawCircle(
+    VectorGraphics::getInstance().drawCircle(
         position,
         radius,
         style.color,                // Use base color

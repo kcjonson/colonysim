@@ -28,10 +28,7 @@ public:
     void update(float deltaTime);
     
     // Main render method for UI elements
-    void render(VectorGraphics& graphics);
-    
-    // Set renderer for UI layer
-    void setRenderer(Renderer* r);
+    void render();
 
 private:
     // Static list of GameState properties to display

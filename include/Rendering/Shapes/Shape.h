@@ -24,12 +24,12 @@ public:
     void setStyle(const Styles::Base& s) { style = s; markDirty(); }
 
     // Rendering methods - match the Layer class signatures
-    virtual void render(VectorGraphics& graphics) override;
-    virtual void renderWithMatrices(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) override;
-    virtual void renderScreenSpace(VectorGraphics& graphics, const glm::mat4& projectionMatrix) override;
+    virtual void render() override;
+    virtual void renderWithMatrices(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) override;
+    virtual void renderScreenSpace(const glm::mat4& projectionMatrix) override;
 
     // Pure virtual method that each shape must implement
-    virtual void draw(VectorGraphics& graphics) = 0;
+    virtual void draw() = 0;
 
 protected:
     glm::vec2 position;

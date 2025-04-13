@@ -14,7 +14,7 @@ bool Renderer::initialize() {
         std::cout << "Initializing Renderer..." << std::endl;
     
         // Initialize vector renderer
-        if (!vectorRenderer.initialize()) {
+        if (!VectorRenderer::getInstance().initialize()) {
             std::cerr << "Failed to initialize vector renderer" << std::endl;
             return false;
         }
@@ -31,7 +31,7 @@ bool Renderer::initialize() {
     }
     
     // Silent reinitialization for subsequent calls
-    if (!vectorRenderer.initialize() || !fontRenderer.initialize()) {
+    if (!VectorRenderer::getInstance().initialize() || !fontRenderer.initialize()) {
         return false;
     }
     
@@ -48,7 +48,7 @@ void Renderer::setView(const glm::mat4& view) {
 
 void Renderer::renderVector(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices,
                            const glm::mat4& model, float thickness) {
-    vectorRenderer.render(vertices, indices, projectionMatrix, viewMatrix, model, thickness);
+    VectorRenderer::getInstance().render(vertices, indices, projectionMatrix, viewMatrix, model, thickness);
 }
 
 void Renderer::renderText(const std::string& text, const glm::vec2& position, float scale, const glm::vec3& color) {

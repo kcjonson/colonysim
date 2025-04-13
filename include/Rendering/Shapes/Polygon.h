@@ -24,7 +24,7 @@ public:
     void setStyle(const Styles::Polygon& s) { style = s; markDirty(); }
 
     // Implementation of the draw method
-    virtual void draw(VectorGraphics& graphics) override;
+    virtual void draw() override;
 
 private:
     std::vector<glm::vec2> vertices;

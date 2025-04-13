@@ -8,8 +8,17 @@
 
 class VectorRenderer {
 public:
-    VectorRenderer();
-    ~VectorRenderer();
+    // Delete copy/move constructors and assignment operators
+    VectorRenderer(const VectorRenderer&) = delete;
+    VectorRenderer& operator=(const VectorRenderer&) = delete;
+    VectorRenderer(VectorRenderer&&) = delete;
+    VectorRenderer& operator=(VectorRenderer&&) = delete;
+
+    // Static method to access the singleton instance
+    static VectorRenderer& getInstance() {
+        static VectorRenderer instance;
+        return instance;
+    }
 
     bool initialize();
     void render(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices,
@@ -18,6 +27,10 @@ public:
     void cleanup();
 
 private:
+    // Private constructor for singleton
+    VectorRenderer();
+    ~VectorRenderer();
+    
     unsigned int VAO, VBO, EBO;
     std::unique_ptr<Shader> shader;
     

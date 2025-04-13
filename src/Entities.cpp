@@ -18,9 +18,9 @@ void Entities::update(float deltaTime) {
     updateWork(deltaTime);
 }
 
-void Entities::render(VectorGraphics& graphics) {
+void Entities::render() {
     // Let the entity layer handle rendering
-    entityLayer->render(graphics);
+    entityLayer->render();
 }
 
 size_t Entities::createEntity(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color) {
@@ -91,17 +91,6 @@ void Entities::setWindow(GLFWwindow* win) {
     for (auto& entity : entities) {
         if (entity) {
             entity->getEntityLayer()->setWindow(win);
-        }
-    }
-}
-
-void Entities::setRenderer(Renderer* renderer) {
-    entityLayer->setRenderer(renderer);
-    
-    // Update all existing entities
-    for (auto& entity : entities) {
-        if (entity) {
-            entity->getEntityLayer()->setRenderer(renderer);
         }
     }
 }

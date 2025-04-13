@@ -24,7 +24,7 @@ public:
     void setStyle(const Styles::Text& s) { style = s; markDirty(); }
 
     // Implementation of the draw method
-    virtual void draw(VectorGraphics& graphics) override;
+    virtual void draw() override;
 
 private:
     std::string text;

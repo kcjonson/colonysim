@@ -14,8 +14,7 @@ Layer::Layer(float zIndex, ProjectionType projType)
     , visible(true)
     , projectionType(projType)
     , camera(nullptr)
-    , window(nullptr)
-    , renderer(nullptr) {
+    , window(nullptr) {
 }
 
 void Layer::addItem(std::shared_ptr<Layer> item) {
@@ -31,11 +30,6 @@ void Layer::addItem(std::shared_ptr<Layer> item) {
     
     if (window != nullptr) {
         item->setWindow(window);
-    }
-    
-    // Pass renderer to the child
-    if (renderer != nullptr) {
-        item->setRenderer(renderer);
     }
     
     children.push_back(item);
@@ -143,7 +137,7 @@ glm::mat4 Layer::getProjectionMatrix() const {
     return glm::mat4(1.0f);
 }
 
-void Layer::render(VectorGraphics& graphics) {
+void Layer::render() {
     if (!visible) {
         return;
     }
@@ -153,10 +147,10 @@ void Layer::render(VectorGraphics& graphics) {
     glm::mat4 projectionMatrix = getProjectionMatrix();
     
     // Forward to renderWithMatrices
-    renderWithMatrices(graphics, viewMatrix, projectionMatrix);
+    renderWithMatrices(viewMatrix, projectionMatrix);
 }
 
-void Layer::renderWithMatrices(VectorGraphics& graphics, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+void Layer::renderWithMatrices(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
     if (!visible) {
         return;
     }
@@ -167,11 +161,11 @@ void Layer::renderWithMatrices(VectorGraphics& graphics, const glm::mat4& viewMa
     // Render all children
     for (auto& child : children) {
         // Each child gets rendered with the layer's matrices
-        child->renderWithMatrices(graphics, viewMatrix, projectionMatrix);
+        child->renderWithMatrices(viewMatrix, projectionMatrix);
     }
 }
 
-void Layer::renderScreenSpace(VectorGraphics& graphics, const glm::mat4& projectionMatrix) {
+void Layer::renderScreenSpace(const glm::mat4& projectionMatrix) {
     if (!visible) return;
 
     // Sort children if needed
@@ -182,31 +176,29 @@ void Layer::renderScreenSpace(VectorGraphics& graphics, const glm::mat4& project
 
     // Render all children
     for (auto& child : children) {
-        child->renderWithMatrices(graphics, identityView, projectionMatrix);
+        child->renderWithMatrices(identityView, projectionMatrix);
     }
 }
 
-void Layer::beginBatch(VectorGraphics& graphics) {
-    graphics.beginBatch();
+void Layer::beginBatch() {
+    VectorGraphics::getInstance().beginBatch();
 }
 
-void Layer::endBatch(VectorGraphics& graphics) {
-    graphics.endBatch();
+void Layer::endBatch() {
+    VectorGraphics::getInstance().endBatch();
 }
 
-void Layer::finalizeRender(VectorGraphics& graphics) {
+void Layer::finalizeRender() {
     // Get matrices based on projection type
     glm::mat4 viewMatrix = getViewMatrix();
     glm::mat4 projectionMatrix = getProjectionMatrix();
     
-    // If we have a renderer, set the view and projection
-    if (renderer) {
-        renderer->setView(viewMatrix);
-        renderer->setProjection(projectionMatrix);
-    }
+    // Use Renderer singleton
+    Renderer::getInstance().setView(viewMatrix);
+    Renderer::getInstance().setProjection(projectionMatrix);
     
-    // Call VectorGraphics.render with appropriate matrices
-    graphics.render(viewMatrix, projectionMatrix);
+    // Call VectorGraphics singleton render with appropriate matrices
+    VectorGraphics::getInstance().render(viewMatrix, projectionMatrix);
 }
 
 } // namespace Rendering 

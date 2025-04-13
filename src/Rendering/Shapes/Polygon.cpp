@@ -10,7 +10,7 @@ Polygon::Polygon(const glm::vec2& position, const std::vector<glm::vec2>& vertic
     , style(style) {
 }
 
-void Polygon::draw(VectorGraphics& graphics) {
+void Polygon::draw() {
     // Create a copy of vertices with position offset
     std::vector<glm::vec2> offsetVertices = vertices;
     for (auto& vertex : offsetVertices) {
@@ -18,7 +18,7 @@ void Polygon::draw(VectorGraphics& graphics) {
     }
     
     // Draw the polygon with both fill and border
-    graphics.drawPolygon(
+    VectorGraphics::getInstance().drawPolygon(
         offsetVertices,
         style.color,                // Use base color
         style.borderColor,          // Use border color
