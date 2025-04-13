@@ -72,6 +72,7 @@ void InputManager::cursorPosCallback(GLFWwindow* window, double xpos, double ypo
 }
 
 void InputManager::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+    // Debug output for scroll events
     if (s_instance) {
         s_instance->handleScroll(xoffset, yoffset);
     }
@@ -87,20 +88,8 @@ void InputManager::update(float deltaTime) {
 }
 
 void InputManager::handleKeyInput(int key, int action) {
-    if (action == GLFW_PRESS || action == GLFW_REPEAT) {
-        glm::vec2 panDirection(0.0f);
-        
-        if (key == keyMappings["pan_up"]) panDirection.y += 1.0f;
-        if (key == keyMappings["pan_down"]) panDirection.y -= 1.0f;
-        if (key == keyMappings["pan_left"]) panDirection.x -= 1.0f;
-        if (key == keyMappings["pan_right"]) panDirection.x += 1.0f;
-        
-        if (glm::length(panDirection) > 0.0f) {
-            panDirection = glm::normalize(panDirection);
-            if (invertPan) panDirection = -panDirection;
-            applyPan(panDirection, panSpeed, 1.0f / 60.0f);
-        }
-    }
+    // We now handle keyboard panning in processKeyboardInput for continuous acceleration
+    // This callback can still be used for one-shot key actions if needed
 }
 
 void InputManager::handleMouseButton(int button, int action) {
@@ -138,13 +127,61 @@ void InputManager::handleMouseMove(double x, double y) {
 }
 
 void InputManager::handleScroll(double xoffset, double yoffset) {
+    if (yoffset == 0) return;
+    
+    // Convert scroll input to zoom amount
+    // Positive yoffset = scroll up = zoom in
+    // Negative yoffset = scroll down = zoom out
     float zoomAmount = static_cast<float>(yoffset) * zoomSpeed;
-    if (invertZoom) zoomAmount = -zoomAmount;
-    applyZoom(zoomAmount);
+    
+    // Apply inversion if needed (user preference)
+    if (invertZoom) {
+        zoomAmount = -zoomAmount;
+    }
+    
+    // Debug output for zoom events
+    std::cout << "Zoom event: " << yoffset << " (inverted: " << invertZoom << ")" << std::endl;
+    std::cout << "Zoom amount: " << zoomAmount << std::endl;
+
+    
+    // Pass the zoom amount to the camera
+    camera.zoom(zoomAmount);
 }
 
 void InputManager::processKeyboardInput(float deltaTime) {
-    // Keyboard input is now handled in the callback
+    // Check for keyboard pan input
+    glm::vec2 panDirection(0.0f);
+    
+    if (glfwGetKey(window, keyMappings["pan_up"]) == GLFW_PRESS) panDirection.y += 1.0f;
+    if (glfwGetKey(window, keyMappings["pan_down"]) == GLFW_PRESS) panDirection.y -= 1.0f;
+    if (glfwGetKey(window, keyMappings["pan_left"]) == GLFW_PRESS) panDirection.x -= 1.0f;
+    if (glfwGetKey(window, keyMappings["pan_right"]) == GLFW_PRESS) panDirection.x += 1.0f;
+    
+    if (glm::length(panDirection) > 0.0f) {
+        // Normalize for consistent movement in all directions
+        panDirection = glm::normalize(panDirection);
+        
+        // Apply inversion if needed
+        if (invertPan) panDirection = -panDirection;
+        
+        // If continuing in same direction, increase acceleration
+        if (glm::dot(panDirection, lastKeyPanDirection) > 0.7f) {
+            currentKeyAcceleration = glm::min(currentKeyAcceleration + panAccelRate * deltaTime, maxPanAcceleration);
+        } else {
+            // Reset acceleration when changing direction
+            currentKeyAcceleration = 1.0f;
+        }
+        
+        // Save direction for next frame
+        lastKeyPanDirection = panDirection;
+        
+        // Apply pan with acceleration
+        applyPan(panDirection, panSpeed * currentKeyAcceleration, deltaTime);
+    } else {
+        // No keys pressed, reset acceleration
+        currentKeyAcceleration = 1.0f;
+        lastKeyPanDirection = glm::vec2(0.0f);
+    }
 }
 
 void InputManager::processEdgePan(float deltaTime) {
@@ -161,15 +198,32 @@ void InputManager::processEdgePan(float deltaTime) {
     
     float edgeThreshold = edgePanThreshold * static_cast<float>(width);
     
-    if (mousePos.x < edgeThreshold) panDirection.x -= 1.0f;
-    if (mousePos.x > width - edgeThreshold) panDirection.x += 1.0f;
-    if (mousePos.y < edgeThreshold) panDirection.y -= 1.0f;
-    if (mousePos.y > height - edgeThreshold) panDirection.y += 1.0f;
+    if (mousePos.x < edgeThreshold) panDirection.x += 1.0f;
+    if (mousePos.x > width - edgeThreshold) panDirection.x -= 1.0f;
+    if (mousePos.y < edgeThreshold) panDirection.y += 1.0f;
+    if (mousePos.y > height - edgeThreshold) panDirection.y -= 1.0f;
     
     if (glm::length(panDirection) > 0.0f) {
         panDirection = glm::normalize(panDirection);
         if (invertPan) panDirection = -panDirection;
-        applyPan(panDirection, edgePanSpeed, deltaTime);
+        
+        // If continuing in same direction, increase acceleration
+        if (glm::dot(panDirection, lastEdgePanDirection) > 0.7f) {
+            currentEdgeAcceleration = glm::min(currentEdgeAcceleration + panAccelRate * deltaTime, maxPanAcceleration);
+        } else {
+            // Reset acceleration when changing direction
+            currentEdgeAcceleration = 1.0f;
+        }
+        
+        // Save direction for next frame
+        lastEdgePanDirection = panDirection;
+        
+        // Apply pan with acceleration
+        applyPan(panDirection, edgePanSpeed * currentEdgeAcceleration, deltaTime);
+    } else {
+        // Not edge panning, reset acceleration
+        currentEdgeAcceleration = 1.0f;
+        lastEdgePanDirection = glm::vec2(0.0f);
     }
 }
 
@@ -186,6 +240,12 @@ void InputManager::applyPan(const glm::vec2& direction, float speed, float delta
 
 void InputManager::applyZoom(float amount) {
     camera.zoom(amount);
+    
+    // Log the camera's position after zooming
+    glm::vec3 cameraPos = camera.getPosition();
+    char posStr[50];
+    snprintf(posStr, sizeof(posStr), "%.1f, %.1f", cameraPos.x, cameraPos.y);
+    gameState.set("camera.position", posStr);
 }
 
 void InputManager::handleEntitySelection(const glm::vec2& mousePos) {
@@ -226,10 +286,6 @@ void InputManager::handleEntitySelection(const glm::vec2& mousePos) {
     gameState.set("input.selectedEntity", "-1");
 }
 
-// glm::vec2 InputManager::getCursorWorldPos() {
-//     return camera.screenToWorld(glm::vec3(lastMousePos, 0.0f));
-// }
-
 void InputManager::loadConfig(const std::string& configPath) {
     std::ifstream file(configPath);
     if (!file.is_open()) {
@@ -268,6 +324,20 @@ void InputManager::loadConfig(const std::string& configPath) {
             
             if (camera.contains("invertPan")) 
                 invertPan = camera["invertPan"].get<bool>();
+                
+            // Load acceleration settings
+            if (camera.contains("maxPanAcceleration"))
+                maxPanAcceleration = camera["maxPanAcceleration"].get<float>();
+                
+            if (camera.contains("panAccelRate"))
+                panAccelRate = camera["panAccelRate"].get<float>();
+                
+            // Load zoom acceleration settings
+            if (camera.contains("maxZoomAcceleration"))
+                maxZoomAcceleration = camera["maxZoomAcceleration"].get<float>();
+                
+            if (camera.contains("zoomAccelRate"))
+                zoomAccelRate = camera["zoomAccelRate"].get<float>();
         }
     }
     catch (const json::parse_error& e) {

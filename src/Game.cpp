@@ -128,10 +128,7 @@ Game::Game()
     // Set up callbacks
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
-    glfwSetScrollCallback(window, mouseScrollCallback);
-    glfwSetCursorPosCallback(window, mouseMoveCallback);
-    glfwSetMouseButtonCallback(window, mouseButtonCallback);
-
+    
     // Enable blending
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -139,8 +136,7 @@ Game::Game()
     // Enable anti-aliasing
     glEnable(GL_MULTISAMPLE);
 
-    // Generate terrain
-    world.generateTerrain();
+
     
     // Initialize World (should be called after camera is set up)
     if (!world.initialize()) {
@@ -157,48 +153,52 @@ Game::Game()
     entities.setCamera(&camera);
     entities.setWindow(window);
     
+
+    // Generate terrain
+    world.generateTerrain();
+
     // Initialize Examples
     examples.initialize();
 
-    // Create some test entities
-    std::cout << "Creating test entities..." << std::endl;
+    // // Create some test entities
+    // std::cout << "Creating test entities..." << std::endl;
     
-    // Create a worker entity
-    size_t workerId = entities.createEntity(
-        glm::vec2(0.0f, 0.0f),
-        glm::vec2(20.0f, 20.0f),
-        glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) // Green
-    );
-    Entity* worker = entities.getEntity(workerId);
-    if (worker) {
-        worker->setSpeed(100.0f);
-        worker->setState(EntityState::IDLE);
-        worker->setType(EntityType::WORKER);
-    }
+    // // Create a worker entity
+    // size_t workerId = entities.createEntity(
+    //     glm::vec2(0.0f, 0.0f),
+    //     glm::vec2(20.0f, 20.0f),
+    //     glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) // Green
+    // );
+    // Entity* worker = entities.getEntity(workerId);
+    // if (worker) {
+    //     worker->setSpeed(100.0f);
+    //     worker->setState(EntityState::IDLE);
+    //     worker->setType(EntityType::WORKER);
+    // }
 
-    // Create a resource entity
-    size_t resourceId = entities.createEntity(
-        glm::vec2(100.0f, 100.0f),
-        glm::vec2(30.0f, 30.0f),
-        glm::vec4(1.0f, 0.5f, 0.0f, 1.0f) // Orange
-    );
-    Entity* resource = entities.getEntity(resourceId);
-    if (resource) {
-        resource->setState(EntityState::IDLE);
-        resource->setType(EntityType::RESOURCE);
-    }
+    // // Create a resource entity
+    // size_t resourceId = entities.createEntity(
+    //     glm::vec2(100.0f, 100.0f),
+    //     glm::vec2(30.0f, 30.0f),
+    //     glm::vec4(1.0f, 0.5f, 0.0f, 1.0f) // Orange
+    // );
+    // Entity* resource = entities.getEntity(resourceId);
+    // if (resource) {
+    //     resource->setState(EntityState::IDLE);
+    //     resource->setType(EntityType::RESOURCE);
+    // }
 
-    // Create a building entity
-    size_t buildingId = entities.createEntity(
-        glm::vec2(-100.0f, -100.0f),
-        glm::vec2(50.0f, 50.0f),
-        glm::vec4(0.5f, 0.5f, 0.5f, 1.0f) // Gray
-    );
-    Entity* building = entities.getEntity(buildingId);
-    if (building) {
-        building->setState(EntityState::IDLE);
-        building->setType(EntityType::BUILDING);
-    }
+    // // Create a building entity
+    // size_t buildingId = entities.createEntity(
+    //     glm::vec2(-100.0f, -100.0f),
+    //     glm::vec2(50.0f, 50.0f),
+    //     glm::vec4(0.5f, 0.5f, 0.5f, 1.0f) // Gray
+    // );
+    // Entity* building = entities.getEntity(buildingId);
+    // if (building) {
+    //     building->setState(EntityState::IDLE);
+    //     building->setType(EntityType::BUILDING);
+    // }
 
     // Set the window in InputManager after everything is initialized
     inputManager.setWindow(window);
@@ -317,7 +317,7 @@ void Game::render() {
     world.render();
     
     // Second batch: Render entities (foreground layer)
-    entities.render();
+    //entities.render();
     
     // Third batch: Render interface elements (foreground layer)
     interface.render();
@@ -326,6 +326,8 @@ void Game::render() {
     glfwSwapBuffers(window);
 }
 
+
+// This stuff is making it possible to resize the window ... somehow.
 void Game::framebufferSizeCallback(GLFWwindow* window, int width, int height) {
     // Update viewport to match window dimensions exactly
     glViewport(0, 0, width, height);
@@ -343,44 +345,13 @@ void Game::framebufferSizeCallback(GLFWwindow* window, int width, int height) {
         //           << ", bottom=" << -halfHeight << ", top=" << halfHeight << std::endl;
         
         // Set camera projection to exactly match window dimensions in world units
+        std::cout << "Window resized to: " << width << "x" << height << std::endl;
+        std::cout << "  New projection: left=" << -halfWidth << ", right=" << halfWidth 
+                  << ", bottom=" << -halfHeight << ", top=" << halfHeight << std::endl;
         game->camera.setOrthographicProjection(
             -halfWidth, halfWidth,
             -halfHeight, halfHeight,
             -1000.0f, 1000.0f
         );
-    }
-}
-
-void Game::mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
-    Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
-    if (game) {
-        game->inputManager.handleScroll(xoffset, yoffset);
-    }
-}
-
-void Game::mouseMoveCallback(GLFWwindow* window, double xpos, double ypos) {
-    Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
-    if (game) {
-        game->inputManager.handleMouseMove(xpos, ypos);
-        
-        // Convert screen coordinates to world coordinates
-        int width, height;
-        glfwGetWindowSize(window, &width, &height);
-        
-        // Convert to normalized device coordinates
-        float ndcX = (2.0f * static_cast<float>(xpos)) / static_cast<float>(width) - 1.0f;
-        float ndcY = 1.0f - (2.0f * static_cast<float>(ypos)) / static_cast<float>(height);
-        
-        // Convert to world coordinates using camera matrices
-        glm::vec4 worldPos = glm::inverse(game->camera.getProjectionMatrix() * game->camera.getViewMatrix()) * 
-                            glm::vec4(ndcX, ndcY, 0.0f, 1.0f);
-        
-    }
-}
-
-void Game::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-    Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
-    if (game) {
-        game->inputManager.handleMouseButton(button, action);
     }
 }

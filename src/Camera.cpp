@@ -4,7 +4,8 @@
 
 Camera::Camera() : position(0.0f, 0.0f, 5.0f), target(0.0f, 0.0f, 0.0f), up(0.0f, 1.0f, 0.0f) {
     updateViewMatrix();
-    setOrthographicProjection(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
+    // Set a larger initial view area for better visibility
+    setOrthographicProjection(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
 }
 
 void Camera::setPosition(const glm::vec3& position) {
@@ -47,8 +48,42 @@ void Camera::rotate(float angle, const glm::vec3& axis) {
 }
 
 void Camera::zoom(float amount) {
-    position += glm::normalize(target - position) * amount;
-    updateViewMatrix();
+    // Instead of moving the camera position, we'll directly adjust the orthographic projection
+    // This is a simpler and more reliable approach for 2D zooming
+    
+    // Get the current width and height of the view frustum
+    float currentWidth = projectionRight - projectionLeft;
+    float currentHeight = projectionTop - projectionBottom;
+    
+    // Calculate scale factor based on zoom direction
+    // For zoom in (amount > 0), we want to reduce size (scaleFactor < 1)
+    // For zoom out (amount < 0), we want to increase size (scaleFactor > 1)
+    float scaleFactor = 1.0f - (amount * 0.01f);
+    
+    // TODO: Renable this. It was blocking zooming out.
+    // Ensure we never zoom in too close or zoom out too far
+    // if ((amount > 0 && currentWidth < 0.5f) || (amount < 0 && currentWidth > 200.0f)) {
+    //     return; // Prevent extreme zoom levels
+    // }
+    
+    // Calculate new dimensions
+    float newWidth = currentWidth * scaleFactor;
+    float newHeight = currentHeight * scaleFactor;
+    
+    // Calculate new projection bounds, keeping the center point the same
+    float centerX = (projectionLeft + projectionRight) * 0.5f;
+    float centerY = (projectionBottom + projectionTop) * 0.5f;
+    
+    float newLeft = centerX - newWidth * 0.5f;
+    float newRight = centerX + newWidth * 0.5f;
+    float newBottom = centerY - newHeight * 0.5f;
+    float newTop = centerY + newHeight * 0.5f;
+    
+    // Apply the new projection 
+    // Debug output for zoom events
+    std::cout << "Camera zoom: " << amount << std::endl;
+    std::cout << "Projection bounds: " << newLeft << ", " << newRight << ", " << newBottom << ", " << newTop << std::endl;
+    setOrthographicProjection(newLeft, newRight, newBottom, newTop, 0.1f, 100.0f);
 }
 
 const glm::mat4& Camera::getViewMatrix() const {

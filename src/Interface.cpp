@@ -102,24 +102,8 @@ void Interface::update(float deltaTime) {
 void Interface::render(bool batched) {
     // Render UI elements with screen-space projection
     if (uiLayer) {
-        // Get the appropriate view and projection matrices for screen space
-        glm::mat4 viewMatrix = uiLayer->getViewMatrix(); // Identity for screen space
-        glm::mat4 projectionMatrix = uiLayer->getProjectionMatrix();
-        
-        if (!batched) {
-            // Start batching
-            VectorGraphics::getInstance().beginBatch();
-        }
-        
         // Add UI elements to the batch
-        uiLayer->render(true);
+        uiLayer->render(false);
         
-        if (!batched) {
-            // Render the batch with screen-space projection
-            VectorGraphics::getInstance().render(viewMatrix, projectionMatrix);
-            
-            // End batching
-            VectorGraphics::getInstance().endBatch();
-        }
     }
 }

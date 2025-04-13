@@ -29,9 +29,6 @@ private:
     
     // GLFW callbacks
     static void framebufferSizeCallback(GLFWwindow* window, int width, int height);
-    static void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
-    static void mouseMoveCallback(GLFWwindow* window, double xpos, double ypos);
-    static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 
     // For render stats logging
     float timeSinceLastRenderLog = 0.0f;
