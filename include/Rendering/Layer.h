@@ -62,18 +62,13 @@ public:
     glm::mat4 getViewMatrix() const;
     glm::mat4 getProjectionMatrix() const;
 
-    // Rendering methods
+    // Rendering method - handles all projection types
     virtual void render();
-    
-    virtual void renderWithMatrices(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
-    virtual void renderScreenSpace(const glm::mat4& projectionMatrix);
 
     // Begin/end batch needs to be propagated to ensure proper batching
     virtual void beginBatch();
     virtual void endBatch();
     
-    // Finalize rendering (call VectorGraphics.render with appropriate matrices)
-    virtual void finalizeRender();
 
 protected:
     float zIndex;

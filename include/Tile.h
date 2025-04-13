@@ -35,9 +35,10 @@ public:
     // Layer method implementations
     void setVisible(bool visible);
 
-    // Virtual method overrides
-    void renderWithMatrices(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) override;
-    void renderScreenSpace(const glm::mat4& projectionMatrix) override;
+    // Virtual method override
+    void render() override;
+
+    // Begin/end batch needs to be propagated to ensure proper batching
     void beginBatch() override;
     void endBatch() override;
 

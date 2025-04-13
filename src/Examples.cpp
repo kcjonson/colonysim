@@ -19,8 +19,8 @@ void Examples::initialize() {
     createTextExamples();
 }
 
-void Examples::render(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
-    examplesLayer->renderWithMatrices(viewMatrix, projectionMatrix);
+void Examples::render() {
+    examplesLayer->render();
 }
 
 void Examples::createRectangleExamples() {

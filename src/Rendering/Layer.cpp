@@ -142,41 +142,17 @@ void Layer::render() {
         return;
     }
 
+    // Sort children if needed
+    sortChildren();
+
     // Get matrices based on projection type
     glm::mat4 viewMatrix = getViewMatrix();
     glm::mat4 projectionMatrix = getProjectionMatrix();
     
-    // Forward to renderWithMatrices
-    renderWithMatrices(viewMatrix, projectionMatrix);
-}
-
-void Layer::renderWithMatrices(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
-    if (!visible) {
-        return;
-    }
-
-    // Sort children if needed
-    sortChildren();
-
     // Render all children
     for (auto& child : children) {
-        // Each child gets rendered with the layer's matrices
-        child->renderWithMatrices(viewMatrix, projectionMatrix);
-    }
-}
-
-void Layer::renderScreenSpace(const glm::mat4& projectionMatrix) {
-    if (!visible) return;
-
-    // Sort children if needed
-    sortChildren();
-
-    // For screen space, we always use identity view matrix
-    glm::mat4 identityView = glm::mat4(1.0f);
-
-    // Render all children
-    for (auto& child : children) {
-        child->renderWithMatrices(identityView, projectionMatrix);
+        // Each child gets rendered with the matrices
+        child->render();
     }
 }
 
@@ -186,19 +162,6 @@ void Layer::beginBatch() {
 
 void Layer::endBatch() {
     VectorGraphics::getInstance().endBatch();
-}
-
-void Layer::finalizeRender() {
-    // Get matrices based on projection type
-    glm::mat4 viewMatrix = getViewMatrix();
-    glm::mat4 projectionMatrix = getProjectionMatrix();
-    
-    // Use Renderer singleton
-    Renderer::getInstance().setView(viewMatrix);
-    Renderer::getInstance().setProjection(projectionMatrix);
-    
-    // Call VectorGraphics singleton render with appropriate matrices
-    VectorGraphics::getInstance().render(viewMatrix, projectionMatrix);
 }
 
 } // namespace Rendering 

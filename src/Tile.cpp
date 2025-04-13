@@ -53,18 +53,13 @@ void Tile::updatePosition(const glm::vec2& tilePosition) {
     }
 }
 
-void Tile::renderWithMatrices(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+void Tile::render() {
     if (!visible) {
         return;
     }
 
     // Render all children using the base implementation
-    Layer::renderWithMatrices(viewMatrix, projectionMatrix);
-}
-
-void Tile::renderScreenSpace(const glm::mat4& projectionMatrix) {
-    if (!visible) return;
-    Layer::renderScreenSpace(projectionMatrix);
+    Layer::render();
 }
 
 void Tile::beginBatch() {
