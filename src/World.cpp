@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <GLFW/glfw3.h>
+#include <cmath> // For std::round
 
 // Include shape classes for testing
 #include "Rendering/Shapes/Rectangle.h"
@@ -71,45 +72,34 @@ void World::render(VectorGraphics& graphics) {
     // Get camera bounds
     glm::vec4 bounds = getCameraBounds();
 
-    // Debug camera bounds movement (only log significant changes)
-    if (camera) {
-        static glm::vec3 lastPos = camera->getPosition();
-        glm::vec3 currentPos = camera->getPosition();
-        
-        // Log only if moved more than 50 units to reduce spam
-        if (glm::distance(lastPos, currentPos) > 50.0f) {
-            std::cout << "Camera at: (" << int(currentPos.x) << ", " << int(currentPos.y) << ") - viewing area updated" << std::endl;
-            lastPos = currentPos;
-        }
-    }
 
-    // Debug: Draw camera bounds rectangle - convert from bounds to top-left and size
-    // The inset is just to make the rectangle visible
-    glm::vec2 topLeft(bounds.x + 5.0f, bounds.z + 5.0f); // Add 5px inset
-    glm::vec2 rectSize(bounds.y - bounds.x - 10.0f, bounds.w - bounds.z - 10.0f);
+    // // Debug: Draw camera bounds rectangle - convert from bounds to top-left and size
+    // // The inset is just to make the rectangle visible
+    // glm::vec2 topLeft(bounds.x + 5.0f, bounds.z + 5.0f); // Add 5px inset
+    // glm::vec2 rectSize(bounds.y - bounds.x - 10.0f, bounds.w - bounds.z - 10.0f);
     
-    // Update the existing rectangle or create a new one if it doesn't exist
-    static std::shared_ptr<Rendering::Shapes::Rectangle> boundsRect = nullptr;
-    if (!boundsRect) {
-        std::cout << "Creating camera bounds debug rectangle" << std::endl;
-        boundsRect = std::make_shared<Rendering::Shapes::Rectangle>(
-            topLeft,
-            rectSize,
-            Rendering::Styles::Rectangle({
-                .color = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),     // Transparent fill
-                .borderColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), // Red border
-                .borderWidth = 2.0f,                             // 2px border width
-                .borderPosition = BorderPosition::Inside,        // Border inside the rectangle
-                .cornerRadius = 0.0f                             // No rounded corners
-            }),
-            500.0f // Z-index
-        );
-        worldLayer->addItem(boundsRect);
-    } else {
-        // Just update position and size
-        boundsRect->setPosition(topLeft);
-        boundsRect->setSize(rectSize);
-    }
+    // // Update the existing rectangle or create a new one if it doesn't exist
+    // static std::shared_ptr<Rendering::Shapes::Rectangle> boundsRect = nullptr;
+    // if (!boundsRect) {
+    //     std::cout << "Creating camera bounds debug rectangle" << std::endl;
+    //     boundsRect = std::make_shared<Rendering::Shapes::Rectangle>(
+    //         topLeft,
+    //         rectSize,
+    //         Rendering::Styles::Rectangle({
+    //             .color = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),     // Transparent fill
+    //             .borderColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), // Red border
+    //             .borderWidth = 2.0f,                             // 2px border width
+    //             .borderPosition = BorderPosition::Inside,        // Border inside the rectangle
+    //             .cornerRadius = 0.0f                             // No rounded corners
+    //         }),
+    //         500.0f // Z-index
+    //     );
+    //     worldLayer->addItem(boundsRect);
+    // } else {
+    //     // Just update position and size
+    //     boundsRect->setPosition(topLeft);
+    //     boundsRect->setSize(rectSize);
+    // }
 
     // Calculate visible tile range with increased overscan
     int minX = static_cast<int>(std::floor(bounds.x / TILE_SIZE)) - 3; // Increase overscan from 1 to 3
@@ -118,7 +108,7 @@ void World::render(VectorGraphics& graphics) {
     int maxY = static_cast<int>(std::ceil(bounds.w / TILE_SIZE)) + 3;
 
     // Create a set of tile coordinates that should be visible this frame
-    std::unordered_set<std::pair<int, int>> currentVisibleTiles;
+    currentVisibleTiles.clear();
 
     // Update visible tiles and track which ones should be visible
     for (int y = minY; y <= maxY; y++) {
@@ -169,7 +159,8 @@ void World::render(VectorGraphics& graphics) {
     }
 
     // Update lastVisibleTiles for next frame
-    lastVisibleTiles = std::move(currentVisibleTiles);
+    // NOTE: unlike js this is a copy not just a pointer
+    lastVisibleTiles = currentVisibleTiles;
 
     // Add world objects to the batch
     worldLayer->render(graphics);
@@ -184,22 +175,27 @@ void World::render(VectorGraphics& graphics) {
 }
 
 void World::logMemoryUsage() const {
-    size_t tileCount = tiles.size();
+    size_t totalTiles = tiles.size();
+    size_t shownTiles = currentVisibleTiles.size();
     size_t totalShapes = 0;
-    
-    for (const auto& [pos, tile] : tiles) {
-        totalShapes += tile->getChildren().size();
+        
+    for (const auto& pos : currentVisibleTiles) {
+        auto tileIt = tiles.find(pos);
+        if (tileIt != tiles.end()) {
+            totalShapes += tileIt->second->getChildren().size();
+        }
     }
     
-    float tileMemoryKB = tileCount * sizeof(Rendering::Tile) / 1024.0f;
-    float shapeMemoryKB = totalShapes * sizeof(Rendering::Shapes::Shape) / 1024.0f;
-    float totalMemoryKB = tileMemoryKB + shapeMemoryKB;
+    float tileMemoryKB = std::round(totalTiles * sizeof(Rendering::Tile) / 1024.0f);
+    float shapeMemoryKB = std::round(totalShapes * sizeof(Rendering::Shapes::Shape) / 1024.0f);
+    float totalMemoryKB = std::round(tileMemoryKB + shapeMemoryKB);
     
-    gameState.set("world.tileCount", std::to_string(tileCount));
+    gameState.set("world.totalTiles", std::to_string(totalTiles));
+    gameState.set("world.shownTiles", std::to_string(shownTiles));
     gameState.set("world.totalShapes", std::to_string(totalShapes));
-    gameState.set("world.tileMemoryKB", std::to_string(tileMemoryKB) + " KB");
-    gameState.set("world.shapeMemoryKB", std::to_string(shapeMemoryKB) + " KB");
-    gameState.set("world.totalMemoryKB", std::to_string(totalMemoryKB) + " KB");
+    gameState.set("world.tileMemKB", std::to_string(static_cast<int>(tileMemoryKB)) + " KB");
+    gameState.set("world.shapeMemKB", std::to_string(static_cast<int>(shapeMemoryKB)) + " KB");
+    gameState.set("world.totalMemKB", std::to_string(static_cast<int>(totalMemoryKB)) + " KB");
 }
 
 void World::generateTerrain() {

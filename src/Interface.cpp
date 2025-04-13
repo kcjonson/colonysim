@@ -10,14 +10,15 @@
 #include "Rendering/Styles/Shape.h"
 
 const std::vector<std::string> Interface::GAME_STATE_PROPERTIES = {
-    "world.tileCount",
+    "world.totalTiles",
+    "world.shownTiles",
     "world.totalShapes",
-    "world.tileMemoryKB",
-    "world.shapeMemoryKB",
-    "world.totalMemoryKB",
+    "world.tileMemKB",
+    "world.shapeMemKB",
+    "world.totalMemKB",
     "system.fps",
-    "input.cursorWindowPosition",
-    "input.cursorWorldPosition",
+    "input.windowPos",
+    "input.worldPos",
     "camera.position"
 };
 
@@ -59,7 +60,8 @@ void Interface::initializeUIComponents() {
         topLeftPos,
         glm::vec2(INFO_PANEL_WIDTH, panelHeight),
         Rendering::Styles::Rectangle({
-            .color = glm::vec4(0.0f, 0.0f, 0.0f, 0.9f)  // Black background
+            .color = glm::vec4(0.0f, 0.0f, 0.0f, 0.6f),
+            .cornerRadius = 5.0f
         }),
         1000.1f
     );
@@ -71,7 +73,7 @@ void Interface::initializeUIComponents() {
         // Text positions start from top-left of panel plus padding
         glm::vec2 textPos(
             INFO_PANEL_X + UI_PADDING,
-            INFO_PANEL_Y + UI_PADDING + i * lineSpacing
+            INFO_PANEL_Y + UI_PADDING + (lineSpacing / 2) + (i * lineSpacing)
         );
 
         auto text = std::make_shared<Rendering::Shapes::Text>(

@@ -125,14 +125,14 @@ void InputManager::handleMouseMove(double x, double y) {
     }
 
     // Format window position as "x, y" with no decimals
-    gameState.set("input.cursorWindowPosition", 
+    gameState.set("input.windowPos", 
                  std::to_string((int)currentPos.x) + ", " + std::to_string((int)currentPos.y));
     
     // Format world position with 1 decimal place
     glm::vec2 worldPos = glm::vec2(camera.screenToWorld(glm::vec3(currentPos, 0.0f)));
     char worldPosStr[50];
     snprintf(worldPosStr, sizeof(worldPosStr), "%.1f, %.1f", worldPos.x, worldPos.y);
-    gameState.set("input.cursorWorldPosition", worldPosStr);
+    gameState.set("input.worldPos", worldPosStr);
 
     lastMousePos = currentPos;
 }

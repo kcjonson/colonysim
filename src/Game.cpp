@@ -248,20 +248,10 @@ void Game::run() {
             deltaTime = 0.25f;  // Prevent large jumps
         }
 
-        // Process input
         processInput();
-
-        // Update game state
         update(deltaTime);
-
-        // Render the frame
         render();
-        
-        // Swap buffers and poll events
-        glfwSwapBuffers(window);
-
-        // Poll events
-        glfwPollEvents();
+        glfwPollEvents(); // This seems odd to do here, would like for it to be abstracted away
 
         // End timing
         double frameEndTime = glfwGetTime();
@@ -288,8 +278,6 @@ void Game::update(float deltaTime) {
     inputManager.update(deltaTime);
     world.update(deltaTime);
     interface.update(deltaTime);
-    
-    // Update entities
     entities.update(deltaTime);
 }
 
@@ -325,6 +313,8 @@ void Game::render() {
     vectorGraphics.beginBatch();
     interface.render(vectorGraphics);
     vectorGraphics.endBatch();
+
+    
     
     // Swap buffers
     glfwSwapBuffers(window);

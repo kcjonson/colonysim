@@ -65,6 +65,7 @@ private:
     static constexpr float TILE_SIZE = 20.0f;
     static constexpr float TILE_Z_INDEX = 0.1f;
     std::unordered_set<std::pair<int, int>> lastVisibleTiles;
+    std::unordered_set<std::pair<int, int>> currentVisibleTiles;
     GameState& gameState;
     float timeSinceLastLog = 0.0f;
 }; 
