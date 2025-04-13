@@ -18,9 +18,9 @@ void Entities::update(float deltaTime) {
     updateWork(deltaTime);
 }
 
-void Entities::render() {
+void Entities::render(bool batched) {
     // Let the entity layer handle rendering
-    entityLayer->render();
+    entityLayer->render(true);
 }
 
 size_t Entities::createEntity(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color) {

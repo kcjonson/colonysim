@@ -11,7 +11,7 @@ Shape::Shape(const glm::vec2& position, const Styles::Base& style, float zIndex)
     , dirty(true) {
 }
 
-void Shape::render() {
+void Shape::render(bool batched) {
     if (!visible) return;
     draw();
 }

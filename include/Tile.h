@@ -36,7 +36,7 @@ public:
     void setVisible(bool visible);
 
     // Virtual method override
-    void render() override;
+    void render(bool batched = false) override;
 
     // Begin/end batch needs to be propagated to ensure proper batching
     void beginBatch() override;

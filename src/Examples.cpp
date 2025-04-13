@@ -20,7 +20,7 @@ void Examples::initialize() {
 }
 
 void Examples::render() {
-    examplesLayer->render();
+    examplesLayer->render(false);
 }
 
 void Examples::createRectangleExamples() {

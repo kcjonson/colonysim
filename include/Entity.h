@@ -27,7 +27,7 @@ public:
     ~Entity() = default;
 
     void update(float deltaTime);
-    void render();
+    void render(bool batched = false);
 
     // Getters and setters
     EntityType getType() const { return type; }

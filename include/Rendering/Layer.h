@@ -63,7 +63,8 @@ public:
     glm::mat4 getProjectionMatrix() const;
 
     // Rendering method - handles all projection types
-    virtual void render();
+    // The batched parameter indicates whether this is part of a batch operation
+    virtual void render(bool batched = false);
 
     // Begin/end batch needs to be propagated to ensure proper batching
     virtual void beginBatch();

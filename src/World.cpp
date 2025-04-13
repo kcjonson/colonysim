@@ -132,17 +132,7 @@ void World::render() {
     // Update lastVisibleTiles for next frame
     // NOTE: unlike js this is a copy not just a pointer
     lastVisibleTiles = currentVisibleTiles;
-
-    // Add world objects to the batch
-    worldLayer->render();
-
-    // Get the view and projection matrices
-    // TODO: this should be done in the layer
-    glm::mat4 viewMatrix = worldLayer->getViewMatrix();
-    glm::mat4 projectionMatrix = worldLayer->getProjectionMatrix();
-
-    // Finalize the world batch with the world-space projection
-    VectorGraphics::getInstance().render(viewMatrix, projectionMatrix);
+    worldLayer->render(false);
 }
 
 void World::renderTiles() {

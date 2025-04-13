@@ -70,11 +70,11 @@ void Entity::update(float deltaTime) {
     }
 }
 
-void Entity::render() {
+void Entity::render(bool batched) {
     // Use entity layer to handle rendering
     // This will only handle the actual drawing, not the finalization
     // Finalization is done by the EntityManager
-    entityLayer->render();
+    entityLayer->render(true);
 
     // Draw health bar if entity has health
     if (health < 1.0f) {

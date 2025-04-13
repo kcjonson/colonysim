@@ -24,7 +24,7 @@ public:
     void setStyle(const Styles::Base& s) { style = s; markDirty(); }
 
     // Rendering method - match the Layer class signature
-    virtual void render() override;
+    virtual void render(bool batched = false) override;
 
     // Pure virtual method that each shape must implement
     virtual void draw() = 0;

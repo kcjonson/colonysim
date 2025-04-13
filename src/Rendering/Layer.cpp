@@ -137,7 +137,7 @@ glm::mat4 Layer::getProjectionMatrix() const {
     return glm::mat4(1.0f);
 }
 
-void Layer::render() {
+void Layer::render(bool batched) {
     if (!visible) {
         return;
     }
@@ -149,10 +149,16 @@ void Layer::render() {
     glm::mat4 viewMatrix = getViewMatrix();
     glm::mat4 projectionMatrix = getProjectionMatrix();
     
-    // Render all children
+    beginBatch();
     for (auto& child : children) {
-        // Each child gets rendered with the matrices
-        child->render();
+        child->render(true); 
+    }
+
+    // Only render with matrices if this isn't part of a batch operation
+    if (!batched) {
+        VectorGraphics::getInstance().render(viewMatrix, projectionMatrix);
+        endBatch();
+        VectorGraphics::getInstance().clear();
     }
 }
 

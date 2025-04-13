@@ -314,19 +314,13 @@ void Game::render() {
     // 2. Make sure each batch uses the correct projection matrix
     
     // First batch: Render world (background layer)
-    VectorGraphics::getInstance().beginBatch();
     world.render();
-    VectorGraphics::getInstance().endBatch();
     
     // Second batch: Render entities (foreground layer)
-    VectorGraphics::getInstance().beginBatch();
     entities.render();
-    VectorGraphics::getInstance().endBatch();
     
     // Third batch: Render interface elements (foreground layer)
-    VectorGraphics::getInstance().beginBatch();
     interface.render();
-    VectorGraphics::getInstance().endBatch();
     
     // Swap buffers
     glfwSwapBuffers(window);

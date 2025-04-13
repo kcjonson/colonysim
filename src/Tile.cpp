@@ -53,13 +53,13 @@ void Tile::updatePosition(const glm::vec2& tilePosition) {
     }
 }
 
-void Tile::render() {
+void Tile::render(bool batched) {
     if (!visible) {
         return;
     }
 
     // Render all children using the base implementation
-    Layer::render();
+    Layer::render(batched);
 }
 
 void Tile::beginBatch() {

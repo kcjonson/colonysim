@@ -28,7 +28,7 @@ public:
     void update(float deltaTime);
     
     // Main render method for UI elements
-    void render();
+    void render(bool batched = false);
 
 private:
     // Static list of GameState properties to display

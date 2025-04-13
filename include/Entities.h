@@ -15,7 +15,7 @@ public:
     ~Entities();
 
     void update(float deltaTime);
-    void render();
+    void render(bool batched = false);
 
     // Entity management
     size_t createEntity(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color);
