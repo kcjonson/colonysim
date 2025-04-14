@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include "../../Vertex.h"
-#include "BorderPosition.h"
+#include "../Styles/BorderPosition.h"
 
 namespace Rendering {
 namespace Draw {

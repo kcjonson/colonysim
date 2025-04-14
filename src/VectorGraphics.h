@@ -9,7 +9,7 @@
 #include <iostream>
 #include "Vertex.h"
 #include "Shader.h"
-#include "Rendering/Draw/BorderPosition.h"
+#include "Rendering/Styles/BorderPosition.h"
 
 // Include the new drawing primitives
 #include "Rendering/Draw/Rectangle.h"
