@@ -173,15 +173,9 @@ void World::logMemoryUsage() const {
     gameState.set("world.totalMemKB", std::to_string(static_cast<int>(totalMemoryKB)) + " KB");
 }
 
-void World::generateTerrain() {
-    unsigned int hashedSeed = WorldGen::TerrainGenerator::getHashedSeed(seed);
-    WorldGen::TerrainGenerator::generateTerrain(terrainData, generateDistance, hashedSeed);
-}
-
-void World::generateTilesInRadius() {
-    // This function is now handled by TerrainGenerator::generateTerrain
-    // We just need to call generateTerrain() which calls it
-    generateTerrain();
+void World::setTerrainData(const std::unordered_map<std::pair<int, int>, WorldGen::TerrainData>& data) {
+    terrainData = data;
+    tiles.clear();
 }
 
 void World::setCamera(Camera* cam) {
@@ -191,4 +185,4 @@ void World::setCamera(Camera* cam) {
 
 void World::setWindow(GLFWwindow* win) {
     worldLayer->setWindow(win);
-} 
+}

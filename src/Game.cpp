@@ -154,9 +154,6 @@ Game::Game()
     entities.setWindow(window);
     
 
-    // Generate terrain
-    world.generateTerrain();
-
     // Initialize Examples
     examples.initialize();
 

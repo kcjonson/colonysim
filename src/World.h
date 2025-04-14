@@ -27,28 +27,20 @@ public:
     // Main render method - uses VectorGraphics singleton
     void render();
     
-    int getWidth() const { return width; }
-    int getHeight() const { return height; }
-
     // Terrain
     float getTerrainHeight(int x, int y) const;
     float getResourceAmount(int x, int y) const;
-    void generateTerrain();
+    void setTerrainData(const std::unordered_map<std::pair<int, int>, WorldGen::TerrainData>& data);
     
     // Set camera and window for the world
     void setCamera(Camera* cam);
     void setWindow(GLFWwindow* win);
 
 private:
-    void generatePerlinNoise(std::unordered_map<std::pair<int, int>, WorldGen::TerrainData>& noiseMap, int width, int height, float scale);
     void renderTiles();
-
-    int width = 100;
-    int height = 100;
+    // Remove width and height
     std::unordered_map<std::pair<int, int>, WorldGen::TerrainData> terrainData;
     std::unordered_map<std::pair<int, int>, std::shared_ptr<Rendering::Tile>> tiles;
-    int generateDistance = 200;
-    void generateTilesInRadius();
     int overscanAmount = 2; // Number of extra tiles to render beyond visible area
     glm::vec4 getCameraBounds() const; // Helper to calculate visible area
     Camera* camera = nullptr; // Use a pointer instead of a direct instance
@@ -67,4 +59,4 @@ private:
     std::unordered_set<std::pair<int, int>> currentVisibleTiles;
     GameState& gameState;
     float timeSinceLastLog = 0.0f;
-}; 
+};

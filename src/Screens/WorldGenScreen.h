@@ -6,10 +6,12 @@
 #include <functional>
 #include <memory>
 #include <glm/glm.hpp>
+#include <unordered_map>
 #include "../Rendering/Layer.h"
 #include "../Rendering/Shapes/Rectangle.h"
 #include "../Rendering/Shapes/Text.h"
 #include "MainMenuScreen.h" // For MenuButton structure
+#include "../World/TerrainGenerator.h"
 
 class WorldGenScreen : public Screen {
 public:
@@ -39,6 +41,7 @@ private:
     float waterLevel;
     int seed;
     bool worldGenerated;
+    std::unordered_map<std::pair<int, int>, WorldGen::TerrainData> generatedTerrainData; // Store generated terrain
     
     // UI Layers
     std::shared_ptr<Rendering::Layer> backgroundLayer;

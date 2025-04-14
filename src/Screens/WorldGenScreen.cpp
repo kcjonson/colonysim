@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <random>
+#include "World/TerrainGenerator.h"
 
 WorldGenScreen::WorldGenScreen()
     : lastCursorX(0.0f)
@@ -46,10 +47,12 @@ bool WorldGenScreen::initialize() {
                  glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),   // Green
                  glm::vec4(0.3f, 0.7f, 0.4f, 1.0f),   // Lighter green
                  [this]() {
-                     if (screenManager->getWorld()) {
-                         screenManager->getWorld()->generateTerrain();
-                         worldGenerated = true;
-                     }
+                     generatedTerrainData.clear();
+                     unsigned int hashedSeed = WorldGen::TerrainGenerator::getHashedSeed(std::to_string(seed));
+                     WorldGen::TerrainGenerator::generateTerrain(
+                         generatedTerrainData, worldWidth / 2, hashedSeed);
+                     worldGenerated = true;
+                     layoutUI();
                  });
     
     // Land button (go to gameplay)
@@ -58,10 +61,14 @@ bool WorldGenScreen::initialize() {
                  glm::vec4(0.3f, 0.6f, 0.9f, 1.0f),   // Lighter blue
                  [this]() {
                      if (!worldGenerated) {
-                         // Generate world if not already done
-                         if (screenManager->getWorld()) {
-                             screenManager->getWorld()->generateTerrain();
-                         }
+                         generatedTerrainData.clear();
+                         unsigned int hashedSeed = WorldGen::TerrainGenerator::getHashedSeed(std::to_string(seed));
+                         WorldGen::TerrainGenerator::generateTerrain(
+                             generatedTerrainData, worldWidth / 2, hashedSeed);
+                         worldGenerated = true;
+                     }
+                     if (screenManager->getWorld()) {
+                         screenManager->getWorld()->setTerrainData(generatedTerrainData);
                      }
                      screenManager->switchScreen(ScreenType::Gameplay);
                  });
