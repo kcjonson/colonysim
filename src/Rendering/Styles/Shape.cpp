@@ -19,7 +19,10 @@ Line::Line(const LineStyleParams& params)
 }
 
 Text::Text(const TextStyleParams& params)
-    : Base(params.color, params.opacity) {
+    : Base(params.color, params.opacity)
+    , fontSize(params.fontSize)
+    , horizontalAlign(params.horizontalAlign)
+    , verticalAlign(params.verticalAlign) {
 }
 
 Polygon::Polygon(const PolygonStyleParams& params)
@@ -28,4 +31,4 @@ Polygon::Polygon(const PolygonStyleParams& params)
 }
 
 } // namespace Styles
-} // namespace Rendering 
+} // namespace Rendering

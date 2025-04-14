@@ -220,45 +220,11 @@ void Game::run() {
     }
 
     std::cout << "Starting game loop..." << std::endl;
-
     
-    // Fixed timestep variables
-    double lastTime = glfwGetTime();
-    
-    while (!glfwWindowShouldClose(window) && isRunning) {
-        // Start timing
-        double frameStartTime = glfwGetTime();
-
-        // Calculate delta time
-        double currentTime = glfwGetTime();
-        float deltaTime = static_cast<float>(currentTime - lastTime);
-        lastTime = currentTime;
-
-        // Cap delta time
-        // Large delta times can cause calculations in game state to get out of sync.
-        // This will deliberately limit how much time can pass between updates.
-        // I think this will result in behavior like entities moving in small steps
-        // rather than large jumps as FPS drops.
-        if (deltaTime > 0.25f) {
-            deltaTime = 0.25f;  // Prevent large jumps
-        }
-
-        processInput();
-        update(deltaTime);
-        render();
-        glfwPollEvents(); // This seems odd to do here, would like for it to be abstracted away
-
-        // End timing
-        double frameEndTime = glfwGetTime();
-        double frameDuration = frameEndTime - frameStartTime;
-
-        // Calculate FPS
-        if (frameDuration > 0.0) {
-            float fps = 1.0f / static_cast<float>(frameDuration);
-            // std::cout << "FPS: " << fps << std::endl;  // Output FPS
-            gameState.set("system.fps", std::to_string(fps));
-        }
-    }
+    // Initialize the screen manager
+    screenManager = std::make_unique<ScreenManager>();
+    screenManager->initialize();
+    screenManager->run();
     
     std::cout << "Game loop ended" << std::endl;
 }
@@ -296,34 +262,9 @@ void Game::update(float deltaTime) {
 }
 
 void Game::render() {
-    // Set clear color with alpha - use white for better contrast 
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    
-    // Set up OpenGL state for the entire frame
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-
-    // Use standard alpha blending to preserve color values
-    // SRC_ALPHA for source factor, ONE_MINUS_SRC_ALPHA for destination factor
-    // This means: result = src.rgb * src.a + dst.rgb * (1 - src.a)
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    
-    // For transparency to work correctly across batches, we need to:
-    // 1. Render from back to front (world first, UI last)
-    // 2. Make sure each batch uses the correct projection matrix
-    
-    // First batch: Render world (background layer)
-    world.render();
-    
-    // Second batch: Render entities (foreground layer)
-    //entities.render();
-    
-    // Third batch: Render interface elements (foreground layer)
-    interface.render();
-    
-    // Swap buffers
-    glfwSwapBuffers(window);
+    // The ScreenManager now handles all rendering
+    // This method is kept for backward compatibility but shouldn't be called
+    std::cerr << "Warning: Game::render() called directly instead of using ScreenManager" << std::endl;
 }
 
 

@@ -18,6 +18,9 @@ public:
     // Initialize the examples
     void initialize();
     
+    // Set the window reference for rendering
+    void setWindow(GLFWwindow* window);
+    
     // Render the examples
     void render();
     
@@ -31,4 +34,4 @@ private:
     
     // Layer to hold all the example shapes
     std::shared_ptr<Rendering::Layer> examplesLayer;
-}; 
+};

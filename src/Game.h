@@ -14,6 +14,7 @@
 #include <memory>
 #include "GameState.h"
 #include "Examples.h"
+#include "ScreenManager.h"
 
 class Game {
 public:
@@ -42,5 +43,6 @@ private:
     InputManager inputManager;
     Interface interface;
     Examples examples;
+    std::unique_ptr<ScreenManager> screenManager;
     bool isRunning;
-}; 
+};

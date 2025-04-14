@@ -4,6 +4,7 @@
 #include <any> // For flexible data types
 #include <iostream>
 
+// Make GameState consistently a struct across the codebase
 struct GameState {
     std::unordered_map<std::string, std::string> data;
 

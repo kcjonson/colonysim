@@ -3,6 +3,22 @@
 #include "Border.h"
 
 namespace Rendering {
+
+// Text alignment enumerations
+namespace TextAlign {
+    enum Horizontal {
+        Left,
+        Center,
+        Right
+    };
+
+    enum Vertical {
+        Top,
+        Middle,
+        Bottom
+    };
+}
+
 namespace Styles {
 
 // Parameter structs for named initialization
@@ -32,6 +48,9 @@ struct LineStyleParams {
 struct TextStyleParams {
     glm::vec4 color = glm::vec4(1.0f);
     float opacity = 1.0f;
+    float fontSize = 16.0f;  // Default font size
+    TextAlign::Horizontal horizontalAlign = TextAlign::Horizontal::Left;
+    TextAlign::Vertical verticalAlign = TextAlign::Vertical::Top;
 };
 
 struct PolygonStyleParams {
@@ -68,6 +87,11 @@ class Text : public Base {
 public:
     // Only use named parameters
     Text(const TextStyleParams& params = {});
+    
+    // Text specific properties
+    float fontSize;
+    TextAlign::Horizontal horizontalAlign;
+    TextAlign::Vertical verticalAlign;
 };
 
 class Polygon : public Base, public Border {

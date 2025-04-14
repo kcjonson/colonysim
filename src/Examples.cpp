@@ -5,7 +5,7 @@
 // Define PI as a constant
 constexpr float PI = 3.14159265358979323846f;
 
-Examples::Examples() : examplesLayer(std::make_shared<Rendering::Layer>(0.0f)) {
+Examples::Examples() : examplesLayer(std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::ScreenSpace)) {
 }
 
 void Examples::initialize() {
@@ -21,6 +21,12 @@ void Examples::initialize() {
 
 void Examples::render() {
     examplesLayer->render(false);
+}
+
+void Examples::setWindow(GLFWwindow* window) {
+    if (examplesLayer) {
+        examplesLayer->setWindow(window);
+    }
 }
 
 void Examples::createRectangleExamples() {
@@ -293,4 +299,4 @@ void Examples::createTextExamples() {
         28.0f  // Z-index
     );
     examplesLayer->addItem(transparentText);
-} 
+}
