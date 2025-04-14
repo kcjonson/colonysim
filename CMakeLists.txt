@@ -21,75 +21,14 @@ find_package(Freetype REQUIRED)
 find_package(glad CONFIG REQUIRED)
 
 # Add source files
-set(SOURCES
-    src/Camera.cpp
-    src/ConfigManager.cpp
-    src/Entity.cpp
-    src/Entities.cpp
-    src/Examples.cpp
-    src/FontRenderer.cpp
-    src/Game.cpp
-    src/InputManager.cpp
-    src/Interface.cpp
-    src/main.cpp
-    src/Renderer.cpp
-    src/Rendering/Layer.cpp
-    src/Rendering/Shapes/Circle.cpp
-    src/Rendering/Shapes/Line.cpp
-    src/Rendering/Shapes/Polygon.cpp
-    src/Rendering/Shapes/Rectangle.cpp
-    src/Rendering/Shapes/Shape.cpp
-    src/Rendering/Shapes/Text.cpp
-    src/Rendering/Styles/Base.cpp
-    src/Rendering/Styles/Border.cpp
-    src/Rendering/Styles/Shape.cpp
-    src/Rendering/Draw/Rectangle.cpp
-    src/Rendering/Draw/Circle.cpp
-    src/Rendering/Draw/Line.cpp
-    src/Rendering/Draw/Polygon.cpp
-    src/Shader.cpp
-    src/Tile.cpp
-    src/VectorGraphics.cpp
-    src/VectorRenderer.cpp
-    src/World.cpp
-    src/World/TerrainGenerator.cpp
-)
+# Using file(GLOB) to find source files automatically
+file(GLOB_RECURSE SOURCES 
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
 
-# Add header files
-set(HEADERS
-    include/Camera.h
-    include/ConfigManager.h
-    include/Entity.h
-    include/Entities.h
-    include/Examples.h
-    include/FontRenderer.h
-    include/Game.h
-    include/GameState.h
-    include/InputManager.h
-    include/Interface.h
-    include/Renderer.h
-    include/Rendering/Layer.h
-    include/Rendering/Shapes/Circle.h
-    include/Rendering/Shapes/Line.h
-    include/Rendering/Shapes/Polygon.h
-    include/Rendering/Shapes/Rectangle.h
-    include/Rendering/Shapes/Shape.h
-    include/Rendering/Shapes/Text.h
-    include/Rendering/Styles/Base.h
-    include/Rendering/Styles/Border.h
-    include/Rendering/Styles/Shape.h
-    include/Rendering/Draw/Rectangle.h
-    include/Rendering/Draw/Circle.h
-    include/Rendering/Draw/Line.h
-    include/Rendering/Draw/Polygon.h
-    include/Shader.h
-    include/Tile.h
-    include/Vertex.h
-    include/VectorGraphics.h
-    include/VectorRenderer.h
-    include/World.h
-    include/World/TerrainGenerator.h
-)
+file(GLOB_RECURSE HEADERS
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
 
 # Create executable
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
@@ -117,7 +56,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 
 # Include directories
 target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${OPENGL_INCLUDE_DIR}
     ${GLM_INCLUDE_DIRS}
     ${FREETYPE_INCLUDE_DIRS}

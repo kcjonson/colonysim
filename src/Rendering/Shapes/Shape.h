@@ -39,4 +39,4 @@ protected:
 };
 
 } // namespace Shapes
-} // namespace Rendering 
+} // namespace Rendering

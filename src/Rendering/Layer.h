@@ -83,4 +83,4 @@ protected:
     void sortChildren();
 };
 
-} // namespace Rendering 
+} // namespace Rendering

@@ -48,4 +48,4 @@ private:
 };
 
 } // namespace Shapes
-} // namespace Rendering 
+} // namespace Rendering

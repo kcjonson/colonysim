@@ -14,4 +14,4 @@ public:
 };
 
 } // namespace Styles
-} // namespace Rendering 
+} // namespace Rendering

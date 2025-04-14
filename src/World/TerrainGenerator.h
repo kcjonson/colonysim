@@ -45,4 +45,4 @@ private:
     TerrainGenerator() = default;
 };
 
-} // namespace WorldGen 
+} // namespace WorldGen
