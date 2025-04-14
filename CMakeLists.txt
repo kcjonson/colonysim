@@ -43,6 +43,10 @@ set(SOURCES
     src/Rendering/Styles/Base.cpp
     src/Rendering/Styles/Border.cpp
     src/Rendering/Styles/Shape.cpp
+    src/Rendering/Draw/Rectangle.cpp
+    src/Rendering/Draw/Circle.cpp
+    src/Rendering/Draw/Line.cpp
+    src/Rendering/Draw/Polygon.cpp
     src/Shader.cpp
     src/Tile.cpp
     src/VectorGraphics.cpp
@@ -74,6 +78,10 @@ set(HEADERS
     include/Rendering/Styles/Base.h
     include/Rendering/Styles/Border.h
     include/Rendering/Styles/Shape.h
+    include/Rendering/Draw/Rectangle.h
+    include/Rendering/Draw/Circle.h
+    include/Rendering/Draw/Line.h
+    include/Rendering/Draw/Polygon.h
     include/Shader.h
     include/Tile.h
     include/Vertex.h
@@ -124,4 +132,4 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     nlohmann_json::nlohmann_json
     Freetype::Freetype
     glad::glad
-) 
+)

@@ -9,15 +9,15 @@
 #include <iostream>
 #include "Vertex.h"
 #include "Shader.h"
+#include "Rendering/Draw/BorderPosition.h"
+
+// Include the new drawing primitives
+#include "Rendering/Draw/Rectangle.h"
+#include "Rendering/Draw/Circle.h"
+#include "Rendering/Draw/Line.h"
+#include "Rendering/Draw/Polygon.h"
 
 class Renderer; // Forward declaration
-
-// Border position enum for shape rendering
-enum class BorderPosition {
-    Inside,
-    Outside,
-    Center
-};
 
 // For storing text rendering commands to be executed in order
 struct TextCommand {
@@ -153,4 +153,4 @@ private:
     bool initialized;                  // Whether the graphics system is initialized
     Renderer* renderer;                // Pointer to the renderer
     std::vector<TextCommand> textCommands; // List of text commands to execute in order
-}; 
+};
