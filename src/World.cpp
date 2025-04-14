@@ -39,6 +39,16 @@ void World::update(float deltaTime) {
     }
 }
 
+// glm::vec4 World::getCameraBounds() const {
+//     // Directly return the camera's current projection bounds
+//     return glm::vec4(
+//         camera->getProjectionLeft(),
+//         camera->getProjectionRight(),
+//         camera->getProjectionBottom(),
+//         camera->getProjectionTop()
+//     );
+// }
+
 glm::vec4 World::getCameraBounds() const {
     // Get the actual window size for direct pixel-to-world mapping
     int width, height;
