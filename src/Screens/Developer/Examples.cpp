@@ -103,7 +103,7 @@ void Examples::createCircleExamples() {
     basicParams.color = glm::vec4(1.0f, 0.0f, 0.0f, 0.7f); // Red with 70% transparency
     
     auto basicCircle = std::make_shared<Rendering::Shapes::Circle>(
-        glm::vec2(-300.0f, 300.0f),
+        glm::vec2(100.0f, 300.0f), // Changed from -300.0f to 100.0f
         40.0f,  // Radius
         Rendering::Styles::Circle(basicParams),
         15.0f  // Z-index
@@ -118,7 +118,7 @@ void Examples::createCircleExamples() {
     borderedParams.borderPosition = BorderPosition::Outside;        // Outside border
     
     auto borderedCircle = std::make_shared<Rendering::Shapes::Circle>(
-        glm::vec2(-200.0f, 300.0f),
+        glm::vec2(200.0f, 300.0f), // Changed from -200.0f to 200.0f
         35.0f,  // Radius
         Rendering::Styles::Circle(borderedParams),
         16.0f  // Z-index
@@ -133,7 +133,7 @@ void Examples::createCircleExamples() {
     insideBorderedParams.borderPosition = BorderPosition::Inside;         // Inside border
     
     auto insideBorderedCircle = std::make_shared<Rendering::Shapes::Circle>(
-        glm::vec2(-100.0f, 300.0f),
+        glm::vec2(300.0f, 300.0f), // Changed from -100.0f to 300.0f
         35.0f,  // Radius
         Rendering::Styles::Circle(insideBorderedParams),
         17.0f  // Z-index
@@ -148,7 +148,7 @@ void Examples::createCircleExamples() {
     smoothParams.borderPosition = BorderPosition::Center;         // Center border
     
     auto smoothCircle = std::make_shared<Rendering::Shapes::Circle>(
-        glm::vec2(-300.0f, 200.0f),
+        glm::vec2(100.0f, 200.0f), // Changed from -300.0f to 100.0f
         50.0f,  // Radius
         Rendering::Styles::Circle(smoothParams),
         18.0f  // Z-index
@@ -160,7 +160,7 @@ void Examples::createCircleExamples() {
     largeParams.color = glm::vec4(1.0f, 1.0f, 0.0f, 0.3f);      // Yellow with 30% transparency
     
     auto largeCircle = std::make_shared<Rendering::Shapes::Circle>(
-        glm::vec2(-150.0f, 150.0f),
+        glm::vec2(250.0f, 150.0f), // Changed from -150.0f to 250.0f
         80.0f,  // Radius
         Rendering::Styles::Circle(largeParams),
         19.0f  // Z-index
@@ -171,8 +171,8 @@ void Examples::createCircleExamples() {
 void Examples::createLineExamples() {
     // Basic line
     auto basicLine = std::make_shared<Rendering::Shapes::Line>(
-        glm::vec2(-300.0f, 0.0f),
-        glm::vec2(-100.0f, 0.0f),
+        glm::vec2(100.0f, 100.0f), // Changed Y from 0.0f to 100.0f
+        glm::vec2(300.0f, 100.0f), // Changed Y from 0.0f to 100.0f
         Rendering::Styles::Line({
             .color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),  // Red
             .width = 2.0f                               // 2px width
@@ -183,8 +183,8 @@ void Examples::createLineExamples() {
     
     // Thick line
     auto thickLine = std::make_shared<Rendering::Shapes::Line>(
-        glm::vec2(-300.0f, -50.0f),
-        glm::vec2(-100.0f, -50.0f),
+        glm::vec2(100.0f, 150.0f), // Changed Y from -50.0f to 150.0f
+        glm::vec2(300.0f, 150.0f), // Changed Y from -50.0f to 150.0f
         Rendering::Styles::Line({
             .color = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),  // Blue
             .width = 10.0f                              // 10px width
@@ -195,8 +195,8 @@ void Examples::createLineExamples() {
     
     // Diagonal line
     auto diagonalLine = std::make_shared<Rendering::Shapes::Line>(
-        glm::vec2(-300.0f, -100.0f),
-        glm::vec2(-100.0f, -200.0f),
+        glm::vec2(100.0f, 200.0f), // Changed Y from -100.0f to 200.0f
+        glm::vec2(300.0f, 250.0f), // Changed Y from -200.0f to 250.0f
         Rendering::Styles::Line({
             .color = glm::vec4(0.0f, 1.0f, 0.0f, 0.7f),  // Green with 70% transparency
             .width = 5.0f                               // 5px width
@@ -215,7 +215,7 @@ void Examples::createPolygonExamples() {
     };
     
     auto triangle = std::make_shared<Rendering::Shapes::Polygon>(
-        glm::vec2(-300.0f, -300.0f),
+        glm::vec2(100.0f, 400.0f), // Changed Y from -300.0f to 400.0f
         triangleVertices,
         Rendering::Styles::Polygon({
             .color = glm::vec4(1.0f, 0.0f, 0.0f, 0.7f)  // Red with 70% transparency
@@ -232,7 +232,7 @@ void Examples::createPolygonExamples() {
     }
     
     auto pentagon = std::make_shared<Rendering::Shapes::Polygon>(
-        glm::vec2(-150.0f, -300.0f),
+        glm::vec2(250.0f, 400.0f), // Changed Y from -300.0f to 400.0f
         pentagonVertices,
         Rendering::Styles::Polygon({
             .color = glm::vec4(0.0f, 0.0f, 1.0f, 0.6f),      // Blue with 60% transparency
@@ -253,7 +253,7 @@ void Examples::createPolygonExamples() {
     }
     
     auto star = std::make_shared<Rendering::Shapes::Polygon>(
-        glm::vec2(0.0f, -300.0f),
+        glm::vec2(400.0f, 400.0f), // Changed Y from -300.0f to 400.0f
         starVertices,
         Rendering::Styles::Polygon({
             .color = glm::vec4(1.0f, 1.0f, 0.0f, 0.8f),      // Yellow with 80% transparency
@@ -270,7 +270,7 @@ void Examples::createTextExamples() {
     // Basic text
     auto basicText = std::make_shared<Rendering::Shapes::Text>(
         "Hello, World!",
-        glm::vec2(100.0f, 0.0f),
+        glm::vec2(100.0f, 50.0f), // Changed Y from 0.0f to 50.0f
         Rendering::Styles::Text({
             .color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)  // Black
         }),
@@ -281,7 +281,7 @@ void Examples::createTextExamples() {
     // Colored text
     auto coloredText = std::make_shared<Rendering::Shapes::Text>(
         "Colored Text",
-        glm::vec2(100.0f, -50.0f),
+        glm::vec2(100.0f, 80.0f), // Changed Y from -50.0f to 80.0f
         Rendering::Styles::Text({
             .color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)  // Red
         }),
@@ -292,7 +292,7 @@ void Examples::createTextExamples() {
     // Semi-transparent text
     auto transparentText = std::make_shared<Rendering::Shapes::Text>(
         "Semi-transparent Text",
-        glm::vec2(100.0f, -100.0f),
+        glm::vec2(100.0f, 110.0f), // Changed Y from -100.0f to 110.0f
         Rendering::Styles::Text({
             .color = glm::vec4(0.0f, 0.0f, 1.0f, 0.7f)  // Blue with 70% transparency
         }),
