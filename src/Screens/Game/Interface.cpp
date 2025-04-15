@@ -2,12 +2,12 @@
 #include <sstream>
 #include <iomanip>
 #include <glm/glm.hpp>
-#include "VectorGraphics.h"
-#include "Rendering/Shapes/Rectangle.h"
-#include "Rendering/Shapes/Text.h"
+#include "../../VectorGraphics.h"
+#include "../../Rendering/Shapes/Rectangle.h"
+#include "../../Rendering/Shapes/Text.h"
 #include <GLFW/glfw3.h>
 #include <iostream>
-#include "Rendering/Styles/Shape.h"
+#include "../../Rendering/Styles/Shape.h"
 
 const std::vector<std::string> Interface::GAME_STATE_PROPERTIES = {
     "world.totalTiles",

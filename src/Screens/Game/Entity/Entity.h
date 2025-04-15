@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include "VectorGraphics.h"
-#include "Rendering/Layer.h"
-#include "Rendering/Shapes/Rectangle.h"
+#include "../../../VectorGraphics.h"
+#include "../../../Rendering/Layer.h"
+#include "../../../Rendering/Shapes/Rectangle.h"
 
 enum class EntityType {
     WORKER,
@@ -82,4 +82,4 @@ private:
     // Rendering components
     std::shared_ptr<Rendering::Layer> entityLayer;
     std::shared_ptr<Rendering::Shapes::Rectangle> entityVisual;
-}; 
+};

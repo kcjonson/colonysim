@@ -2,24 +2,24 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
-#include "Camera.h"
-#include "GameState.h"
-#include "World.h"
-#include "Entities.h"
-#include "InputManager.h"
-#include "Interface.h"
-#include "ConfigManager.h"
-#include "VectorGraphics.h"
-#include "Renderer.h"
-#include "Examples.h"
+#include "../Camera.h"
+#include "../GameState.h"
+#include "../World.h"
+#include "Game/Entities.h"
+#include "../InputManager.h"
+#include "Game/Interface.h"
+#include "../ConfigManager.h"
+#include "../VectorGraphics.h"
+#include "../Renderer.h"
+#include "Developer/Examples.h"
 
 // Include all screen types
-#include "Screens/SplashScreen.h"
-#include "Screens/MainMenuScreen.h"
-#include "Screens/WorldGenScreen.h"
-#include "Screens/GameplayScreen.h"
-#include "Screens/SettingsScreen.h"
-#include "Screens/DeveloperScreen.h"
+#include "Splash/Splash.h"
+#include "MainMenu/MainMenu.h"
+#include "WorldGen/WorldGen.h"
+#include "Game/Gameplay.h"
+#include "Settings/Settings.h"
+#include "Developer/Developer.h"
 
 ScreenManager::ScreenManager()
     : window(nullptr)

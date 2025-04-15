@@ -2,8 +2,8 @@
 #include "ConfigManager.h"
 #include "Camera.h"
 #include "VectorGraphics.h"
-#include "Tile.h"
-#include "World/TerrainGenerator.h"
+#include "Screens/Game/Tile.h"
+#include "Screens/WorldGen/TerrainGenerator.h"
 #include <iostream>
 #include <algorithm>
 #include <iomanip> // For std::setw and std::setprecision

@@ -1,7 +1,7 @@
-#include "SettingsScreen.h"
+#include "Settings.h"
 #include "../ScreenManager.h"
-#include "../VectorGraphics.h"
-#include "../ConfigManager.h"
+#include "../../VectorGraphics.h"
+#include "../../ConfigManager.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>

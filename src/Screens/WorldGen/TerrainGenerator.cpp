@@ -1,4 +1,4 @@
-#include "World/TerrainGenerator.h"
+#include "TerrainGenerator.h"
 #include <iostream>
 #include <random>
 #include <cmath>
@@ -143,4 +143,4 @@ void TerrainGenerator::generateTerrain(
     */
 }
 
-} // namespace WorldGen 
+} // namespace WorldGen

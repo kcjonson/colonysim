@@ -1,8 +1,8 @@
 #include "Entity.h"
 #include <cmath>
-#include "Rendering/Layer.h"
-#include "Rendering/Shapes/Rectangle.h"
-#include "VectorGraphics.h"
+#include "../../../Rendering/Layer.h"
+#include "../../../Rendering/Shapes/Rectangle.h"
+#include "../../../VectorGraphics.h"
 
 Entity::Entity(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color)
     : type(EntityType::WORKER)
@@ -107,4 +107,4 @@ void Entity::render(bool batched) {
             152.0f // Slightly higher z-index than health bar
         );
     }
-} 
+}

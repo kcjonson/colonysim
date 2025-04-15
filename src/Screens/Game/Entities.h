@@ -2,11 +2,11 @@
 
 #include <vector>
 #include <memory>
-#include "Entity.h"
-#include "VectorGraphics.h"
-#include "Rendering/Layer.h"
-#include "Camera.h"
-#include "Renderer.h"
+#include "Entity/Entity.h"
+#include "../../VectorGraphics.h"
+#include "../../Rendering/Layer.h"
+#include "../../Camera.h"
+#include "../../Renderer.h"
 #include <GLFW/glfw3.h>
 
 class Entities {
@@ -39,4 +39,4 @@ private:
     // Update methods
     void updateMovement(float deltaTime);
     void updateWork(float deltaTime);
-}; 
+};

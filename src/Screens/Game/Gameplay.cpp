@@ -1,9 +1,9 @@
-#include "GameplayScreen.h"
+#include "Gameplay.h"
 #include "../ScreenManager.h"
-#include "../World.h"
-#include "../Entities.h"
-#include "../InputManager.h"
-#include "../Interface.h"
+#include "../../World.h"
+#include "Entities.h"
+#include "../../InputManager.h"
+#include "Interface.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>

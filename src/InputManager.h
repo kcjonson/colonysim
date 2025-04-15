@@ -6,8 +6,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "Camera.h"
-#include "Entity.h"
-#include "Entities.h"
+#include "Screens/Game/Entity/Entity.h"
+#include "Screens/Game/Entities.h"
 #include "GameState.h"
 
 class InputManager {
@@ -87,4 +87,4 @@ private:
     void applyPan(const glm::vec2& direction, float speed, float deltaTime);
     void applyZoom(float amount);
     void handleEntitySelection(const glm::vec2& mousePos);
-}; 
+};

@@ -1,7 +1,7 @@
-#include "SplashScreen.h"
+#include "Splash.h"
 #include "../ScreenManager.h"
-#include "../VectorGraphics.h"
-#include "../ConfigManager.h"
+#include "../../VectorGraphics.h"
+#include "../../ConfigManager.h"
 #include <glad/glad.h>
 #include <iostream>
 

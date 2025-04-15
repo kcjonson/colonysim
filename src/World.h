@@ -7,12 +7,12 @@
 #include "VectorGraphics.h"
 #include "Camera.h"
 #include "Rendering/Layer.h"
-#include "Tile.h"
+#include "Screens/Game/Tile.h"
 #include <string>
 #include <memory>
 #include <glm/glm.hpp>
 #include "GameState.h"
-#include "World/TerrainGenerator.h"
+#include "Screens/WorldGen/TerrainGenerator.h"
 
 class World {
 public:

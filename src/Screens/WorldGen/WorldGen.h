@@ -7,11 +7,11 @@
 #include <memory>
 #include <glm/glm.hpp>
 #include <unordered_map>
-#include "../Rendering/Layer.h"
-#include "../Rendering/Shapes/Rectangle.h"
-#include "../Rendering/Shapes/Text.h"
-#include "MainMenuScreen.h" // For MenuButton structure
-#include "../World/TerrainGenerator.h"
+#include "../../Rendering/Layer.h"
+#include "../../Rendering/Shapes/Rectangle.h"
+#include "../../Rendering/Shapes/Text.h"
+#include "../MainMenu/MainMenu.h" // For MenuButton structure
+#include "TerrainGenerator.h"
 
 class WorldGenScreen : public Screen {
 public:

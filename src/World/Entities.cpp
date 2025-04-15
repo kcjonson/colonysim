@@ -1,6 +1,6 @@
 #include "Entities.h"
-#include "Entity.h"
-#include "VectorGraphics.h"
+#include "Entity/Entity.h"
+#include "../VectorGraphics.h"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -132,4 +132,4 @@ void Entities::updateWork(float deltaTime) {
             }
         }
     }
-} 
+}

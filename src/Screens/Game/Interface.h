@@ -3,13 +3,13 @@
 #include <memory>
 #include <glm/glm.hpp>
 #include <string>
-#include "VectorGraphics.h"
-#include "Renderer.h"
-#include "Rendering/Layer.h"
-#include "Rendering/Shapes/Rectangle.h"
-#include "Rendering/Shapes/Text.h"
+#include "../../VectorGraphics.h"
+#include "../../Renderer.h"
+#include "../../Rendering/Layer.h"
+#include "../../Rendering/Shapes/Rectangle.h"
+#include "../../Rendering/Shapes/Text.h"
 #include <GLFW/glfw3.h>
-#include "GameState.h"
+#include "../../GameState.h"
 
 class VectorGraphics;
 struct GLFWwindow;
@@ -53,4 +53,4 @@ private:
     std::vector<std::shared_ptr<Rendering::Shapes::Text>> propertyTexts;
 
     GameState& gameState;
-}; 
+};

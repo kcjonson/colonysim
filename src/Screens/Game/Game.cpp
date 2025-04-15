@@ -1,15 +1,15 @@
 #include "Game.h"
-#include "ConfigManager.h"
+#include "../../ConfigManager.h"
 #include <iostream>
 #include <chrono>
 #include <thread>
 #include <glm/gtc/matrix_transform.hpp>
 // Include shape classes
-#include "Rendering/Shapes/Rectangle.h"
-#include "Rendering/Shapes/Circle.h"
-#include "Rendering/Shapes/Line.h"
-#include "Rendering/Shapes/Polygon.h"
-#include "Rendering/Shapes/Text.h"
+#include "../../Rendering/Shapes/Rectangle.h"
+#include "../../Rendering/Shapes/Circle.h"
+#include "../../Rendering/Shapes/Line.h"
+#include "../../Rendering/Shapes/Polygon.h"
+#include "../../Rendering/Shapes/Text.h"
 
 Game::Game() 
     : window(nullptr)

@@ -3,8 +3,8 @@
 #include <vector>
 #include <memory>
 #include <glm/glm.hpp>
-#include "Rendering/Shapes/Shape.h"
-#include "Rendering/Layer.h"
+#include "../../Rendering/Shapes/Shape.h"
+#include "../../Rendering/Layer.h"
 
 namespace Rendering {
 
@@ -55,4 +55,4 @@ protected:
     glm::vec4 color = glm::vec4(0.0f, 0.5f, 0.0f, 1.0f); // Default green
 };
 
-} // namespace Rendering 
+} // namespace Rendering

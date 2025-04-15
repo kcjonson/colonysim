@@ -1,7 +1,7 @@
-#include "DeveloperScreen.h"
+#include "Developer.h"
 #include "../ScreenManager.h"
-#include "../VectorGraphics.h"
-#include "../Examples.h"
+#include "../../VectorGraphics.h"
+#include "Examples.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>

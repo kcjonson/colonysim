@@ -3,18 +3,18 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
-#include "VectorGraphics.h"
-#include "Renderer.h"
-#include "World.h"
-#include "Camera.h"
-#include "InputManager.h"
+#include "../../VectorGraphics.h"
+#include "../../Renderer.h"
+#include "../../World.h"
+#include "../../Camera.h"
+#include "../../InputManager.h"
 #include "Interface.h"
-#include "Rendering/Layer.h"
+#include "../../Rendering/Layer.h"
 #include "Entities.h"
 #include <memory>
-#include "GameState.h"
-#include "Examples.h"
-#include "ScreenManager.h"
+#include "../../GameState.h"
+#include "../Developer/Examples.h"
+#include "../ScreenManager.h"
 
 class Game {
 public:

@@ -1,12 +1,12 @@
-#include "WorldGenScreen.h"
+#include "WorldGen.h"
 #include "../ScreenManager.h"
-#include "../VectorGraphics.h"
-#include "../World.h"
+#include "../../VectorGraphics.h"
+#include "../../World.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <random>
-#include "World/TerrainGenerator.h"
+#include "TerrainGenerator.h"
 
 WorldGenScreen::WorldGenScreen()
     : lastCursorX(0.0f)

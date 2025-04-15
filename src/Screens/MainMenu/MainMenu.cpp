@@ -1,6 +1,6 @@
-#include "MainMenuScreen.h"
+#include "MainMenu.h"
 #include "../ScreenManager.h"
-#include "../VectorGraphics.h"
+#include "../../VectorGraphics.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>

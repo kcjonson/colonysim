@@ -1,8 +1,8 @@
 #include "Tile.h"
-#include "Rendering/Shapes/Shape.h"
-#include "Rendering/Shapes/Rectangle.h"
-#include "VectorGraphics.h"
-#include "World.h"
+#include "../../Rendering/Shapes/Shape.h"
+#include "../../Rendering/Shapes/Rectangle.h"
+#include "../../VectorGraphics.h"
+#include "../../World.h"
 #include <iostream>
 
 namespace Rendering {
@@ -70,4 +70,4 @@ void Tile::endBatch() {
     Layer::endBatch();
 }
 
-} // namespace Rendering 
+} // namespace Rendering

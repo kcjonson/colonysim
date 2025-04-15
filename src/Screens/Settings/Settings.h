@@ -5,15 +5,15 @@
 #include <string>
 #include <memory>
 #include <glm/glm.hpp>
-#include "../Rendering/Layer.h"
-#include "../Rendering/Shapes/Rectangle.h"
-#include "../Rendering/Shapes/Text.h"
-#include "MainMenuScreen.h" // For MenuButton structure
+#include "../../Rendering/Layer.h"
+#include "../../Rendering/Shapes/Rectangle.h"
+#include "../../Rendering/Shapes/Text.h"
+#include "../MainMenu/MainMenu.h" // For MenuButton structure
 
-class DeveloperScreen : public Screen {
+class SettingsScreen : public Screen {
 public:
-    DeveloperScreen();
-    ~DeveloperScreen() override;
+    SettingsScreen();
+    ~SettingsScreen() override;
 
     bool initialize() override;
     void update(float deltaTime) override;
@@ -31,6 +31,6 @@ private:
     
     // UI Layers
     std::shared_ptr<Rendering::Layer> backgroundLayer;
+    std::shared_ptr<Rendering::Layer> controlsLayer;
     std::shared_ptr<Rendering::Layer> buttonLayer;
-    std::shared_ptr<Rendering::Layer> titleLayer;
 };

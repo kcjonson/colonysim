@@ -6,8 +6,8 @@
 #include <string>
 #include <chrono>
 #include <memory>
-#include "../Rendering/Layer.h"
-#include "../Rendering/Shapes/Text.h"
+#include "../../Rendering/Layer.h"
+#include "../../Rendering/Shapes/Text.h"
 
 class SplashScreen : public Screen {
 public:

@@ -6,9 +6,9 @@
 #include <functional>
 #include <memory>
 #include <glm/glm.hpp>
-#include "../Rendering/Layer.h"
-#include "../Rendering/Shapes/Rectangle.h"
-#include "../Rendering/Shapes/Text.h"
+#include "../../Rendering/Layer.h"
+#include "../../Rendering/Shapes/Rectangle.h"
+#include "../../Rendering/Shapes/Text.h"
 
 struct MenuButton {
     std::string text;
