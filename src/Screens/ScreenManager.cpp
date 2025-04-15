@@ -4,7 +4,7 @@
 #include <iostream>
 #include "../Camera.h"
 #include "../GameState.h"
-#include "../World.h"
+#include "Game/World.h"
 #include "Game/Entities.h"
 #include "../InputManager.h"
 #include "Game/Interface.h"

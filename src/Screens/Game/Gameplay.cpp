@@ -1,6 +1,6 @@
 #include "Gameplay.h"
 #include "../ScreenManager.h"
-#include "../../World.h"
+#include "World.h"
 #include "Entities.h"
 #include "../../InputManager.h"
 #include "Interface.h"

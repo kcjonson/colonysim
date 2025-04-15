@@ -1,8 +1,8 @@
 #include "Tile.h"
-#include "../../Rendering/Shapes/Shape.h"
 #include "../../Rendering/Shapes/Rectangle.h"
-#include "../../VectorGraphics.h"
-#include "../../World.h"
+#include "../../Rendering/Shapes/Circle.h"
+#include <glm/glm.hpp>
+#include "World.h"
 #include <iostream>
 
 namespace Rendering {

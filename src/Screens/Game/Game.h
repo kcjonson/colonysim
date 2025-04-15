@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 #include "../../VectorGraphics.h"
 #include "../../Renderer.h"
-#include "../../World.h"
+#include "World.h"
 #include "../../Camera.h"
 #include "../../InputManager.h"
 #include "Interface.h"

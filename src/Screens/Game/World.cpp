@@ -1,9 +1,9 @@
 #include "World.h"
-#include "ConfigManager.h"
-#include "Camera.h"
-#include "VectorGraphics.h"
-#include "Screens/Game/Tile.h"
-#include "Screens/WorldGen/TerrainGenerator.h"
+#include "../../ConfigManager.h"
+#include "../../Camera.h"
+#include "../../VectorGraphics.h"
+#include "Tile.h"
+#include "../WorldGen/TerrainGenerator.h"
 #include <iostream>
 #include <algorithm>
 #include <iomanip> // For std::setw and std::setprecision
@@ -13,10 +13,10 @@
 #include <cmath> // For std::round
 
 // Include shape classes for testing
-#include "Rendering/Shapes/Rectangle.h"
+#include "../../Rendering/Shapes/Rectangle.h"
 
 // Include style classes
-#include "Rendering/Styles/Shape.h"
+#include "../../Rendering/Styles/Shape.h"
 
 World::World(GameState& gameState, const std::string& seed)
     : gameState(gameState)
@@ -38,16 +38,6 @@ void World::update(float deltaTime) {
         timeSinceLastLog = 0.0f;
     }
 }
-
-// glm::vec4 World::getCameraBounds() const {
-//     // Directly return the camera's current projection bounds
-//     return glm::vec4(
-//         camera->getProjectionLeft(),
-//         camera->getProjectionRight(),
-//         camera->getProjectionBottom(),
-//         camera->getProjectionTop()
-//     );
-// }
 
 glm::vec4 World::getCameraBounds() const {
     // Get the actual window size for direct pixel-to-world mapping

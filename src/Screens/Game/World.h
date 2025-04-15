@@ -4,15 +4,15 @@
 #include <unordered_set>
 #include <utility>
 #include <functional> // For std::hash
-#include "VectorGraphics.h"
-#include "Camera.h"
-#include "Rendering/Layer.h"
-#include "Screens/Game/Tile.h"
+#include "../../VectorGraphics.h"
+#include "../../Camera.h"
+#include "../../Rendering/Layer.h"
+#include "Tile.h"
 #include <string>
 #include <memory>
 #include <glm/glm.hpp>
-#include "GameState.h"
-#include "Screens/WorldGen/TerrainGenerator.h"
+#include "../../GameState.h"
+#include "../WorldGen/TerrainGenerator.h"
 
 class World {
 public:

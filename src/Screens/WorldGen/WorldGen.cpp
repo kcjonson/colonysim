@@ -1,10 +1,9 @@
 #include "WorldGen.h"
+#include <iostream>
 #include "../ScreenManager.h"
-#include "../../VectorGraphics.h"
-#include "../../World.h"
+#include "../Game/World.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <iostream>
 #include <random>
 #include "TerrainGenerator.h"
 
