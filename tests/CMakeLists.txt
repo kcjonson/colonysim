@@ -1,10 +1,21 @@
 cmake_minimum_required(VERSION 3.15)
 
-# Explicitly list source files to make sure they're included
+# Set fmt library location explicitly
+set(fmt_DIR "C:/vcpkg/installed/x64-windows/share/fmt")
+
+# Include source files needed from the main project
+set(SOURCE_FILES
+    ${CMAKE_SOURCE_DIR}/src/Rendering/Layer.cpp
+)
+
+# Explicitly list test source files
 set(TEST_SOURCES
     main.cpp
     TestUtils.cpp
     Mocks/MockGL.cpp
+    Mocks/MockVectorGraphics.cpp
+    Mocks/MockCamera.cpp
+    Performance/LayerPerformanceTests.cpp
     Performance/RenderBenchmarks.cpp
     Performance/TileCullingTests.cpp
     Performance/ScalingTests.cpp
@@ -13,13 +24,8 @@ set(TEST_SOURCES
     Rendering/LayerTests.cpp
 )
 
-# Include necessary implementation files from main project
-set(MAIN_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/Rendering/Layer.cpp
-)
-
-# Create test executable
-add_executable(ColonySimTests ${TEST_SOURCES} ${MAIN_SOURCES})
+# Create test executable - using SOURCE_FILES to include real implementations
+add_executable(ColonySimTests ${TEST_SOURCES} ${SOURCE_FILES})
 
 # Use C++17 standard
 set_target_properties(ColonySimTests PROPERTIES
