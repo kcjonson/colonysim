@@ -16,7 +16,6 @@ Makefile
 *.cmake
 *.user
 .vs/
-.vscode/
 *.sln
 *.vcxproj
 *.vcxproj.filters

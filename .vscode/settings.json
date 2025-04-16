@@ -1,0 +1,13 @@
+{
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+    "terminal.integrated.profiles.windows": {
+        "PowerShell": {
+            "source": "PowerShell",
+            "icon": "terminal-powershell"
+        }
+    },
+    "github.copilot.chat.contextDefaults": {
+        "context": "REMINDER: Please ensure all PowerShell commands are PowerShell 7 compatible. Avoid using commands or syntax that only works in older PowerShell versions."
+    }
+}

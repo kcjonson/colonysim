@@ -1,0 +1,42 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build-debug",
+            "type": "shell",
+            "command": "cmake --build build --config Debug",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "run-tests",
+            "type": "shell",
+            "command": "${workspaceFolder}/build/tests/Debug/ColonySimTests.exe",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": "$msCompile",
+            "dependsOn": "build-tests"
+        },
+        {
+            "label": "build-tests",
+            "type": "shell",
+            "command": "cmake --build build --target ColonySimTests --config Debug",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": "$msCompile"
+        }
+    ]
+}

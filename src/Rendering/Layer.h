@@ -70,6 +70,16 @@ public:
     virtual void beginBatch();
     virtual void endBatch();
     
+    // For testing purposes - public access to sortChildren
+    void testSortChildren() { sortChildren(); }
+
+    // For testing purposes - access to sortChildren
+    #ifdef TESTING
+    void exposeSortChildren() { sortChildren(); }
+    #endif
+
+    // Friend class for testing
+    friend class MockLayer;
 
 protected:
     float zIndex;

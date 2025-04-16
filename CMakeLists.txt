@@ -19,6 +19,8 @@ find_package(nlohmann_json REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(Freetype REQUIRED)
 find_package(glad CONFIG REQUIRED)
+find_package(Catch2 CONFIG REQUIRED)
+
 
 # Add source files
 # Using file(GLOB) to find source files automatically
