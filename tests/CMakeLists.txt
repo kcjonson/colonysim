@@ -5,23 +5,31 @@ set(fmt_DIR "C:/vcpkg/installed/x64-windows/share/fmt")
 
 # Include source files needed from the main project
 set(SOURCE_FILES
-    ${CMAKE_SOURCE_DIR}/src/Rendering/Layer.cpp
+    # Removed Layer.cpp to avoid duplicate definition
+    ${CMAKE_SOURCE_DIR}/src/VectorGraphics.cpp # Added missing dependency
+    ${CMAKE_SOURCE_DIR}/src/Camera.cpp         # Added missing dependency
+    ${CMAKE_SOURCE_DIR}/src/Shader.cpp         # Added missing dependency for VectorGraphics
+    ${CMAKE_SOURCE_DIR}/src/Renderer.cpp       # Added missing dependency for VectorGraphics
+    ${CMAKE_SOURCE_DIR}/src/VectorRenderer.cpp # Added missing dependency for Rendering::Draw
+    ${CMAKE_SOURCE_DIR}/src/FontRenderer.cpp   # Added missing dependency for Renderer
+    ${CMAKE_SOURCE_DIR}/src/Rendering/Draw/Circle.cpp    # Added missing dependency for VectorGraphics
+    ${CMAKE_SOURCE_DIR}/src/Rendering/Draw/Line.cpp      # Added missing dependency for VectorGraphics
+    ${CMAKE_SOURCE_DIR}/src/Rendering/Draw/Polygon.cpp   # Added missing dependency for VectorGraphics
+    ${CMAKE_SOURCE_DIR}/src/Rendering/Draw/Rectangle.cpp # Added missing dependency for VectorGraphics
 )
 
-# Explicitly list test source files
+# Explicitly list test source files relative to the current CMakeLists.txt
 set(TEST_SOURCES
-    main.cpp
-    TestUtils.cpp
-    Mocks/MockGL.cpp
-    Mocks/MockVectorGraphics.cpp
-    Mocks/MockCamera.cpp
-    Performance/LayerPerformanceTests.cpp
-    Performance/RenderBenchmarks.cpp
-    Performance/TileCullingTests.cpp
-    Performance/ScalingTests.cpp
-    Rendering/VectorRendererTests.cpp
-    Rendering/TileTests.cpp
-    Rendering/LayerTests.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/TestUtils.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Mocks/MockGL.cpp
+    # Removed missing files: MockVectorGraphics.cpp, MockCamera.cpp, LayerPerformanceTests.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Performance/RenderBenchmarks.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Performance/TileCullingTests.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Performance/ScalingTests.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Rendering/VectorRendererTests.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Rendering/TileTests.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Rendering/LayerTests.cpp
 )
 
 # Create test executable - using SOURCE_FILES to include real implementations

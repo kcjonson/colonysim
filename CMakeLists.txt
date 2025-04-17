@@ -74,3 +74,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Freetype::Freetype
     glad::glad
 )
+
+# Add the tests subdirectory
+add_subdirectory(tests)

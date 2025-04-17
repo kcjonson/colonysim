@@ -30,7 +30,8 @@
         {
             "label": "build-tests",
             "type": "shell",
-            "command": "cmake --build build --target ColonySimTests --config Debug",
+            // Ensure CMake configures before building the specific test target
+            "command": "cmake -S . -B build && cmake --build build --target ColonySimTests --config Debug",
             "group": "test",
             "presentation": {
                 "reveal": "always",
