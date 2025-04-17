@@ -85,6 +85,27 @@ void InputManager::update(float deltaTime) {
     if (window) {
         processEdgePan(deltaTime);
     }
+
+    // Update GameState once per frame with latest values
+    // Window Position (from last mouse move)
+    gameState.set("input.windowPos", 
+                 std::to_string((int)lastMousePos.x) + ", " + std::to_string((int)lastMousePos.y));
+    
+    // World Position (from last mouse move)
+    // Only calculate screenToWorld once here
+    glm::vec2 worldPos = glm::vec2(camera.screenToWorld(glm::vec3(lastMousePos, 0.0f)));
+    char worldPosStr[50];
+    snprintf(worldPosStr, sizeof(worldPosStr), "%.1f, %.1f", worldPos.x, worldPos.y);
+    gameState.set("input.worldPos", worldPosStr);
+
+    // Camera Position (from last pan/zoom)
+    glm::vec3 cameraPos = camera.getPosition();
+    char cameraPosStr[50];
+    snprintf(cameraPosStr, sizeof(cameraPosStr), "%.1f, %.1f", cameraPos.x, cameraPos.y);
+    gameState.set("camera.position", cameraPosStr);
+
+    // Selected Entity (updated in handleMouseButton)
+    // No change needed here, it's updated on click
 }
 
 void InputManager::handleKeyInput(int key, int action) {
@@ -112,16 +133,6 @@ void InputManager::handleMouseMove(double x, double y) {
         if (invertPan) delta = -delta;
         applyPan(delta, panSpeed * 0.1f, 1.0f / 60.0f);
     }
-
-    // Format window position as "x, y" with no decimals
-    gameState.set("input.windowPos", 
-                 std::to_string((int)currentPos.x) + ", " + std::to_string((int)currentPos.y));
-    
-    // Format world position with 1 decimal place
-    glm::vec2 worldPos = glm::vec2(camera.screenToWorld(glm::vec3(currentPos, 0.0f)));
-    char worldPosStr[50];
-    snprintf(worldPosStr, sizeof(worldPosStr), "%.1f, %.1f", worldPos.x, worldPos.y);
-    gameState.set("input.worldPos", worldPosStr);
 
     lastMousePos = currentPos;
 }
@@ -230,22 +241,10 @@ void InputManager::processEdgePan(float deltaTime) {
 void InputManager::applyPan(const glm::vec2& direction, float speed, float deltaTime) {
     glm::vec3 offset(direction.x * speed * deltaTime, direction.y * speed * deltaTime, 0.0f);
     camera.move(offset);
-
-    // Log the camera's new position
-    glm::vec3 cameraPos = camera.getPosition();
-    char posStr[50];
-    snprintf(posStr, sizeof(posStr), "%.1f, %.1f", cameraPos.x, cameraPos.y);
-    gameState.set("camera.position", posStr);
 }
 
 void InputManager::applyZoom(float amount) {
     camera.zoom(amount);
-    
-    // Log the camera's position after zooming
-    glm::vec3 cameraPos = camera.getPosition();
-    char posStr[50];
-    snprintf(posStr, sizeof(posStr), "%.1f, %.1f", cameraPos.x, cameraPos.y);
-    gameState.set("camera.position", posStr);
 }
 
 void InputManager::handleEntitySelection(const glm::vec2& mousePos) {
@@ -363,4 +362,4 @@ void InputManager::setWindow(GLFWwindow* newWindow) {
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
     glfwSetCursorPosCallback(window, cursorPosCallback);
     glfwSetScrollCallback(window, scrollCallback);
-} 
+}

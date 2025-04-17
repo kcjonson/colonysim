@@ -3,24 +3,31 @@
 #include <iostream>
 
 Camera::Camera() : position(0.0f, 0.0f, 5.0f), target(0.0f, 0.0f, 0.0f), up(0.0f, 1.0f, 0.0f) {
-    updateViewMatrix();
+    // updateViewMatrix(); // Don't call here, let first getViewMatrix call handle it.
+    viewMatrixDirty = true; // Ensure it's marked dirty initially
     // Set a larger initial view area for better visibility
     setOrthographicProjection(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
 }
 
-void Camera::setPosition(const glm::vec3& position) {
-    this->position = position;
-    updateViewMatrix();
+void Camera::setPosition(const glm::vec3& newPosition) {
+    if (position != newPosition) {
+        position = newPosition;
+        viewMatrixDirty = true;
+    }
 }
 
-void Camera::setTarget(const glm::vec3& target) {
-    this->target = target;
-    updateViewMatrix();
+void Camera::setTarget(const glm::vec3& newTarget) {
+    if (target != newTarget) {
+        target = newTarget;
+        viewMatrixDirty = true;
+    }
 }
 
-void Camera::setUp(const glm::vec3& up) {
-    this->up = up;
-    updateViewMatrix();
+void Camera::setUp(const glm::vec3& newUp) {
+    if (up != newUp) {
+        up = newUp;
+        viewMatrixDirty = true;
+    }
 }
 
 void Camera::setOrthographicProjection(float left, float right, float bottom, float top, float near, float far) {
@@ -36,15 +43,19 @@ void Camera::setPerspectiveProjection(float fov, float aspect, float near, float
 }
 
 void Camera::move(const glm::vec3& offset) {
-    position += offset;
-    target += offset;
-    updateViewMatrix();
+    if (offset != glm::vec3(0.0f)) { // Only mark dirty if actually moving
+        position += offset;
+        target += offset; // Assuming target moves with position
+        viewMatrixDirty = true;
+    }
 }
 
 void Camera::rotate(float angle, const glm::vec3& axis) {
+    // Rotation always changes the view
     glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), angle, axis);
     position = glm::vec3(rotation * glm::vec4(position, 1.0f));
-    updateViewMatrix();
+    viewMatrixDirty = true;
+    // updateViewMatrix(); // Defer update until matrix is requested
 }
 
 void Camera::zoom(float amount) {
@@ -87,6 +98,9 @@ void Camera::zoom(float amount) {
 }
 
 const glm::mat4& Camera::getViewMatrix() const {
+    if (viewMatrixDirty) {
+        updateViewMatrix(); // Update if dirty
+    }
     return viewMatrix;
 }
 
@@ -103,11 +117,14 @@ const glm::vec3& Camera::getTarget() const {
 }
 
 glm::vec3 Camera::screenToWorld(const glm::vec3& screenPos) const {
-    glm::mat4 inverseVP = glm::inverse(projectionMatrix * viewMatrix);
+    // This now correctly uses the potentially updated view matrix via getViewMatrix()
+    glm::mat4 inverseVP = glm::inverse(projectionMatrix * getViewMatrix());
     glm::vec4 worldPos = inverseVP * glm::vec4(screenPos, 1.0f);
+    if (worldPos.w == 0.0f) return glm::vec3(0.0f); // Avoid division by zero
     return glm::vec3(worldPos) / worldPos.w;
 }
 
-void Camera::updateViewMatrix() {
+void Camera::updateViewMatrix() const {
     viewMatrix = glm::lookAt(position, target, up);
+    viewMatrixDirty = false; // Mark as clean
 }
