@@ -95,7 +95,14 @@ void Interface::initializeUIComponents() {
 void Interface::update(float deltaTime) {
     for (size_t i = 0; i < GAME_STATE_PROPERTIES.size(); i++) {
         const auto& property = GAME_STATE_PROPERTIES[i];
-        propertyTexts[i]->setText(property + ": " + gameState.get(property));
+        std::string value;
+
+        value = gameState.get(property);
+
+        // Update the text shape
+        if (i < propertyTexts.size() && propertyTexts[i]) { // Add safety check
+             propertyTexts[i]->setText(property + ": " + value);
+        }
     }
 }
 

@@ -53,6 +53,8 @@ public:
     void endBatch();                                                             // End the current batch and prepare for rendering
     bool isBatching = false;                                                     // Whether currently batching draw calls
 
+    void beginFrame(); // Add this method to reset frame counters
+
     /**
      * Drawing primitives
      * All positions are in world/screen coordinates
@@ -134,8 +136,10 @@ public:
     void drawText(const std::string& text, const glm::vec2& position, const glm::vec4& color);
 
     // Get rendering statistics
-    size_t getTotalVertices() const { return vertices.size(); }
-    size_t getTotalIndices() const { return indices.size(); }
+    size_t getTotalVertices() const { return vertices.size(); } // Current buffer size
+    size_t getTotalIndices() const { return indices.size(); }   // Current buffer size
+    size_t getFrameVertices() const { return frameVertices; } // Total vertices rendered in the frame
+    size_t getFrameIndices() const { return frameIndices; }   // Total indices rendered in the frame
 
 private:
     // Private constructor for singleton
@@ -147,6 +151,11 @@ private:
     Shader shader;
     std::vector<Vertex> vertices;      // List of vertices to render
     std::vector<unsigned int> indices; // List of indices defining triangles
+
+    // Frame statistics
+    size_t frameVertices = 0;
+    size_t frameIndices = 0;
+
     GLuint VAO;                        // Vertex Array Object
     GLuint VBO;                        // Vertex Buffer Object
     GLuint EBO;                        // Element Buffer Object

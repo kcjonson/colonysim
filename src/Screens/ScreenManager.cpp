@@ -321,7 +321,24 @@ void ScreenManager::run() {
         // Render current screen
         if (currentScreen) {
             try {
+                // Reset frame counters before rendering starts
+                VectorGraphics::getInstance().beginFrame(); 
+                
                 currentScreen->render();
+
+                // Update GameState with rendering stats AFTER rendering is done
+                if (gameState) {
+                    try {
+                        size_t vertices = VectorGraphics::getInstance().getFrameVertices();
+                        size_t indices = VectorGraphics::getInstance().getFrameIndices();
+                        gameState->set("rend.vertices", std::to_string(vertices));
+                        gameState->set("rend.indices", std::to_string(indices));
+                    } catch (const std::exception& e) {
+                        std::cerr << "ERROR: Exception when updating render stats: " << e.what() << std::endl;
+                    } catch (...) {
+                        std::cerr << "ERROR: Unknown exception when updating render stats" << std::endl;
+                    }
+                }
             } catch (const std::exception& e) {
                 std::cerr << "ERROR: Exception in render: " << e.what() << std::endl;
             } catch (...) {

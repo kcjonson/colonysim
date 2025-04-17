@@ -19,8 +19,7 @@ Game::Game()
     , entities()
     , inputManager(window, camera, entities, gameState)
     , interface(gameState)
-    , isRunning(true)
-    , timeSinceLastRenderLog(0.0f) {
+    , isRunning(true) {
     
     std::cout << "Initializing game..." << std::endl;
     
@@ -244,18 +243,6 @@ void Game::update(float deltaTime) {
     
     // Update interface
     interface.update(deltaTime);
-    
-    // Log rendering statistics every 0.5 seconds
-    timeSinceLastRenderLog += deltaTime;
-    if (timeSinceLastRenderLog >= 0.5f) {
-        // Log rendering statistics
-        size_t totalVertices = VectorGraphics::getInstance().getTotalVertices();
-        size_t totalIndices = VectorGraphics::getInstance().getTotalIndices();
-        gameState.set("rend.vertices", std::to_string(totalVertices));
-        gameState.set("rend.indices", std::to_string(totalIndices));
-
-        timeSinceLastRenderLog = 0.0f; // Reset the timer
-    }
 }
 
 void Game::render() {

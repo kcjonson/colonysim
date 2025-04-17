@@ -78,6 +78,10 @@ void VectorGraphics::render(const glm::mat4& viewMatrix, const glm::mat4& projec
         // Update buffers if needed
         updateBuffers();
 
+        // Accumulate frame statistics *before* drawing
+        frameVertices += vertices.size();
+        frameIndices += indices.size();
+
         // Actually render
         shader.use();
         shader.setUniform("view", viewMatrix);
@@ -121,6 +125,11 @@ void VectorGraphics::clear() {
     indices.clear();
     textCommands.clear(); // Clear text commands when explicitly asked to clear everything
     updateBuffers();
+}
+
+void VectorGraphics::beginFrame() {
+    frameVertices = 0;
+    frameIndices = 0;
 }
 
 void VectorGraphics::beginBatch() {
