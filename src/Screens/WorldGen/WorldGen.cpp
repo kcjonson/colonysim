@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 #include <random>
 #include "TerrainGenerator.h"
+#include "VectorGraphics.h"
 
 // Update constructor definition to accept Camera* and GLFWwindow*
 WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)
@@ -15,27 +16,46 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)
     , worldWidth(256)
     , worldHeight(256)
     , waterLevel(0.4f)
-    , worldGenerated(false) {
+    , worldGenerated(false)
+    , m_cameraDistance(5.0f)
+    , m_rotationAngle(0.0f)
+    , m_isDragging(false) {
     
     // Generate a random seed
     std::random_device rd;
     seed = rd();
     
-    // REMOVED: Pass nullptr for camera/window initially
-    // Camera* camera = nullptr;
-    // GLFWwindow* window = nullptr;
-
     // Create layers with different z-indices and pass pointers
-    backgroundLayer = std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
-    controlsLayer = std::make_shared<Rendering::Layer>(10.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
-    buttonLayer = std::make_shared<Rendering::Layer>(20.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
-    previewLayer = std::make_shared<Rendering::Layer>(5.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    // Order from back to front:
+    starLayer = std::make_shared<Rendering::Layer>(-100.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    backgroundLayer = std::make_shared<Rendering::Layer>(-50.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    previewLayer = std::make_shared<Rendering::Layer>(50.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    sidebarLayer = std::make_shared<Rendering::Layer>(100.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    controlsLayer = std::make_shared<Rendering::Layer>(150.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    buttonLayer = std::make_shared<Rendering::Layer>(200.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    
+    // Initialize globe renderer
+    m_globeRenderer = std::make_unique<WorldGen::GlobeRenderer>();
 }
 
 WorldGenScreen::~WorldGenScreen() {
 }
 
 bool WorldGenScreen::initialize() {
+    // Initialize globe renderer
+    if (!m_globeRenderer->initialize()) {
+        std::cerr << "Failed to initialize globe renderer" << std::endl;
+        return false;
+    }
+    
+    // Set up OpenGL blending for transparency
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    // Set up scroll callback
+    glfwSetWindowUserPointer(screenManager->getWindow(), this);
+    glfwSetScrollCallback(screenManager->getWindow(), scrollCallback);
+    
     // Define buttons
     buttons.clear();
     
@@ -103,13 +123,37 @@ void WorldGenScreen::layoutUI() {
     glfwGetWindowSize(window, &width, &height);
     
     // Clear all layers
+    starLayer->clearItems();
     backgroundLayer->clearItems();
     controlsLayer->clearItems();
     buttonLayer->clearItems();
     previewLayer->clearItems();
+    sidebarLayer->clearItems();
     
-    // Side bar takes up the left side of the screen
-    sidebarWidth = 300.0f;
+    // Create star background
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> disX(0.0f, static_cast<float>(width));
+    std::uniform_real_distribution<float> disY(0.0f, static_cast<float>(height));
+    std::uniform_real_distribution<float> disSize(1.0f, 3.0f);
+    std::uniform_real_distribution<float> disAlpha(0.5f, 1.0f);
+    
+    for (int i = 0; i < 200; ++i) {
+        float x = disX(gen);
+        float y = disY(gen);
+        float size = disSize(gen);
+        float alpha = disAlpha(gen);
+        
+        auto star = std::make_shared<Rendering::Shapes::Rectangle>(
+            glm::vec2(x, y),
+            glm::vec2(size, size),
+            Rendering::Styles::Rectangle({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, alpha)
+            }),
+            -100.0f  // Z-index matching starLayer
+        );
+        starLayer->addItem(star);
+    }
     
     // Create sidebar background
     auto sidebar = std::make_shared<Rendering::Shapes::Rectangle>(
@@ -118,9 +162,9 @@ void WorldGenScreen::layoutUI() {
         Rendering::Styles::Rectangle({
             .color = glm::vec4(0.1f, 0.1f, 0.1f, 0.9f)
         }),
-        1.0f  // Z-index
+        100.0f  // Z-index matching sidebarLayer
     );
-    backgroundLayer->addItem(sidebar);
+    sidebarLayer->addItem(sidebar);
     
     // Create title
     auto titleText = std::make_shared<Rendering::Shapes::Text>(
@@ -130,7 +174,7 @@ void WorldGenScreen::layoutUI() {
             .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
             .fontSize = 32.0f
         }),
-        15.0f  // Z-index
+        150.0f  // Z-index matching controlsLayer
     );
     controlsLayer->addItem(titleText);
     
@@ -148,7 +192,7 @@ void WorldGenScreen::layoutUI() {
             .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
             .fontSize = 18.0f
         }),
-        12.0f  // Z-index
+        150.0f  // Z-index matching controlsLayer
     );
     controlsLayer->addItem(widthLabel);
     
@@ -159,7 +203,7 @@ void WorldGenScreen::layoutUI() {
             .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
             .fontSize = 18.0f
         }),
-        12.0f  // Z-index
+        150.0f  // Z-index matching controlsLayer
     );
     controlsLayer->addItem(widthValue);
     
@@ -171,7 +215,7 @@ void WorldGenScreen::layoutUI() {
             .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
             .fontSize = 18.0f
         }),
-        12.0f  // Z-index
+        150.0f  // Z-index matching controlsLayer
     );
     controlsLayer->addItem(heightLabel);
     
@@ -182,7 +226,7 @@ void WorldGenScreen::layoutUI() {
             .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
             .fontSize = 18.0f
         }),
-        12.0f  // Z-index
+        150.0f  // Z-index matching controlsLayer
     );
     controlsLayer->addItem(heightValue);
     
@@ -194,7 +238,7 @@ void WorldGenScreen::layoutUI() {
             .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
             .fontSize = 18.0f
         }),
-        12.0f  // Z-index
+        150.0f  // Z-index matching controlsLayer
     );
     controlsLayer->addItem(waterLabel);
     
@@ -205,7 +249,7 @@ void WorldGenScreen::layoutUI() {
             .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
             .fontSize = 18.0f
         }),
-        12.0f  // Z-index
+        150.0f  // Z-index matching controlsLayer
     );
     controlsLayer->addItem(waterValue);
     
@@ -217,7 +261,7 @@ void WorldGenScreen::layoutUI() {
             .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
             .fontSize = 18.0f
         }),
-        12.0f  // Z-index
+        150.0f  // Z-index matching controlsLayer
     );
     controlsLayer->addItem(seedLabel);
     
@@ -228,7 +272,7 @@ void WorldGenScreen::layoutUI() {
             .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
             .fontSize = 18.0f
         }),
-        12.0f  // Z-index
+        150.0f  // Z-index matching controlsLayer
     );
     controlsLayer->addItem(seedValue);
     
@@ -253,7 +297,7 @@ void WorldGenScreen::layoutUI() {
                 .color = buttons[i].isHovered ? buttons[i].hoverColor : buttons[i].color,
                 .cornerRadius = 5.0f
             }),
-            25.0f  // Z-index
+            200.0f  // Z-index matching buttonLayer
         );
         buttonLayer->addItem(buttons[i].background);
         
@@ -268,7 +312,7 @@ void WorldGenScreen::layoutUI() {
                 .horizontalAlign = Rendering::TextAlign::Center,
                 .verticalAlign = Rendering::TextAlign::Middle
             }),
-            26.0f  // Z-index
+            200.0f  // Z-index matching buttonLayer
         );
         buttonLayer->addItem(buttons[i].label);
     }
@@ -282,7 +326,7 @@ void WorldGenScreen::layoutUI() {
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
                 .fontSize = 32.0f
             }),
-            8.0f  // Z-index
+            50.0f  // Z-index matching previewLayer
         );
         previewLayer->addItem(generatedMsg);
         
@@ -293,7 +337,7 @@ void WorldGenScreen::layoutUI() {
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
                 .fontSize = 24.0f
             }),
-            8.0f  // Z-index
+            50.0f  // Z-index matching previewLayer
         );
         previewLayer->addItem(landMsg);
     } else {
@@ -304,7 +348,7 @@ void WorldGenScreen::layoutUI() {
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
                 .fontSize = 24.0f
             }),
-            8.0f  // Z-index
+            50.0f  // Z-index matching previewLayer
         );
         previewLayer->addItem(customizeMsg);
         
@@ -315,69 +359,123 @@ void WorldGenScreen::layoutUI() {
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
                 .fontSize = 24.0f
             }),
-            8.0f  // Z-index
+            50.0f  // Z-index matching previewLayer
         );
         previewLayer->addItem(generateMsg);
     }
 }
 
 void WorldGenScreen::update(float deltaTime) {
-    // Update button hover states
-    for (size_t i = 0; i < buttons.size(); i++) {
-        // Update button color based on hover state
-        if (buttons[i].background) {
-            // Create a new style with the updated color
-            Rendering::Styles::Rectangle newStyle = buttons[i].background->getStyle();
-            newStyle.color = buttons[i].isHovered ? buttons[i].hoverColor : buttons[i].color;
-            buttons[i].background->setStyle(newStyle);
-        }
-    }
+    // Update camera matrices
+    m_viewMatrix = glm::lookAt(
+        glm::vec3(0.0f, 0.0f, m_cameraDistance),
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 1.0f, 0.0f)
+    );
+    
+    // Update projection matrix
+    GLFWwindow* window = screenManager->getWindow();
+    int width, height;
+    glfwGetWindowSize(window, &width, &height);
+    m_projectionMatrix = glm::perspective(
+        glm::radians(45.0f),
+        static_cast<float>(width - sidebarWidth) / height,
+        0.1f,
+        100.0f
+    );
+    
+    // Update globe renderer
+    m_globeRenderer->setRotationAngle(m_rotationAngle);
+    m_globeRenderer->setCameraDistance(m_cameraDistance);
+    m_globeRenderer->resize(width - static_cast<int>(sidebarWidth), height);
 }
 
 void WorldGenScreen::render() {
-    // Set clear color to black
+    // Clear the screen
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    // Render all layers in order
-    backgroundLayer->render(false);
-    previewLayer->render(false);
-    controlsLayer->render(false);
-    buttonLayer->render(false);
+    // Get window size
+    GLFWwindow* window = screenManager->getWindow();
+    int width, height;
+    glfwGetWindowSize(window, &width, &height);
+    
+    // Enable blending for all transparent objects
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    // First render the full-screen background (stars)
+    glViewport(0, 0, width, height);
+    glDisable(GL_DEPTH_TEST);
+    
+    // Collect all layers in a vector
+    std::vector<std::shared_ptr<Rendering::Layer>> allLayers = {
+        starLayer,
+        backgroundLayer,
+        previewLayer,
+        sidebarLayer,
+        controlsLayer,
+        buttonLayer
+    };
+    
+    // Sort layers by z-index
+    std::sort(allLayers.begin(), allLayers.end(),
+        [](const std::shared_ptr<Rendering::Layer>& a, const std::shared_ptr<Rendering::Layer>& b) {
+            return a->getZIndex() < b->getZIndex();
+        }
+    );
+    
+    // Render layers in sorted order
+    for (const auto& layer : allLayers) {
+        layer->render();
+    }
+    
+    // Then render the planet in its viewport
+    glViewport(static_cast<GLint>(sidebarWidth), 0, width - static_cast<GLint>(sidebarWidth), height);
+    glEnable(GL_DEPTH_TEST);
+    m_globeRenderer->render(m_viewMatrix, m_projectionMatrix);
 }
 
 void WorldGenScreen::handleInput() {
     GLFWwindow* window = screenManager->getWindow();
     
-    // Get cursor position
-    double xpos, ypos;
-    glfwGetCursorPos(window, &xpos, &ypos);
-    lastCursorX = static_cast<float>(xpos);
-    lastCursorY = static_cast<float>(ypos);
-    
-    // Check for button hover
-    for (auto& button : buttons) {
-        button.isHovered = isPointInRect(
-            lastCursorX, lastCursorY,
-            button.position.x, button.position.y,
-            button.size.x, button.size.y
-        );
+    // Handle mouse input for planet rotation
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+        double xpos, ypos;
+        glfwGetCursorPos(window, &xpos, &ypos);
+        
+        if (!m_isDragging) {
+            m_isDragging = true;
+            lastCursorX = static_cast<float>(xpos);
+            lastCursorY = static_cast<float>(ypos);
+        } else {
+            float deltaX = static_cast<float>(xpos) - lastCursorX;
+            m_rotationAngle += deltaX * 0.01f;
+            lastCursorX = static_cast<float>(xpos);
+            lastCursorY = static_cast<float>(ypos);
+        }
+    } else {
+        m_isDragging = false;
     }
     
-    // Check for button click
-    static bool wasPressed = false;
-    bool isPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
-    
-    if (isPressed && !wasPressed) {
-        for (const auto& button : buttons) {
-            if (button.isHovered && button.callback) {
-                button.callback();
-                break;
+    // Handle button clicks
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+        double xpos, ypos;
+        glfwGetCursorPos(window, &xpos, &ypos);
+        
+        for (auto& button : buttons) {
+            if (isPointInRect(static_cast<float>(xpos), static_cast<float>(ypos),
+                             button.position.x, button.position.y,
+                             button.size.x, button.size.y)) {
+                button.isHovered = true;
+                if (button.callback) {
+                    button.callback();
+                }
+            } else {
+                button.isHovered = false;
             }
         }
     }
-    
-    wasPressed = isPressed;
     
     // Check for ESC key to go back to main menu
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
@@ -386,10 +484,25 @@ void WorldGenScreen::handleInput() {
 }
 
 void WorldGenScreen::onResize(int width, int height) {
-    // Re-layout UI when the window is resized
+    // Update viewport for planet rendering
+    glViewport(static_cast<GLint>(sidebarWidth), 0, width - static_cast<GLint>(sidebarWidth), height);
+    
+    // Update UI layout
     layoutUI();
 }
 
 bool WorldGenScreen::isPointInRect(float px, float py, float rx, float ry, float rw, float rh) {
     return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
+}
+
+void WorldGenScreen::handleScroll(double xoffset, double yoffset) {
+    m_cameraDistance = glm::clamp(m_cameraDistance - static_cast<float>(yoffset) * 0.1f, 2.0f, 10.0f);
+}
+
+void WorldGenScreen::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+    void* ptr = glfwGetWindowUserPointer(window);
+    if (ptr) {
+        WorldGenScreen* screen = static_cast<WorldGenScreen*>(ptr);
+        screen->handleScroll(xoffset, yoffset);
+    }
 }
