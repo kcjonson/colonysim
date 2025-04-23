@@ -11,3 +11,5 @@
 * When you move files, make sure the old ones are deleted.
 * Look for duplication in file/class names and their namespaces. Classes like Text that are in the Shapes folder should be called Text, not TextShape becuase its redundant. There may be exceptions to this rule, just ask if you're worried about namespace collisions due to short names.
 * When removing code from files, remember to check for removing imports that are no longer being used
+* Please put the header files for C++ classes in the same directory as the class, not in a seperate /include directory.
+* When building the application with new changes, also make sure there are no warnings introduced. If there are, treat them like errors and iterate to fix.
