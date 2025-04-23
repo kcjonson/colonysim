@@ -1,228 +1,173 @@
+// filepath: c:\Users\kevin\ColonySim\src\Screens\Game\Game.cpp
 #include "Game.h"
-#include "../../ConfigManager.h"
+#include "../ScreenManager.h"
+#include "World.h"
+#include "Entities.h"
+#include "../../InputManager.h"
+#include "Interface.h"
+#include "../../GameState.h"
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include <iostream>
-#include <chrono>
-#include <thread>
 #include <glm/gtc/matrix_transform.hpp>
-// Include shape classes
-#include "../../Rendering/Shapes/Rectangle.h"
-#include "../../Rendering/Shapes/Circle.h"
-#include "../../Rendering/Shapes/Line.h"
-#include "../../Rendering/Shapes/Polygon.h"
-#include "../../Rendering/Shapes/Text.h"
 
-Game::Game() 
-    : window(nullptr)
-    , camera() // Initialize camera before members that use it
-    , gameState()
-    // Pass camera and window to constructors in initializer list
-    , world(gameState, "default_seed", &camera, window) // Provide seed, camera, window
-    , entities(&camera, window) // Pass camera, window
-    // Removed entities argument from InputManager constructor call
-    , inputManager(window, camera, gameState)
-    // Pass gameState, camera, window
-    , interface(gameState, &camera, window) 
-    , examples(&camera, window) // Pass camera, window
-    , isRunning(true) {
+// Constructor that takes pointers to shared resources managed by ScreenManager
+GameScreen::GameScreen(Camera* camera, GLFWwindow* window)
+    : camera_(camera)
+    , window_(window)
+    , gameState_(nullptr)
+    , isRunning(true)
+    , timeSinceLastRenderLog(0.0f) {
+    std::cout << "Creating GameScreen..." << std::endl;
+}
+
+GameScreen::~GameScreen() {
+    // unique_ptr members will be automatically cleaned up
+    std::cout << "GameScreen destroyed." << std::endl;
+}
+
+bool GameScreen::initialize() {
+    std::cout << "Initializing GameScreen..." << std::endl;
     
-    std::cout << "Initializing game..." << std::endl;
-    
-    // Set VectorGraphics to use the renderer
-    VectorGraphics::getInstance().setRenderer(&Renderer::getInstance());
-    
-    // Load configuration
-    if (!ConfigManager::getInstance().loadConfig("config/game_config.json")) {
-        std::cerr << "Failed to load configuration, using defaults" << std::endl;
+    // Get necessary pointers from ScreenManager
+    if (!screenManager) {
+        std::cerr << "ERROR: ScreenManager is null in GameScreen::initialize" << std::endl;
+        return false;
     }
     
-    // Initialize GLFW
-    if (!glfwInit()) {
-        std::cerr << "Failed to initialize GLFW" << std::endl;
-        return;
-    }
-    std::cout << "GLFW initialized successfully" << std::endl;
+    // Update pointers to shared resources
+    camera_ = screenManager->getCamera();
+    window_ = screenManager->getWindow();
+    gameState_ = screenManager->getGameState();
 
-    // Configure GLFW
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    
-    // Enable anti-aliasing
-    glfwWindowHint(GLFW_SAMPLES, 4); // 4x MSAA
-    
-    // Explicitly request an alpha channel
-    glfwWindowHint(GLFW_ALPHA_BITS, 8);
-    glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_FALSE);
-
-    // Create window using config settings
-    window = glfwCreateWindow(
-        ConfigManager::getInstance().getWindowWidth(),
-        ConfigManager::getInstance().getWindowHeight(),
-        ConfigManager::getInstance().getWindowTitle().c_str(),
-        nullptr,
-        nullptr
-    );
-    if (!window) {
-        std::cerr << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return;
-    }
-
-    // Make the window's context current
-    glfwMakeContextCurrent(window);
-
-    // Initialize GLAD
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cerr << "Failed to initialize GLAD" << std::endl;
-        glfwTerminate();
-        return;
-    }
-    
-    // Initialize renderer first
-    if (!Renderer::getInstance().initialize()) {
-        std::cerr << "ERROR: Renderer initialization failed!" << std::endl;
-        glfwTerminate();
-        return;
-    }
-
-    // Initialize VectorGraphics after GLAD is initialized
-    if (!VectorGraphics::getInstance().initialize()) {
-        std::cerr << "ERROR: VectorGraphics initialization failed!" << std::endl;
-        glfwTerminate();
-        return;
+    if (!camera_ || !window_ || !gameState_) {
+        std::cerr << "ERROR: Failed to get required pointers (Camera, Window, GameState) from ScreenManager" << std::endl;
+        return false;
     }
 
     // Initialize Interface
-    if (!interface.initialize()) {
-        std::cerr << "ERROR: Interface initialization failed!" << std::endl;
-        glfwTerminate();
-        return;
+    try {
+        interface_ = std::make_unique<Interface>(*gameState_, camera_, window_);
+        if (!interface_ || !interface_->initialize()) {
+            std::cerr << "ERROR: Interface initialization failed in GameScreen!" << std::endl;
+            return false;
+        }
+        std::cout << "Interface initialized successfully in GameScreen." << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR: Exception during Interface initialization in GameScreen: " << e.what() << std::endl;
+        return false;
+    }
+
+    // Initialize Entities
+    try {
+        entities_ = std::make_unique<Entities>(camera_, window_);
+        if (!entities_) {
+             std::cerr << "ERROR: Failed to create Entities in GameScreen" << std::endl;
+             return false;
+        }
+        std::cout << "Entities initialized successfully in GameScreen." << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR: Exception during Entities initialization in GameScreen: " << e.what() << std::endl;
+        return false;
+    }
+
+    std::cout << "GameScreen initialization complete." << std::endl;
+    return true;
+}
+
+void GameScreen::update(float deltaTime) {
+    // Calculate render stats
+    timeSinceLastRenderLog += deltaTime;
+    if (timeSinceLastRenderLog >= 1.0f) { // Log every 1 second
+        timeSinceLastRenderLog = 0.0f;
+        // Render stats logging would happen here
     }
     
-    // Set up viewport
-    int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
-    glViewport(0, 0, width, height);
+    processInput();
+    
+    // Update game components using local members and shared resources from ScreenManager
+    World* world = screenManager->getWorld();
+    InputManager* inputManager = screenManager->getInputManager();
 
-    // Set up camera projection using direct window dimensions for 1:1 pixel-to-world mapping
-    float halfWidth = width / 2.0f;
-    float halfHeight = height / 2.0f;
-    
-    // Debug output
-    // std::cout << "Setting up camera projection:" << std::endl;
-    // std::cout << "  Window size: " << width << "x" << height << std::endl;
-    // std::cout << "  Projection: left=" << -halfWidth << ", right=" << halfWidth 
-    //           << ", bottom=" << -halfHeight << ", top=" << halfHeight << std::endl;
-    
-    // Set camera projection to exactly match window dimensions in world units
-    camera.setOrthographicProjection(
-        -halfWidth, halfWidth,
-        -halfHeight, halfHeight,
-        -1000.0f, 1000.0f
-    );
+    if (inputManager) {
+        inputManager->update(deltaTime);
+    }
 
-    // Set up callbacks
-    glfwSetWindowUserPointer(window, this);
-    glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
-    
-    // Enable blending
+    if (world) {
+        world->update(deltaTime);
+    }
+
+    if (entities_) {
+        entities_->update(deltaTime);
+    }
+
+    if (interface_) {
+        interface_->update(deltaTime);
+    }
+}
+
+void GameScreen::render() {
+    // Clear screen with black background
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    
-    // Enable anti-aliasing
-    glEnable(GL_MULTISAMPLE);
 
+    // Render game components in correct order using local members
+    World* world = screenManager->getWorld();
 
-    
-    // Initialize World (should be called after camera is set up)
-    if (!world.initialize()) {
-        std::cerr << "ERROR: World initialization failed!" << std::endl;
-        glfwTerminate();
-        return;
+    // First batch: Render world (background layer)
+    if (world) {
+        world->render();
     }
 
-
-    std::cout << "Game initialization complete" << std::endl;
-}
-
-Game::~Game() {
-    if (window) {
-        glfwDestroyWindow(window);
-    }
-    glfwTerminate();
-}
-
-void Game::run() {
-    if (!window) {
-        std::cerr << "Cannot run game: window not initialized" << std::endl;
-        return;
+    // Second batch: Render entities (foreground layer)
+    if (entities_) {
+        entities_->render();
     }
 
-    std::cout << "Starting game loop..." << std::endl;
-    
-    // Create a new GameState for the screen manager
-    GameState* newGameState = new GameState();
-    
-    // Initialize the screen manager with the required GameState
-    screenManager = std::make_unique<ScreenManager>(newGameState);
-    screenManager->initialize();
-    screenManager->run();
-    
-    std::cout << "Game loop ended" << std::endl;
+    // Third batch: Render interface elements (top layer)
+    if (interface_) {
+        interface_->render();
+    }
 }
 
-void Game::processInput() {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+void GameScreen::processInput() {
+    // This would hold keyboard/mouse processing that was in the original Game class
+    // For now, this handles basic window-closing input
+    if (window_ && glfwGetKey(window_, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         isRunning = false;
     }
 }
 
-void Game::update(float deltaTime) {
-    // Update input manager
-    inputManager.update(deltaTime);
-    
-    // Update world
-    world.update(deltaTime);
-    
-    // Update entities
-    entities.update(deltaTime);
-    
-    // Update interface
-    interface.update(deltaTime);
+void GameScreen::handleInput() {
+    // Use the stored window_ pointer
+    if (!window_) return;
+
+    // Check for ESC key to go back to world gen menu
+    if (glfwGetKey(window_, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+        screenManager->switchScreen(ScreenType::WorldGen);
+    }
+
+    // All other input is handled by the InputManager
+    // which is updated in the update method
 }
 
-void Game::render() {
-    // The ScreenManager now handles all rendering
-    // This method is kept for backward compatibility but shouldn't be called
-    std::cerr << "Warning: Game::render() called directly instead of using ScreenManager" << std::endl;
-}
-
-
-// This stuff is making it possible to resize the window ... somehow.
-void Game::framebufferSizeCallback(GLFWwindow* window, int width, int height) {
-    // Update viewport to match window dimensions exactly
-    glViewport(0, 0, width, height);
-    
-    // Update camera projection
-    Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
-    if (game) {
-        // Use direct window dimensions for 1:1 pixel-to-world mapping
-        float halfWidth = width / 2.0f;
-        float halfHeight = height / 2.0f;
-        
-        // Debug output
-        // std::cout << "Window resized to: " << width << "x" << height << std::endl;
-        // std::cout << "  New projection: left=" << -halfWidth << ", right=" << halfWidth 
-        //           << ", bottom=" << -halfHeight << ", top=" << halfHeight << std::endl;
-        
-        // Set camera projection to exactly match window dimensions in world units
-        std::cout << "Window resized to: " << width << "x" << height << std::endl;
-        std::cout << "  New projection: left=" << -halfWidth << ", right=" << halfWidth 
-                  << ", bottom=" << -halfHeight << ", top=" << halfHeight << std::endl;
-        game->camera.setOrthographicProjection(
-            -halfWidth, halfWidth,
-            -halfHeight, halfHeight,
+void GameScreen::onResize(int width, int height) {
+    // Handle resize events from the original Game class
+    if (camera_) {
+        camera_->setOrthographicProjection(
+            -width / 2.0f, width / 2.0f,
+            -height / 2.0f, height / 2.0f,
             -1000.0f, 1000.0f
         );
     }
+}
+
+// Static callback for GLFW that was in the original Game class
+void GameScreen::framebufferSizeCallback(GLFWwindow* window, int width, int height) {
+    glViewport(0, 0, width, height);
+    // Assuming we'd handle this through the onResize method
 }

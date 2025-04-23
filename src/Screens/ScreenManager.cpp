@@ -17,7 +17,7 @@
 #include "Splash/Splash.h"
 #include "MainMenu/MainMenu.h"
 #include "WorldGen/WorldGen.h"
-#include "Game/Gameplay.h"
+#include "Game/Game.h" // Updated to use Game.h instead of Gameplay.h
 #include "Settings/Settings.h"
 #include "Developer/Developer.h"
 
@@ -105,8 +105,8 @@ bool ScreenManager::initialize() {
         screens[ScreenType::Splash] = std::make_unique<SplashScreen>(camera.get(), window); // Pass camera and window
         screens[ScreenType::MainMenu] = std::make_unique<MainMenuScreen>(camera.get(), window);
         screens[ScreenType::WorldGen] = std::make_unique<WorldGenScreen>(camera.get(), window);
-        // Update GameplayScreen creation to pass camera and window
-        screens[ScreenType::Gameplay] = std::make_unique<GameplayScreen>(camera.get(), window); 
+        // Update to create GameScreen instead of GameplayScreen
+        screens[ScreenType::Gameplay] = std::make_unique<GameScreen>(camera.get(), window);
         screens[ScreenType::Settings] = std::make_unique<SettingsScreen>(camera.get(), window);
         screens[ScreenType::Developer] = std::make_unique<DeveloperScreen>(camera.get(), window);
     }

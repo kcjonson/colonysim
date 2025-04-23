@@ -1,48 +1,48 @@
 #pragma once
 
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
+#include "../Screen.h"
 #include <glm/glm.hpp>
-#include "../../VectorGraphics.h"
-#include "../../Renderer.h"
-#include "World.h"
-#include "../../Camera.h"
-#include "../../InputManager.h"
-#include "Interface.h"
-#include "../../Rendering/Layer.h"
-#include "Entities.h"
 #include <memory>
-#include "../../GameState.h"
-#include "../Developer/Examples.h"
-#include "../ScreenManager.h"
 
-class Game {
+// Forward declarations
+class Camera;
+class World;
+class Entities;
+class InputManager;
+class Interface;
+class Examples;
+struct GLFWwindow;
+struct GameState;
+
+class GameScreen : public Screen {
 public:
-    Game();
-    ~Game();
+    GameScreen(Camera* camera, GLFWwindow* window);
+    ~GameScreen() override;
 
-    void run();
-    
+    bool initialize() override;
+    void update(float deltaTime) override;
+    void render() override;
+    void handleInput() override;
+    void onResize(int width, int height) override;
+
 private:
     void processInput();
-    void update(float deltaTime);
-    void render();
     
-    // GLFW callbacks
+    // Static callback for GLFW
     static void framebufferSizeCallback(GLFWwindow* window, int width, int height);
+    
+    // Pointers to shared resources from ScreenManager
+    Camera* camera_;
+    GLFWwindow* window_;
+    GameState* gameState_;
 
+    // Game components owned by this screen
+    std::unique_ptr<Interface> interface_;
+    std::unique_ptr<Entities> entities_;
+    
     // For render stats logging
-    float timeSinceLastRenderLog = 0.0f;
-
-    // Members in initialization order
-    GLFWwindow* window;
-    Camera camera;
-    GameState gameState;
-    World world;
-    Entities entities;
-    InputManager inputManager;
-    Interface interface;
-    Examples examples;
-    std::unique_ptr<ScreenManager> screenManager;
+    float timeSinceLastRenderLog;
+    
+    // Game state
     bool isRunning;
 };
