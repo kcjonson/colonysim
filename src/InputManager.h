@@ -18,6 +18,7 @@ public:
     void handleMouseButton(int button, int action);
     void handleMouseMove(double x, double y);
     void handleScroll(double xoffset, double yoffset);
+    void handleCursorEnter(int entered); // Add new method for cursor enter/leave events
 
     // Configuration
     void loadConfig(const std::string& configPath);
@@ -37,6 +38,7 @@ public:
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
     static void cursorPosCallback(GLFWwindow* window, double xpos, double ypos);
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+    static void cursorEnterCallback(GLFWwindow* window, int entered); // Add new static callback
 
 private:
     GLFWwindow* window;
@@ -59,6 +61,8 @@ private:
     
     glm::vec2 lastEdgePanDirection = glm::vec2(0.0f);
     float currentEdgeAcceleration = 1.0f; // Current edge panning acceleration
+    bool cursorInWindow = true;          // Flag to track if cursor is in window
+    bool wasEdgePanning = false;         // Flag to track if we were edge panning last frame
     
     // Zoom settings
     float maxZoomAcceleration = 2.0f;     // Reduced maximum zoom acceleration (from 3.0f)
@@ -79,4 +83,9 @@ private:
     void processEdgePan(float deltaTime);
     void applyPan(const glm::vec2& direction, float speed, float deltaTime);
     void applyZoom(float amount);
+    
+    // Helper function to check if cursor is in window
+    bool isCursorInWindow();
+    // Helper function to stop any ongoing edge panning
+    void stopEdgePanning();
 };

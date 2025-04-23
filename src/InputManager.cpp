@@ -39,6 +39,7 @@ InputManager::InputManager(GLFWwindow* window, Camera& camera, GameState& gameSt
         glfwSetMouseButtonCallback(window, mouseButtonCallback);
         glfwSetCursorPosCallback(window, cursorPosCallback);
         glfwSetScrollCallback(window, scrollCallback);
+        glfwSetCursorEnterCallback(window, cursorEnterCallback);
     }
     
     // Set default key mappings
@@ -75,6 +76,12 @@ void InputManager::scrollCallback(GLFWwindow* window, double xoffset, double yof
     // Debug output for scroll events
     if (s_instance) {
         s_instance->handleScroll(xoffset, yoffset);
+    }
+}
+
+void InputManager::cursorEnterCallback(GLFWwindow* window, int entered) {
+    if (s_instance) {
+        s_instance->handleCursorEnter(entered);
     }
 }
 
@@ -162,12 +169,28 @@ void InputManager::handleScroll(double xoffset, double yoffset) {
     }
     
     // Debug output for zoom events
-    std::cout << "Zoom event: " << yoffset << " (inverted: " << invertZoom << ")" << std::endl;
-    std::cout << "Zoom amount: " << zoomAmount << std::endl;
+    // std::cout << "Zoom event: " << yoffset << " (inverted: " << invertZoom << ")" << std::endl;
+    // std::cout << "Zoom amount: " << zoomAmount << std::endl;
 
     
     // Pass the zoom amount to the camera
     camera.zoom(zoomAmount);
+}
+
+void InputManager::handleCursorEnter(int entered) {
+    // std::cout << "Cursor " << (entered ? "entered" : "left") << " window" << std::endl;
+    
+    // Update cursor state - this is a reliable way to know when cursor leaves the window
+    cursorInWindow = entered != 0;
+    
+    // If cursor left the window and was edge panning, stop it
+    if (!cursorInWindow && wasEdgePanning) {
+        // std::cout << "Cursor left window while edge panning - stopping pan" << std::endl;
+        stopEdgePanning();
+        // Force camera to stop by explicitly setting position
+        glm::vec3 currentPos = camera.getPosition();
+        camera.setPosition(currentPos);
+    }
 }
 
 void InputManager::processKeyboardInput(float deltaTime) {
@@ -206,6 +229,40 @@ void InputManager::processKeyboardInput(float deltaTime) {
     }
 }
 
+bool InputManager::isCursorInWindow() {
+    if (!window) {
+        return false;
+    }
+    
+    // Check if window has focus
+    int windowFocused = glfwGetWindowAttrib(window, GLFW_FOCUSED);
+    if (!windowFocused) {
+        // std::cout << "Window lost focus" << std::endl;
+        return false;
+    }
+    
+    int width, height;
+    glfwGetWindowSize(window, &width, &height);
+    
+    bool inWindow = (lastMousePos.x >= 0 && lastMousePos.x <= width && 
+                    lastMousePos.y >= 0 && lastMousePos.y <= height);
+                    
+    if (!inWindow) {
+        // std::cout << "Cursor outside window bounds: " << lastMousePos.x << ", " << lastMousePos.y << 
+        //          " (window: " << width << "x" << height << ")" << std::endl;
+    }
+    
+    return inWindow;
+}
+
+void InputManager::stopEdgePanning() {
+    // std::cout << "Stopping edge panning" << std::endl;
+    // Reset acceleration and direction
+    currentEdgeAcceleration = 1.0f;
+    lastEdgePanDirection = glm::vec2(0.0f);
+    wasEdgePanning = false;
+}
+
 void InputManager::processEdgePan(float deltaTime) {
     // Skip if window is null
     if (!window) {
@@ -215,17 +272,36 @@ void InputManager::processEdgePan(float deltaTime) {
     int width, height;
     glfwGetWindowSize(window, &width, &height);
     
+    // First check if cursor is outside window via the cursor enter callback state
+    // This is more reliable than position-based checks
+    if (!cursorInWindow) {
+        // If we were edge panning, force a stop of camera movement
+        if (wasEdgePanning) {
+            // std::cout << "Cursor outside window, forcing camera to stop" << std::endl;
+            wasEdgePanning = false;
+            currentEdgeAcceleration = 1.0f;
+            lastEdgePanDirection = glm::vec2(0.0f);
+            
+            // Explicitly set camera position to current position to stop movement
+            glm::vec3 currentPos = camera.getPosition();
+            camera.setPosition(currentPos);
+        }
+        return;
+    }
+    
     glm::vec2 mousePos = lastMousePos;
     glm::vec2 panDirection(0.0f);
     
     float edgeThreshold = edgePanThreshold * static_cast<float>(width);
     
-    if (mousePos.x < edgeThreshold) panDirection.x += 1.0f;
-    if (mousePos.x > width - edgeThreshold) panDirection.x -= 1.0f;
+    // Fixing left/right edge panning direction - reversing the X-axis values
+    if (mousePos.x < edgeThreshold) panDirection.x -= 1.0f; // Changed from += to -=
+    if (mousePos.x > width - edgeThreshold) panDirection.x += 1.0f; // Changed from -= to +=
     if (mousePos.y < edgeThreshold) panDirection.y += 1.0f;
     if (mousePos.y > height - edgeThreshold) panDirection.y -= 1.0f;
     
     if (glm::length(panDirection) > 0.0f) {
+        wasEdgePanning = true; // Mark that we're edge panning
         panDirection = glm::normalize(panDirection);
         if (invertPan) panDirection = -panDirection;
         
@@ -244,13 +320,33 @@ void InputManager::processEdgePan(float deltaTime) {
         applyPan(panDirection, edgePanSpeed * currentEdgeAcceleration, deltaTime);
     } else {
         // Not edge panning, reset acceleration
+        if (wasEdgePanning) {
+            wasEdgePanning = false;
+        }
         currentEdgeAcceleration = 1.0f;
         lastEdgePanDirection = glm::vec2(0.0f);
     }
 }
 
 void InputManager::applyPan(const glm::vec2& direction, float speed, float deltaTime) {
+    // Prevent any panning when cursor is outside the window during edge panning
+    // This acts as a safety mechanism in case other checks have failed
+    if (wasEdgePanning && !cursorInWindow) {
+        // std::cout << "applyPan blocked: cursor outside window" << std::endl;
+        return;
+    }
+    
     glm::vec3 offset(direction.x * speed * deltaTime, direction.y * speed * deltaTime, 0.0f);
+    
+    // Debug output for pan events
+    // if (glm::length(offset) > 0.0f) {
+    //     std::cout << "applyPan: dir=(" << direction.x << "," << direction.y << 
+    //              "), speed=" << speed << 
+    //              ", offset=(" << offset.x << "," << offset.y << 
+    //              "), cursorInWindow=" << (cursorInWindow ? "true" : "false") << 
+    //              ", wasEdgePanning=" << (wasEdgePanning ? "true" : "false") << std::endl;
+    // }
+    
     camera.move(offset);
 }
 
