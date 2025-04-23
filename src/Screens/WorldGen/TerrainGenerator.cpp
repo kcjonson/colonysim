@@ -71,7 +71,7 @@ unsigned int TerrainGenerator::getHashedSeed(const std::string& seed) {
 }
 
 void TerrainGenerator::generateTerrain(
-    std::unordered_map<std::pair<int, int>, TerrainData>& terrainData,
+    std::unordered_map<TileCoord, TerrainData>& terrainData, // Use TileCoord
     int generateDistance,
     unsigned int hashedSeed
 ) {
@@ -121,7 +121,7 @@ void TerrainGenerator::generateTerrain(
                 data.color.r = resourceValue;
             }
 
-            terrainData[{x, y}] = data;
+            terrainData[{x, y}] = data; // Use TileCoord struct literal for key
         }
     }
     

@@ -18,11 +18,18 @@
 // Include style classes
 #include "../../Rendering/Styles/Shape.h"
 
-World::World(GameState& gameState, const std::string& seed)
-    : gameState(gameState)
-    , seed(seed)
-    , worldLayer(std::make_shared<Rendering::Layer>(50.0f, Rendering::ProjectionType::WorldSpace)) {
+// Constructor takes GameState, seed, camera, and window
+World::World(GameState& gameState, const std::string& seed, Camera* cam, GLFWwindow* win)
+    : gameState(gameState),
+      seed(seed),
+      camera(cam), // Initialize camera first
+      worldLayer(std::make_shared<Rendering::Layer>(50.0f, Rendering::ProjectionType::WorldSpace, cam, win)),
+      // Initialize last camera state *after* camera is initialized
+      lastCameraPos(cam ? cam->getPosition() + glm::vec3(1.0f) : glm::vec3(0.0f)), // Add null check
+      lastCameraProjBounds(cam ? glm::vec4(cam->getProjectionLeft() + 1.0f, cam->getProjectionRight(), cam->getProjectionBottom(), cam->getProjectionTop()) : glm::vec4(0.0f)) // Add null check
+{
     std::cout << "Initializing world with seed: " << seed << std::endl;
+    // Constructor body can remain empty or contain other setup logic
 }
 
 bool World::initialize() {
@@ -122,17 +129,17 @@ void World::updateTileVisibility() {
     currentVisibleTiles.clear();
     for (int y = minY; y <= maxY; y++) {
         for (int x = minX; x <= maxX; x++) {
-            auto pos = std::make_pair(x, y);
-            if (terrainData.count(pos) > 0) {
-                currentVisibleTiles.insert(pos);
+            WorldGen::TileCoord coord{x, y}; // Use TileCoord
+            if (terrainData.count(coord) > 0) {
+                currentVisibleTiles.insert(coord);
             }
         }
     }
 
     // Iterate through tiles that *were* visible last frame
-    for (const auto& pos : lastVisibleTiles) {
-        if (currentVisibleTiles.find(pos) == currentVisibleTiles.end()) {
-            auto tileIt = tiles.find(pos);
+    for (const auto& coord : lastVisibleTiles) { // Use TileCoord
+        if (currentVisibleTiles.find(coord) == currentVisibleTiles.end()) {
+            auto tileIt = tiles.find(coord);
             if (tileIt != tiles.end() && tileIt->second->isVisible()) {
                 tileIt->second->setVisible(false);
             }
@@ -140,17 +147,17 @@ void World::updateTileVisibility() {
     }
 
     // Iterate through tiles that *should be* visible this frame
-    for (const auto& pos : currentVisibleTiles) {
-        auto tileIt = tiles.find(pos);
+    for (const auto& coord : currentVisibleTiles) { // Use TileCoord
+        auto tileIt = tiles.find(coord);
         if (tileIt == tiles.end()) {
-            auto terrainIt = terrainData.find(pos);
+            auto terrainIt = terrainData.find(coord);
             if (terrainIt != terrainData.end()) {
                 const auto& data = terrainIt->second;
-                glm::vec2 tilePosition(pos.first * TILE_SIZE, pos.second * TILE_SIZE);
+                glm::vec2 tilePosition(coord.x * TILE_SIZE, coord.y * TILE_SIZE); // Use coord.x, coord.y
                 auto tile = std::make_shared<Rendering::Tile>(
                     tilePosition, data.height, data.resource, data.type, data.color
                 );
-                tiles[pos] = tile;
+                tiles[coord] = tile;
                 worldLayer->addItem(tile);
                 tile->setVisible(true);
             }
@@ -180,8 +187,8 @@ void World::logMemoryUsage() const {
     float totalMemoryKB = 0.0f; // Declare earlier
 
     // --- Uncommented this block ---
-    for (const auto& pos : currentVisibleTiles) {
-        auto tileIt = tiles.find(pos);
+    for (const auto& coord : currentVisibleTiles) { // Use TileCoord
+        auto tileIt = tiles.find(coord);
         if (tileIt != tiles.end() && tileIt->second) { // Add null check for safety
             // Access children via the Layer base class interface
             totalShapes += tileIt->second->getChildren().size(); 
@@ -202,7 +209,8 @@ void World::logMemoryUsage() const {
     gameState.set("world.totalMemKB", std::to_string(static_cast<int>(totalMemoryKB)) + " KB");
 }
 
-void World::setTerrainData(const std::unordered_map<std::pair<int, int>, WorldGen::TerrainData, std::hash<std::pair<int, int>>>& data) {
+// Update signature to use TileCoord
+void World::setTerrainData(const std::unordered_map<WorldGen::TileCoord, WorldGen::TerrainData>& data) {
     terrainData = data;
     tiles.clear();
     worldLayer->clearItems(); // Clear items from the layer when terrain changes
@@ -211,28 +219,4 @@ void World::setTerrainData(const std::unordered_map<std::pair<int, int>, WorldGe
     // Reset cached camera state when terrain changes
     lastCameraPos = glm::vec3(-1e9f); // Set to unlikely value to force update
     lastCameraProjBounds = glm::vec4(-1e9f);
-}
-
-void World::setCamera(Camera* cam) {
-    camera = cam;  // Store the camera reference directly
-    worldLayer->setCamera(cam);  // Also pass to the rendering layer
-    // Reset cached camera state when camera changes
-    if (camera) {
-        lastCameraPos = camera->getPosition() + glm::vec3(1.0f); // Ensure it's different initially
-        lastCameraProjBounds = glm::vec4(
-            camera->getProjectionLeft() + 1.0f, // Ensure different
-            camera->getProjectionRight(),
-            camera->getProjectionBottom(),
-            camera->getProjectionTop()
-        );
-        // Force initial update
-        updateTileVisibility(); 
-    } else {
-        lastCameraPos = glm::vec3(0.0f);
-        lastCameraProjBounds = glm::vec4(0.0f);
-    }
-}
-
-void World::setWindow(GLFWwindow* win) {
-    worldLayer->setWindow(win);
 }

@@ -24,30 +24,20 @@ const std::vector<std::string> Interface::GAME_STATE_PROPERTIES = {
     "rend.indices"
 };
 
-Interface::Interface(GameState& gameState)
+// Constructor takes GameState, camera, and window
+Interface::Interface(GameState& gameState, Camera* cam, GLFWwindow* win)
     : gameState(gameState),
-      uiLayer(nullptr),
-      targetWindow(nullptr),
-      infoPanelBackground(nullptr) {
-    // Create UI layer with high z-index and ScreenSpace projection
-    uiLayer = std::make_shared<Rendering::Layer>(1000.0f, Rendering::ProjectionType::ScreenSpace);
-    // Window and renderer will be set in initializeGraphics
+      targetWindow(win), // Initialize targetWindow here
+      uiLayer(std::make_shared<Rendering::Layer>(1000.0f, Rendering::ProjectionType::ScreenSpace, cam, win)),
+      infoPanelBackground(nullptr) { // Initialize other members
+    // Constructor body
 }
 
 bool Interface::initialize() {
     std::cout << "Initializing Interface..." << std::endl;
+    // Initialize UI components here now that window/camera are available from constructor
+    initializeUIComponents(); 
     std::cout << "Interface initialization complete" << std::endl;
-    return true;
-}
-
-// TODO: move to the other initialize function
-bool Interface::initializeGraphics(GLFWwindow* window) {
-    // std::cout << "Interface::initializeGraphics - Setting window and initializing UI components" << std::endl;
-    
-    targetWindow = window;
-    // Set window on the UI layer for screen space projection calculation
-    uiLayer->setWindow(targetWindow);
-    initializeUIComponents();
     return true;
 }
 
@@ -93,16 +83,32 @@ void Interface::initializeUIComponents() {
 }
 
 void Interface::update(float deltaTime) {
-    for (size_t i = 0; i < GAME_STATE_PROPERTIES.size(); i++) {
-        const auto& property = GAME_STATE_PROPERTIES[i];
-        std::string value;
+    // Add defensive check to make sure gameState is valid
+    try {
+        for (size_t i = 0; i < GAME_STATE_PROPERTIES.size(); i++) {
+            const auto& property = GAME_STATE_PROPERTIES[i];
+            std::string value = "N/A"; // Default value
 
-        value = gameState.get(property);
+            try {
+                // Check if reference is valid (to some extent)
+                value = gameState.get(property);
+            }
+            catch (const std::exception& e) {
+                std::cerr << "Error getting GameState property " << property << ": " << e.what() << std::endl;
+                value = "Error";
+            }
 
-        // Update the text shape
-        if (i < propertyTexts.size() && propertyTexts[i]) { // Add safety check
-             propertyTexts[i]->setText(property + ": " + value);
+            // Update the text shape
+            if (i < propertyTexts.size() && propertyTexts[i]) { // Add safety check
+                propertyTexts[i]->setText(property + ": " + value);
+            }
         }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Fatal error in Interface::update: " << e.what() << std::endl;
+    }
+    catch (...) {
+        std::cerr << "Unknown fatal error in Interface::update" << std::endl;
     }
 }
 

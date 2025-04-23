@@ -15,7 +15,8 @@
 
 class WorldGenScreen : public Screen {
 public:
-    WorldGenScreen();
+    // Update constructor to accept Camera* and GLFWwindow*
+    WorldGenScreen(Camera* camera, GLFWwindow* window);
     ~WorldGenScreen() override;
 
     bool initialize() override;
@@ -41,7 +42,7 @@ private:
     float waterLevel;
     int seed;
     bool worldGenerated;
-    std::unordered_map<std::pair<int, int>, WorldGen::TerrainData> generatedTerrainData; // Store generated terrain
+    std::unordered_map<WorldGen::TileCoord, WorldGen::TerrainData> generatedTerrainData; // Store generated terrain using TileCoord
     
     // UI Layers
     std::shared_ptr<Rendering::Layer> backgroundLayer;

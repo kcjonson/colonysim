@@ -12,7 +12,8 @@
 
 class SettingsScreen : public Screen {
 public:
-    SettingsScreen();
+    // Update constructor to accept Camera* and GLFWwindow*
+    SettingsScreen(Camera* camera, GLFWwindow* window);
     ~SettingsScreen() override;
 
     bool initialize() override;

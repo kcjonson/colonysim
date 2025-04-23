@@ -6,14 +6,15 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
-DeveloperScreen::DeveloperScreen()
+// Update constructor definition to accept Camera* and GLFWwindow*
+DeveloperScreen::DeveloperScreen(Camera* camera, GLFWwindow* window)
     : lastCursorX(0.0f)
     , lastCursorY(0.0f) {
     
-    // Create layers with different z-indices
-    backgroundLayer = std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::ScreenSpace);
-    buttonLayer = std::make_shared<Rendering::Layer>(20.0f, Rendering::ProjectionType::ScreenSpace);
-    titleLayer = std::make_shared<Rendering::Layer>(10.0f, Rendering::ProjectionType::ScreenSpace);
+    // Create layers with different z-indices and pass window/camera
+    backgroundLayer = std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    buttonLayer = std::make_shared<Rendering::Layer>(20.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    titleLayer = std::make_shared<Rendering::Layer>(10.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
 }
 
 DeveloperScreen::~DeveloperScreen() {
@@ -23,15 +24,23 @@ bool DeveloperScreen::initialize() {
     // Define buttons
     buttons.clear();
     
-    // Set window reference for all layers
+    // Get window reference (camera not needed for ScreenSpace layers here)
     GLFWwindow* window = screenManager->getWindow();
-    backgroundLayer->setWindow(window);
-    buttonLayer->setWindow(window);
-    titleLayer->setWindow(window);
-    
+    // REMOVED: backgroundLayer->setWindow(window);
+    // REMOVED: buttonLayer->setWindow(window);
+    // REMOVED: titleLayer->setWindow(window);
+
+    // Update layers with the correct window pointer if they were created with nullptr
+    // This assumes Layer constructor or addItem handles setting these if passed non-null
+    // If the constructor properly sets them, this might not be strictly needed,
+    // but it ensures they have the correct window pointer from the manager.
+    // Re-creating layers here might be cleaner if ScreenManager isn't available in constructor.
+    // For now, let's assume the pointers passed via addItem or constructor are sufficient.
+
     // Set window reference for Examples if available
+    // Examples class needs similar modification
     if (screenManager->getExamples()) {
-        screenManager->getExamples()->setWindow(window);
+        // screenManager->getExamples()->setWindow(window); // This needs to be removed/refactored in Examples.cpp
     }
     
     // Back button
@@ -58,10 +67,10 @@ void DeveloperScreen::layoutUI() {
     int width, height;
     glfwGetWindowSize(window, &width, &height);
     
-    // Set window reference for all layers
-    backgroundLayer->setWindow(window);
-    buttonLayer->setWindow(window);
-    titleLayer->setWindow(window);
+    // REMOVED: Set window reference for all layers - should be set at construction or via addItem
+    // backgroundLayer->setWindow(window);
+    // buttonLayer->setWindow(window);
+    // titleLayer->setWindow(window);
     
     // Clear all layers
     backgroundLayer->clearItems();
@@ -194,9 +203,10 @@ void DeveloperScreen::onResize(int width, int height) {
     layoutUI();
     
     // Update Examples window reference if needed
+    // This needs refactoring in Examples class
     GLFWwindow* window = screenManager->getWindow();
     if (screenManager->getExamples()) {
-        screenManager->getExamples()->setWindow(window);
+        // screenManager->getExamples()->setWindow(window); // Remove/refactor
     }
 }
 

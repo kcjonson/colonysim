@@ -81,13 +81,14 @@ std::vector<glm::vec2> createRandomTiles(int count, float maxX, float maxY) {
 }
 
 namespace TestData {
-    std::unordered_map<TileCoord, WorldGen::TerrainData> 
+    // Update signature and implementation to use WorldGen types
+    std::unordered_map<WorldGen::TileCoord, WorldGen::TerrainData> 
     generateTestTerrain(int width, int height) {
-        std::unordered_map<TileCoord, WorldGen::TerrainData> terrain;
+        std::unordered_map<WorldGen::TileCoord, WorldGen::TerrainData> terrain;
         
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                TileCoord coord{x, y};
+                WorldGen::TileCoord coord{x, y}; // Use WorldGen::TileCoord
                 
                 // Calculate normalized position
                 float nx = static_cast<float>(x) / width;
@@ -109,8 +110,11 @@ namespace TestData {
                     default: color = glm::vec4(0.0f, 0.0f, 0.8f, 1.0f); break; // Blue
                 }
                 
-                // Store terrain data
-                terrain[coord] = {height, type, color};
+                // Store terrain data using WorldGen::TerrainData
+                // Note: The original TestData::WorldGen::TerrainData only had height, type, color.
+                // The actual WorldGen::TerrainData has height, resource, type, color.
+                // We'll set resource to 0.0f for simplicity in this test data.
+                terrain[coord] = {height, 0.0f, type, color}; // Use WorldGen::TileCoord and WorldGen::TerrainData
             }
         }
         

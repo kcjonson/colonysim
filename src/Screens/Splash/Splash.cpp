@@ -4,15 +4,21 @@
 #include "../../ConfigManager.h"
 #include <glad/glad.h>
 #include <iostream>
+#include "../../Camera.h" // Include Camera header
 
-SplashScreen::SplashScreen()
+// Update constructor to accept Camera* and GLFWwindow*
+SplashScreen::SplashScreen(Camera* camera, GLFWwindow* window)
     : displayDuration(5.0f)
     , title("ColonySim")
-    , openglInitialized(false)
+    // REMOVED: , openglInitialized(false)
     , clicked(false) {
     
-    // Create layer for splash screen content with high z-index
-    splashLayer = std::make_shared<Rendering::Layer>(100.0f, Rendering::ProjectionType::ScreenSpace);
+    // REMOVED: Pass nullptr for camera/window initially
+    // Camera* camera = nullptr; // No longer needed
+    // GLFWwindow* window = nullptr; // No longer needed
+
+    // Create layer for splash screen content with high z-index and pass pointers
+    splashLayer = std::make_shared<Rendering::Layer>(100.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
 }
 
 SplashScreen::~SplashScreen() {
@@ -27,8 +33,8 @@ bool SplashScreen::initialize() {
     int width, height;
     glfwGetWindowSize(window, &width, &height);
     
-    // Set window reference for layer
-    splashLayer->setWindow(window);
+    // REMOVED: Set window reference for layer
+    // splashLayer->setWindow(window);
     
     // Create title text
     titleText = std::make_shared<Rendering::Shapes::Text>(
@@ -48,20 +54,21 @@ bool SplashScreen::initialize() {
 }
 
 void SplashScreen::update(float deltaTime) {
-    // Check if OpenGL needs to be initialized
-    if (!openglInitialized) {
-        // Initialize OpenGL components
-        if (screenManager->initializeOpenGL()) {
-            openglInitialized = true;
-        }
-    }
+    // REMOVED: Check if OpenGL needs to be initialized
+    // if (!openglInitialized) {
+    //     // Initialize OpenGL components
+    //     if (screenManager->initializeOpenGL()) {
+    //         openglInitialized = true;
+    //     }
+    // }
     
     // Calculate elapsed time
     auto currentTime = std::chrono::steady_clock::now();
     float elapsedSecs = std::chrono::duration<float>(currentTime - startTime).count();
     
-    // If time has elapsed or user clicked, and OpenGL is initialized, go to main menu
-    if ((elapsedSecs >= displayDuration || clicked) && openglInitialized) {
+    // If time has elapsed or user clicked, go to main menu
+    // REMOVED: && openglInitialized check
+    if (elapsedSecs >= displayDuration || clicked) {
         screenManager->switchScreen(ScreenType::MainMenu);
     }
 }
@@ -71,10 +78,10 @@ void SplashScreen::render() {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
-    // Only render if OpenGL is initialized
-    if (openglInitialized) {
-        splashLayer->render(false); // No camera transform
-    }
+    // REMOVED: Only render if OpenGL is initialized
+    // if (openglInitialized) {
+    splashLayer->render(false); // No camera transform
+    // }
 }
 
 void SplashScreen::handleInput() {
@@ -89,12 +96,14 @@ void SplashScreen::handleInput() {
 }
 
 void SplashScreen::onResize(int width, int height) {
-    // Set window reference for layer again after resize
-    GLFWwindow* window = screenManager->getWindow();
-    splashLayer->setWindow(window);
+    // REMOVED: Set window reference for layer again after resize
+    // GLFWwindow* window = screenManager->getWindow();
+    // splashLayer->setWindow(window);
     
     // Update the position of the title text
     if (titleText) {
         titleText->setPosition(glm::vec2(width / 2.0f, height / 2.0f));
+        // If Layer::addItem doesn't update window/camera on children, we might need:
+        // titleText->setWindow(screenManager->getWindow()); // Or similar, depending on Shape interface
     }
 }

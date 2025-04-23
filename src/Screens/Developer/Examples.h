@@ -9,17 +9,17 @@
 #include "Rendering/Shapes/Text.h"
 #include "VectorGraphics.h"
 #include <glm/glm.hpp>
+#include "Camera.h" // Add missing include
+#include <GLFW/glfw3.h> // Add missing include
 
 class Examples {
 public:
-    Examples();
+    // Update constructor declaration
+    Examples(Camera* cam, GLFWwindow* win);
     ~Examples() = default;
     
     // Initialize the examples
     void initialize();
-    
-    // Set the window reference for rendering
-    void setWindow(GLFWwindow* window);
     
     // Render the examples
     void render();

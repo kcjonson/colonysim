@@ -5,13 +5,14 @@
 #include "Entity/Entity.h"
 #include "../../VectorGraphics.h"
 #include "../../Rendering/Layer.h"
-#include "../../Camera.h"
+#include "../../Camera.h" // Ensure Camera is included
 #include "../../Renderer.h"
-#include <GLFW/glfw3.h>
+#include <GLFW/glfw3.h> // Ensure GLFW is included
 
 class Entities {
 public:
-    Entities();
+    // Update constructor declaration
+    Entities(Camera* cam, GLFWwindow* win);
     ~Entities();
 
     void update(float deltaTime);
@@ -27,10 +28,6 @@ public:
     // Entity control
     void moveEntity(size_t index, const glm::vec2& target);
     void setEntityState(size_t index, EntityState state);
-    
-    // Set camera and window
-    void setCamera(Camera* cam);
-    void setWindow(GLFWwindow* win);
 
 private:
     std::vector<std::unique_ptr<Entity>> entities;

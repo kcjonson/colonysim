@@ -26,7 +26,8 @@ struct MenuButton {
 
 class MainMenuScreen : public Screen {
 public:
-    MainMenuScreen();
+    // Update constructor to accept Camera and Window pointers
+    MainMenuScreen(Camera* camera, GLFWwindow* window);
     ~MainMenuScreen() override;
 
     bool initialize() override;

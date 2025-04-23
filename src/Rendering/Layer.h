@@ -27,7 +27,11 @@ enum class ProjectionType {
 
 class Layer {
 public:
-    Layer(float zIndex = 0.0f, ProjectionType projType = ProjectionType::WorldSpace);
+    // Updated constructor to accept optional camera and window
+    Layer(float zIndex = 0.0f, 
+          ProjectionType projType = ProjectionType::WorldSpace,
+          Camera* cam = nullptr, 
+          GLFWwindow* win = nullptr);
     virtual ~Layer() = default;
 
     // Hierarchy methods - renamed for more consistent naming
@@ -37,7 +41,7 @@ public:
     
     // Z-index handling
     float getZIndex() const { return zIndex; }
-    void setZIndex(float z) { zIndex = z; }
+    void setZIndex(float z); // Modified to handle parent notification
 
     // Visibility
     bool isVisible() const { return visible; }
@@ -50,9 +54,9 @@ public:
     // Access to children
     const std::vector<std::shared_ptr<Layer>>& getChildren() const { return children; }
 
-    // Setup camera and window for projection calculations
-    void setCamera(Camera* cam) { camera = cam; }
-    void setWindow(GLFWwindow* win) { window = win; }
+    // REMOVED setCamera and setWindow methods
+    // void setCamera(Camera* cam); // REMOVED
+    // void setWindow(GLFWwindow* win); // REMOVED
     
     // Get camera and window
     Camera* getCamera() const { return camera; }
@@ -88,9 +92,14 @@ protected:
     std::vector<std::shared_ptr<Layer>> children;
     Camera* camera;
     GLFWwindow* window;
+    Layer* parent = nullptr; // Added parent pointer
+    bool childrenNeedSorting = false; // Added dirty flag
 
-    // Sort children by z-index before rendering
+    // Sort children by z-index before rendering (conditionally)
     void sortChildren();
+
+    // Helper to set parent (used internally)
+    void setParent(Layer* p);
 };
 
 } // namespace Rendering

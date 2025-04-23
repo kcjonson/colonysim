@@ -10,20 +10,22 @@
 #include "../../Rendering/Shapes/Text.h"
 #include <GLFW/glfw3.h>
 #include "../../GameState.h"
+#include "../../Camera.h" // Ensure Camera is included
 
 class VectorGraphics;
 struct GLFWwindow;
 
 class Interface {
 public:
-    Interface(GameState& gameState);
+    // Update constructor declaration
+    Interface(GameState& gameState, Camera* cam, GLFWwindow* win);
     ~Interface() = default;
 
     // Initialize renderer
     bool initialize();
     
     // Initialize with graphics and window reference
-    bool initializeGraphics(GLFWwindow* window);
+    // bool initializeGraphics(GLFWwindow* window); // REMOVED
     
     void update(float deltaTime);
     

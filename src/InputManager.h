@@ -15,9 +15,6 @@ public:
     InputManager(GLFWwindow* window, Camera& camera, Entities& entities, GameState& gameState);
     ~InputManager();
 
-    // Set window after construction
-    void setWindow(GLFWwindow* newWindow);
-
     void update(float deltaTime);
     void handleKeyInput(int key, int action);
     void handleMouseButton(int button, int action);

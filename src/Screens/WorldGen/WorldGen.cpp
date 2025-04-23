@@ -7,7 +7,8 @@
 #include <random>
 #include "TerrainGenerator.h"
 
-WorldGenScreen::WorldGenScreen()
+// Update constructor definition to accept Camera* and GLFWwindow*
+WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)
     : lastCursorX(0.0f)
     , lastCursorY(0.0f)
     , sidebarWidth(300.0f)
@@ -20,11 +21,15 @@ WorldGenScreen::WorldGenScreen()
     std::random_device rd;
     seed = rd();
     
-    // Create layers with different z-indices
-    backgroundLayer = std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::ScreenSpace);
-    controlsLayer = std::make_shared<Rendering::Layer>(10.0f, Rendering::ProjectionType::ScreenSpace);
-    buttonLayer = std::make_shared<Rendering::Layer>(20.0f, Rendering::ProjectionType::ScreenSpace);
-    previewLayer = std::make_shared<Rendering::Layer>(5.0f, Rendering::ProjectionType::ScreenSpace);
+    // REMOVED: Pass nullptr for camera/window initially
+    // Camera* camera = nullptr;
+    // GLFWwindow* window = nullptr;
+
+    // Create layers with different z-indices and pass pointers
+    backgroundLayer = std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    controlsLayer = std::make_shared<Rendering::Layer>(10.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    buttonLayer = std::make_shared<Rendering::Layer>(20.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    previewLayer = std::make_shared<Rendering::Layer>(5.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
 }
 
 WorldGenScreen::~WorldGenScreen() {
@@ -33,13 +38,6 @@ WorldGenScreen::~WorldGenScreen() {
 bool WorldGenScreen::initialize() {
     // Define buttons
     buttons.clear();
-    
-    // Set window reference for all layers
-    GLFWwindow* window = screenManager->getWindow();
-    backgroundLayer->setWindow(window);
-    controlsLayer->setWindow(window);
-    buttonLayer->setWindow(window);
-    previewLayer->setWindow(window);
     
     // Generate World button
     createButton("Generate World", 
@@ -103,12 +101,6 @@ void WorldGenScreen::layoutUI() {
     GLFWwindow* window = screenManager->getWindow();
     int width, height;
     glfwGetWindowSize(window, &width, &height);
-    
-    // Set window reference for all layers
-    backgroundLayer->setWindow(window);
-    controlsLayer->setWindow(window);
-    buttonLayer->setWindow(window);
-    previewLayer->setWindow(window);
     
     // Clear all layers
     backgroundLayer->clearItems();

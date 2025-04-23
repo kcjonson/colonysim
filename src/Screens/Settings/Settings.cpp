@@ -6,14 +6,19 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
-SettingsScreen::SettingsScreen()
+// Update constructor definition to accept Camera* and GLFWwindow*
+SettingsScreen::SettingsScreen(Camera* camera, GLFWwindow* window)
     : lastCursorX(0.0f)
     , lastCursorY(0.0f) {
     
-    // Create layers with different z-indices
-    backgroundLayer = std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::ScreenSpace);
-    controlsLayer = std::make_shared<Rendering::Layer>(10.0f, Rendering::ProjectionType::ScreenSpace);
-    buttonLayer = std::make_shared<Rendering::Layer>(20.0f, Rendering::ProjectionType::ScreenSpace);
+    // REMOVED: Pass nullptr for camera/window initially
+    // Camera* camera = nullptr;
+    // GLFWwindow* window = nullptr;
+
+    // Create layers with different z-indices and pass pointers
+    backgroundLayer = std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    controlsLayer = std::make_shared<Rendering::Layer>(10.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    buttonLayer = std::make_shared<Rendering::Layer>(20.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
 }
 
 SettingsScreen::~SettingsScreen() {
@@ -23,11 +28,11 @@ bool SettingsScreen::initialize() {
     // Define buttons
     buttons.clear();
     
-    // Set window reference for all layers
-    GLFWwindow* window = screenManager->getWindow();
-    backgroundLayer->setWindow(window);
-    controlsLayer->setWindow(window);
-    buttonLayer->setWindow(window);
+    // REMOVED: Set window reference for all layers
+    // GLFWwindow* window = screenManager->getWindow();
+    // backgroundLayer->setWindow(window);
+    // controlsLayer->setWindow(window);
+    // buttonLayer->setWindow(window);
     
     // Back button
     MenuButton backButton;
@@ -54,7 +59,7 @@ bool SettingsScreen::initialize() {
     buttons.push_back(saveButton);
     buttons.push_back(backButton);
     
-    // Layout UI elements
+    // Layout UI elements (addItem calls will propagate pointers)
     layoutUI();
     
     return true;
@@ -66,10 +71,10 @@ void SettingsScreen::layoutUI() {
     int width, height;
     glfwGetWindowSize(window, &width, &height);
     
-    // Set window reference for all layers
-    backgroundLayer->setWindow(window);
-    controlsLayer->setWindow(window);
-    buttonLayer->setWindow(window);
+    // REMOVED: Set window reference for all layers
+    // backgroundLayer->setWindow(window);
+    // controlsLayer->setWindow(window);
+    // buttonLayer->setWindow(window);
     
     // Clear all layers
     backgroundLayer->clearItems();
@@ -289,7 +294,13 @@ void SettingsScreen::handleInput() {
 }
 
 void SettingsScreen::onResize(int width, int height) {
-    // Re-layout UI when the window is resized
+    // REMOVED: Set window reference for all layers again after resize
+    // GLFWwindow* window = screenManager->getWindow();
+    // backgroundLayer->setWindow(window);
+    // controlsLayer->setWindow(window);
+    // buttonLayer->setWindow(window);
+
+    // Re-layout UI which clears and re-adds items
     layoutUI();
 }
 

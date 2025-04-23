@@ -5,7 +5,10 @@
 // Define PI as a constant
 constexpr float PI = 3.14159265358979323846f;
 
-Examples::Examples() : examplesLayer(std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::ScreenSpace)) {
+// Examples constructor: Pass camera and window
+Examples::Examples(Camera* cam, GLFWwindow* win) 
+    : examplesLayer(std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::ScreenSpace, cam, win)) {
+    // Constructor body can be empty if initialization is done in the list
 }
 
 void Examples::initialize() {
@@ -21,12 +24,6 @@ void Examples::initialize() {
 
 void Examples::render() {
     examplesLayer->render(false);
-}
-
-void Examples::setWindow(GLFWwindow* window) {
-    if (examplesLayer) {
-        examplesLayer->setWindow(window);
-    }
 }
 
 void Examples::createRectangleExamples() {

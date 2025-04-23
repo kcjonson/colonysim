@@ -13,12 +13,15 @@
 
 Game::Game() 
     : window(nullptr)
-    , camera()
+    , camera() // Initialize camera before members that use it
     , gameState()
-    , world(gameState)
-    , entities()
+    // Pass camera and window to constructors in initializer list
+    , world(gameState, "default_seed", &camera, window) // Provide seed, camera, window
+    , entities(&camera, window) // Pass camera, window
     , inputManager(window, camera, entities, gameState)
-    , interface(gameState)
+    // Pass gameState, camera, window
+    , interface(gameState, &camera, window) 
+    , examples(&camera, window) // Pass camera, window
     , isRunning(true) {
     
     std::cout << "Initializing game..." << std::endl;
@@ -95,13 +98,6 @@ Game::Game()
         return;
     }
     
-    // Initialize Interface graphics with window
-    if (!interface.initializeGraphics(window)) {
-        std::cerr << "ERROR: Interface graphics initialization failed!" << std::endl;
-        glfwTerminate();
-        return;
-    }
-
     // Set up viewport
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
@@ -145,59 +141,18 @@ Game::Game()
     }
     
     // Set up references for world and interface
-    world.setCamera(&camera);
-    world.setWindow(window);
+    // REMOVE these calls, as camera/window are set in constructors now
+    // world.setCamera(&camera);
+    // world.setWindow(window);
     
     // Set up references for entities
-    entities.setCamera(&camera);
-    entities.setWindow(window);
+    // REMOVE these calls, as camera/window are set in constructors now
+    // entities.setCamera(&camera);
+    // entities.setWindow(window);
     
 
-    // Initialize Examples
-    examples.initialize();
-
-    // // Create some test entities
-    // std::cout << "Creating test entities..." << std::endl;
-    
-    // // Create a worker entity
-    // size_t workerId = entities.createEntity(
-    //     glm::vec2(0.0f, 0.0f),
-    //     glm::vec2(20.0f, 20.0f),
-    //     glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) // Green
-    // );
-    // Entity* worker = entities.getEntity(workerId);
-    // if (worker) {
-    //     worker->setSpeed(100.0f);
-    //     worker->setState(EntityState::IDLE);
-    //     worker->setType(EntityType::WORKER);
-    // }
-
-    // // Create a resource entity
-    // size_t resourceId = entities.createEntity(
-    //     glm::vec2(100.0f, 100.0f),
-    //     glm::vec2(30.0f, 30.0f),
-    //     glm::vec4(1.0f, 0.5f, 0.0f, 1.0f) // Orange
-    // );
-    // Entity* resource = entities.getEntity(resourceId);
-    // if (resource) {
-    //     resource->setState(EntityState::IDLE);
-    //     resource->setType(EntityType::RESOURCE);
-    // }
-
-    // // Create a building entity
-    // size_t buildingId = entities.createEntity(
-    //     glm::vec2(-100.0f, -100.0f),
-    //     glm::vec2(50.0f, 50.0f),
-    //     glm::vec4(0.5f, 0.5f, 0.5f, 1.0f) // Gray
-    // );
-    // Entity* building = entities.getEntity(buildingId);
-    // if (building) {
-    //     building->setState(EntityState::IDLE);
-    //     building->setType(EntityType::BUILDING);
-    // }
-
-    // Set the window in InputManager after everything is initialized
-    inputManager.setWindow(window);
+    // Initialize Examples (constructor already called)
+    // examples.initialize(); // This might be redundant if constructor does all init
 
     std::cout << "Game initialization complete" << std::endl;
 }

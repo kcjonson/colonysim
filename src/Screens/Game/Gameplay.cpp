@@ -8,7 +8,11 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
-GameplayScreen::GameplayScreen() {
+// Update constructor definition to accept Camera* and GLFWwindow*
+GameplayScreen::GameplayScreen(Camera* camera, GLFWwindow* window)
+    : camera_(camera)
+    , window_(window) {
+    // Constructor body (can be empty if initialization list is sufficient)
 }
 
 GameplayScreen::~GameplayScreen() {
@@ -76,10 +80,11 @@ void GameplayScreen::render() {
 }
 
 void GameplayScreen::handleInput() {
-    GLFWwindow* window = screenManager->getWindow();
+    // Use the stored window_ pointer
+    if (!window_) return; // Add null check
     
     // Check for ESC key to go back to world gen menu
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+    if (glfwGetKey(window_, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         screenManager->switchScreen(ScreenType::WorldGen);
     }
     
@@ -89,4 +94,5 @@ void GameplayScreen::handleInput() {
 
 void GameplayScreen::onResize(int width, int height) {
     // Resize handling is done globally by ScreenManager
+    // No need to use camera_ or window_ here directly unless specific logic is needed
 }

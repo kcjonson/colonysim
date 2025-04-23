@@ -8,16 +8,7 @@
 #include <unordered_map>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-// Define hash for std::pair<int, int> to use it as a key in unordered_map
-namespace std {
-    template<>
-    struct hash<std::pair<int, int>> {
-        std::size_t operator()(const std::pair<int, int>& p) const noexcept {
-            return std::hash<int>()(p.first) ^ (std::hash<int>()(p.second) << 1);
-        }
-    };
-}
+#include "../src/Screens/WorldGen/TerrainGenerator.h" // Include for WorldGen::TileCoord and WorldGen::TerrainData
 
 // Utility for measuring execution time
 class TimingHelper {
@@ -56,38 +47,8 @@ std::vector<glm::vec2> createRandomTiles(int count, float maxX, float maxY);
 
 // Utility for generating test terrain data
 namespace TestData {
-    // Forward declarations from actual game code to make sure signatures match
-    namespace WorldGen {
-        struct TerrainData {
-            float height;
-            int type;
-            glm::vec4 color;
-        };
-    }
-    
-    // Use a custom pair type or a struct to avoid std::pair hash issues
-    struct TileCoord {
-        int x;
-        int y;
-        
-        bool operator==(const TileCoord& other) const {
-            return x == other.x && y == other.y;
-        }
-    };
-}
-
-// Hash function for the TileCoord struct
-namespace std {
-    template <>
-    struct hash<TestData::TileCoord> {
-        size_t operator()(const TestData::TileCoord& coord) const {
-            return std::hash<int>()(coord.x) ^ (std::hash<int>()(coord.y) << 1);
-        }
-    };
-}
-
-namespace TestData {
-    std::unordered_map<TileCoord, WorldGen::TerrainData> 
+    // Use WorldGen::TileCoord and WorldGen::TerrainData directly
+    std::unordered_map<WorldGen::TileCoord, WorldGen::TerrainData> 
     generateTestTerrain(int width, int height);
 }
 

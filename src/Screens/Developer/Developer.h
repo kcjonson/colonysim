@@ -12,7 +12,8 @@
 
 class DeveloperScreen : public Screen {
 public:
-    DeveloperScreen();
+    // Update constructor to accept Camera* and GLFWwindow*
+    DeveloperScreen(Camera* camera, GLFWwindow* window);
     ~DeveloperScreen() override;
 
     bool initialize() override;

@@ -12,11 +12,12 @@
 #include <memory>
 #include <glm/glm.hpp>
 #include "../../GameState.h"
-#include "../WorldGen/TerrainGenerator.h" // Includes the hash specialization
+#include "../WorldGen/TerrainGenerator.h" // Includes TileCoord and its hash specialization
 
 class World {
 public:
-    World(GameState& gameState, const std::string& seed = "I am a seed, how novel!");
+    // Update constructor declaration
+    World(GameState& gameState, const std::string& seed = "I am a seed, how novel!", Camera* cam = nullptr, GLFWwindow* win = nullptr);
     ~World() = default;
 
     // Initialize world resources
@@ -30,19 +31,17 @@ public:
     // Terrain
     float getTerrainHeight(int x, int y) const;
     float getResourceAmount(int x, int y) const;
-    void setTerrainData(const std::unordered_map<std::pair<int, int>, WorldGen::TerrainData, std::hash<std::pair<int, int>>>& data);
+    void setTerrainData(const std::unordered_map<WorldGen::TileCoord, WorldGen::TerrainData>& data); // Use TileCoord
     
-    // Set camera and window for the world
-    void setCamera(Camera* cam);
-    void setWindow(GLFWwindow* win);
+    // Remove setCamera and setWindow declarations if no longer needed
 
 private:
     void updateTileVisibility(); // New method for visibility toggling
     bool cameraViewChanged() const; // Helper to check if camera moved/zoomed
 
     // Remove width and height
-    std::unordered_map<std::pair<int, int>, WorldGen::TerrainData, std::hash<std::pair<int, int>>> terrainData;
-    std::unordered_map<std::pair<int, int>, std::shared_ptr<Rendering::Tile>, std::hash<std::pair<int, int>>> tiles;
+    std::unordered_map<WorldGen::TileCoord, WorldGen::TerrainData> terrainData; // Use TileCoord
+    std::unordered_map<WorldGen::TileCoord, std::shared_ptr<Rendering::Tile>> tiles; // Use TileCoord
     int overscanAmount = 3; // Increased overscan
     glm::vec4 getCameraBounds() const; // Helper to calculate visible area
     Camera* camera = nullptr; // Use a pointer instead of a direct instance
@@ -57,8 +56,8 @@ private:
     // Constants
     static constexpr float TILE_SIZE = 20.0f;
     static constexpr float TILE_Z_INDEX = 0.1f;
-    std::unordered_set<std::pair<int, int>, std::hash<std::pair<int, int>>> lastVisibleTiles;
-    std::unordered_set<std::pair<int, int>, std::hash<std::pair<int, int>>> currentVisibleTiles;
+    std::unordered_set<WorldGen::TileCoord> lastVisibleTiles; // Use TileCoord
+    std::unordered_set<WorldGen::TileCoord> currentVisibleTiles; // Use TileCoord
     GameState& gameState;
     float timeSinceLastLog = 0.0f;
 

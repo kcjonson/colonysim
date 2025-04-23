@@ -5,10 +5,10 @@
 #include <cmath>
 #include <iostream>
 
-Entities::Entities() {
-    // Create entity layer with WorldSpace projection with a higher z-index than world layer
-    // World layer uses 50.0f, so we use 150.0f to ensure entities render on top
-    entityLayer = std::make_shared<Rendering::Layer>(150.0f, Rendering::ProjectionType::WorldSpace);
+// Constructor now takes camera and window pointers
+Entities::Entities(Camera* cam, GLFWwindow* win) 
+    : entityLayer(std::make_shared<Rendering::Layer>(150.0f, Rendering::ProjectionType::WorldSpace, cam, win)) {
+    // Constructor body can be empty if initialization is done in the list
 }
 
 Entities::~Entities() = default;
@@ -70,28 +70,6 @@ void Entities::setEntityState(size_t index, EntityState state) {
         entities[index]->setState(state);
     } else {
         std::cerr << "Invalid entity index: " << index << std::endl;
-    }
-}
-
-void Entities::setCamera(Camera* cam) {
-    entityLayer->setCamera(cam);
-    
-    // Update all existing entities
-    for (auto& entity : entities) {
-        if (entity) {
-            entity->getEntityLayer()->setCamera(cam);
-        }
-    }
-}
-
-void Entities::setWindow(GLFWwindow* win) {
-    entityLayer->setWindow(win);
-    
-    // Update all existing entities
-    for (auto& entity : entities) {
-        if (entity) {
-            entity->getEntityLayer()->setWindow(win);
-        }
     }
 }
 

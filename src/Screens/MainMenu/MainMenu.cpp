@@ -5,14 +5,15 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
-MainMenuScreen::MainMenuScreen()
+// Update constructor definition to accept Camera* and GLFWwindow*
+MainMenuScreen::MainMenuScreen(Camera* camera, GLFWwindow* window)
     : lastCursorX(0.0f)
     , lastCursorY(0.0f) {
     
-    // Create layers with different z-indices
-    backgroundLayer = std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::ScreenSpace);
-    buttonLayer = std::make_shared<Rendering::Layer>(10.0f, Rendering::ProjectionType::ScreenSpace);
-    titleLayer = std::make_shared<Rendering::Layer>(20.0f, Rendering::ProjectionType::ScreenSpace);
+    // Create layers with different z-indices and pass pointers
+    backgroundLayer = std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    buttonLayer = std::make_shared<Rendering::Layer>(10.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    titleLayer = std::make_shared<Rendering::Layer>(20.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
 }
 
 MainMenuScreen::~MainMenuScreen() {
@@ -22,11 +23,8 @@ bool MainMenuScreen::initialize() {
     // Define menu buttons
     buttons.clear();
     
-    // Set window reference for all layers
+    // Get window reference
     GLFWwindow* window = screenManager->getWindow();
-    backgroundLayer->setWindow(window);
-    buttonLayer->setWindow(window);
-    titleLayer->setWindow(window);
     
     // Create the buttons
     createButton("Start Game", [this]() {
@@ -219,16 +217,14 @@ void MainMenuScreen::onResize(int width, int height) {
     buttonLayer->clearItems();
     titleLayer->clearItems();
     
-    // Set window reference for all layers again after resize
-    GLFWwindow* window = screenManager->getWindow();
-    backgroundLayer->setWindow(window);
-    buttonLayer->setWindow(window);
-    titleLayer->setWindow(window);
-    
-    // Recreate title
+    // Recreate title and background (addItem will handle window/camera propagation)
+    GLFWwindow* window = screenManager->getWindow(); // Still need window for size calculation
+    int currentWidth, currentHeight;
+    glfwGetWindowSize(window, &currentWidth, &currentHeight); // Use current size
+
     auto titleText = std::make_shared<Rendering::Shapes::Text>(
         "ColonySim",
-        glm::vec2((width - 150.0f) / 2.0f, height * 0.2f),
+        glm::vec2((currentWidth - 150.0f) / 2.0f, currentHeight * 0.2f),
         Rendering::Styles::Text({
             .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
             .fontSize = 48.0f
@@ -240,8 +236,8 @@ void MainMenuScreen::onResize(int width, int height) {
     // Recreate menu box background
     float boxWidth = 300.0f;
     float boxHeight = 300.0f;
-    float boxX = (width - boxWidth) / 2.0f;
-    float boxY = (height - boxHeight) / 2.0f;
+    float boxX = (currentWidth - boxWidth) / 2.0f;
+    float boxY = (currentHeight - boxHeight) / 2.0f;
     
     auto menuBox = std::make_shared<Rendering::Shapes::Rectangle>(
         glm::vec2(boxX, boxY),
@@ -253,7 +249,7 @@ void MainMenuScreen::onResize(int width, int height) {
         5.0f  // Z-index
     );
     backgroundLayer->addItem(menuBox);
-    
+
     // Re-layout buttons
     layoutButtons();
 }

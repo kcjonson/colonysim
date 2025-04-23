@@ -9,9 +9,12 @@
 #include "../../Rendering/Layer.h"
 #include "../../Rendering/Shapes/Text.h"
 
+class Camera; // Forward declaration
+
 class SplashScreen : public Screen {
 public:
-    SplashScreen();
+    // Update constructor to accept Camera* and GLFWwindow*
+    SplashScreen(Camera* camera, GLFWwindow* window);
     ~SplashScreen() override;
 
     bool initialize() override;
@@ -24,7 +27,7 @@ private:
     std::chrono::time_point<std::chrono::steady_clock> startTime;
     float displayDuration;
     std::string title;
-    bool openglInitialized;
+    // REMOVED: bool openglInitialized;
     bool clicked;
     
     // Layer for splash screen content

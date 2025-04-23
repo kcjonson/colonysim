@@ -86,23 +86,34 @@ void InputManager::update(float deltaTime) {
         processEdgePan(deltaTime);
     }
 
-    // Update GameState once per frame with latest values
-    // Window Position (from last mouse move)
-    gameState.set("input.windowPos", 
-                 std::to_string((int)lastMousePos.x) + ", " + std::to_string((int)lastMousePos.y));
-    
-    // World Position (from last mouse move)
-    // Only calculate screenToWorld once here
-    glm::vec2 worldPos = glm::vec2(camera.screenToWorld(glm::vec3(lastMousePos, 0.0f)));
-    char worldPosStr[50];
-    snprintf(worldPosStr, sizeof(worldPosStr), "%.1f, %.1f", worldPos.x, worldPos.y);
-    gameState.set("input.worldPos", worldPosStr);
+    // Check if the gameState is valid before attempting to access it
+    if (&gameState != nullptr) {
+        // Update GameState once per frame with latest values
+        try {
+            // Window Position (from last mouse move)
+            gameState.set("input.windowPos", 
+                        std::to_string((int)lastMousePos.x) + ", " + std::to_string((int)lastMousePos.y));
+            
+            // World Position (from last mouse move)
+            // Only calculate screenToWorld once here
+            glm::vec2 worldPos = glm::vec2(camera.screenToWorld(glm::vec3(lastMousePos, 0.0f)));
+            char worldPosStr[50];
+            snprintf(worldPosStr, sizeof(worldPosStr), "%.1f, %.1f", worldPos.x, worldPos.y);
+            gameState.set("input.worldPos", worldPosStr);
 
-    // Camera Position (from last pan/zoom)
-    glm::vec3 cameraPos = camera.getPosition();
-    char cameraPosStr[50];
-    snprintf(cameraPosStr, sizeof(cameraPosStr), "%.1f, %.1f", cameraPos.x, cameraPos.y);
-    gameState.set("camera.position", cameraPosStr);
+            // Camera Position (from last pan/zoom)
+            glm::vec3 cameraPos = camera.getPosition();
+            char cameraPosStr[50];
+            snprintf(cameraPosStr, sizeof(cameraPosStr), "%.1f, %.1f", cameraPos.x, cameraPos.y);
+            gameState.set("camera.position", cameraPosStr);
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Error updating GameState in InputManager: " << e.what() << std::endl;
+        }
+    }
+    else {
+        std::cerr << "Warning: GameState reference is invalid in InputManager::update" << std::endl;
+    }
 
     // Selected Entity (updated in handleMouseButton)
     // No change needed here, it's updated on click
@@ -251,38 +262,38 @@ void InputManager::handleEntitySelection(const glm::vec2& mousePos) {
     // Convert mouse position to world coordinates
     glm::vec3 worldPos = camera.screenToWorld(glm::vec3(mousePos, 0.0f));
     
-    // Check each entity for selection
-    for (size_t i = 0; i < entities.getEntityCount(); ++i) {
-        const Entity* entity = entities.getEntity(i);
-        if (entity) {
-            glm::vec2 entityPos = entity->getPosition();
-            glm::vec2 entitySize = entity->getSize();
+    // // Check each entity for selection
+    // for (size_t i = 0; i < entities.getEntityCount(); ++i) {
+    //     const Entity* entity = entities.getEntity(i);
+    //     if (entity) {
+    //         glm::vec2 entityPos = entity->getPosition();
+    //         glm::vec2 entitySize = entity->getSize();
             
-            // Check if mouse is within entity bounds
-            if (worldPos.x >= entityPos.x - entitySize.x * 0.5f &&
-                worldPos.x <= entityPos.x + entitySize.x * 0.5f &&
-                worldPos.y >= entityPos.y - entitySize.y * 0.5f &&
-                worldPos.y <= entityPos.y + entitySize.y * 0.5f) {
+    //         // Check if mouse is within entity bounds
+    //         if (worldPos.x >= entityPos.x - entitySize.x * 0.5f &&
+    //             worldPos.x <= entityPos.x + entitySize.x * 0.5f &&
+    //             worldPos.y >= entityPos.y - entitySize.y * 0.5f &&
+    //             worldPos.y <= entityPos.y + entitySize.y * 0.5f) {
                 
-                // Entity found, store its index
-                selectedEntity = static_cast<int>(i);
-                gameState.set("input.selectedEntity", std::to_string(selectedEntity));
+    //             // Entity found, store its index
+    //             selectedEntity = static_cast<int>(i);
+    //             gameState.set("input.selectedEntity", std::to_string(selectedEntity));
                 
-                // Update entity state to selected
-                Entity* selectedEntity = entities.getEntity(i);
-                if (selectedEntity) {
-                    // Apply selection effect
-                    std::cout << "Selected entity " << i << std::endl;
-                }
+    //             // Update entity state to selected
+    //             Entity* selectedEntity = entities.getEntity(i);
+    //             if (selectedEntity) {
+    //                 // Apply selection effect
+    //                 std::cout << "Selected entity " << i << std::endl;
+    //             }
                 
-                return;
-            }
-        }
-    }
+    //             return;
+    //         }
+    //     }
+    // }
     
-    // No entity selected
-    selectedEntity = -1;
-    gameState.set("input.selectedEntity", "-1");
+    // // No entity selected
+    // selectedEntity = -1;
+    // gameState.set("input.selectedEntity", "-1");
 }
 
 void InputManager::loadConfig(const std::string& configPath) {
@@ -342,24 +353,4 @@ void InputManager::loadConfig(const std::string& configPath) {
     catch (const json::parse_error& e) {
         std::cerr << "Failed to parse input config file: " << e.what() << std::endl;
     }
-}
-
-void InputManager::setWindow(GLFWwindow* newWindow) {
-    window = newWindow;
-    
-    // Get window size
-    int width, height;
-    glfwGetWindowSize(window, &width, &height);
-    windowSize = glm::vec2(static_cast<float>(width), static_cast<float>(height));
-    
-    // Get initial mouse position
-    double x, y;
-    glfwGetCursorPos(window, &x, &y);
-    lastMousePos = glm::vec2(static_cast<float>(x), static_cast<float>(y));
-    
-    // Set GLFW callbacks
-    glfwSetKeyCallback(window, keyCallback);
-    glfwSetMouseButtonCallback(window, mouseButtonCallback);
-    glfwSetCursorPosCallback(window, cursorPosCallback);
-    glfwSetScrollCallback(window, scrollCallback);
 }
