@@ -15,10 +15,20 @@
 #include "Planet/GlobeRenderer.h"
 #include "Plate/PlateGenerator.h"
 #include "Plate/PlateRenderer.h"
+#include "WorldGenUI.h"
+
+struct GLFWwindow;
+class Camera;
+
+namespace WorldGen {
+    class PlateGenerator;
+    class PlateRenderer;
+    class GlobeRenderer;
+    struct TectonicPlate;
+}
 
 class WorldGenScreen : public Screen {
 public:
-    // Update constructor to accept Camera* and GLFWwindow*
     WorldGenScreen(Camera* camera, GLFWwindow* window);
     ~WorldGenScreen() override;
 
@@ -29,18 +39,18 @@ public:
     void onResize(int width, int height) override;
 
 private:
-    void layoutUI();
-    void createButton(const std::string& text, const glm::vec4& color, const glm::vec4& hoverColor, const std::function<void()>& callback);
-    bool isPointInRect(float px, float py, float rx, float ry, float rw, float rh);
-    void handleScroll(double xoffset, double yoffset);
+    // Window callbacks
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
-    
-    // UI elements
-    std::vector<MenuButton> buttons;
-    float sidebarWidth;
-    float lastCursorX;
-    float lastCursorY;
-    
+    void handleScroll(double xoffset, double yoffset);
+
+    // Helper methods
+    void renderStars(int width, int height);
+    bool isPointInRect(float px, float py, float rx, float ry, float rw, float rh);
+
+    // Used for managing multiple instances with callbacks
+    static std::unordered_map<GLFWwindow*, WorldGenScreen*> s_instances;
+    GLFWwindow* m_window;
+
     // World generation parameters
     int worldWidth;
     int worldHeight;
@@ -48,7 +58,7 @@ private:
     int seed;
     bool worldGenerated;
     std::unordered_map<WorldGen::TileCoord, WorldGen::TerrainData> generatedTerrainData; // Store generated terrain using TileCoord
-    
+
     // Planet rendering
     std::unique_ptr<WorldGen::GlobeRenderer> m_globeRenderer;
     glm::mat4 m_viewMatrix;
@@ -56,18 +66,20 @@ private:
     float m_cameraDistance;
     float m_rotationAngle;
     bool m_isDragging;
-    
-    // Layers
+
+    // Star layer (part of Planet display)
     std::shared_ptr<Rendering::Layer> starLayer;
-    std::shared_ptr<Rendering::Layer> backgroundLayer;
-    std::shared_ptr<Rendering::Layer> previewLayer;
-    std::shared_ptr<Rendering::Layer> controlsLayer;
-    std::shared_ptr<Rendering::Layer> buttonLayer;
-    std::shared_ptr<Rendering::Layer> sidebarLayer;
+
+    // UI system
+    std::unique_ptr<WorldGen::WorldGenUI> m_worldGenUI;
 
     // Plate generation
     std::unique_ptr<WorldGen::PlateGenerator> m_plateGenerator;
     std::unique_ptr<WorldGen::PlateRenderer> m_plateRenderer;
     std::vector<std::shared_ptr<WorldGen::TectonicPlate>> m_plates;
     bool m_platesGenerated;
+
+    // Input tracking
+    float lastCursorX;
+    float lastCursorY;
 };

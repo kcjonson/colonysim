@@ -26,7 +26,8 @@ find_package(Catch2 CONFIG REQUIRED)
 # Using file(GLOB) to find source files automatically
 file(GLOB_RECURSE SOURCES 
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/Screens/WorldGen/WorldGenUI.cpp")
 
 file(GLOB_RECURSE HEADERS
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
