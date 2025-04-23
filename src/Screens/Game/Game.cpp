@@ -139,20 +139,7 @@ Game::Game()
         glfwTerminate();
         return;
     }
-    
-    // Set up references for world and interface
-    // REMOVE these calls, as camera/window are set in constructors now
-    // world.setCamera(&camera);
-    // world.setWindow(window);
-    
-    // Set up references for entities
-    // REMOVE these calls, as camera/window are set in constructors now
-    // entities.setCamera(&camera);
-    // entities.setWindow(window);
-    
 
-    // Initialize Examples (constructor already called)
-    // examples.initialize(); // This might be redundant if constructor does all init
 
     std::cout << "Game initialization complete" << std::endl;
 }
@@ -172,8 +159,11 @@ void Game::run() {
 
     std::cout << "Starting game loop..." << std::endl;
     
-    // Initialize the screen manager
-    screenManager = std::make_unique<ScreenManager>();
+    // Create a new GameState for the screen manager
+    GameState* newGameState = new GameState();
+    
+    // Initialize the screen manager with the required GameState
+    screenManager = std::make_unique<ScreenManager>(newGameState);
     screenManager->initialize();
     screenManager->run();
     

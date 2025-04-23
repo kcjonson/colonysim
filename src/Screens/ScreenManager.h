@@ -27,8 +27,8 @@ enum class ScreenType {
 
 class ScreenManager {
 public:
-    // Add constructor that takes a GameState pointer
-    ScreenManager(GameState* initializedGameState = nullptr);
+    // Constructor that requires GameState pointer (no default parameter)
+    ScreenManager(GameState* initializedGameState);
     ~ScreenManager();
 
     bool initialize();

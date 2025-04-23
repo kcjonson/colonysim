@@ -21,17 +21,17 @@
 #include "Settings/Settings.h"
 #include "Developer/Developer.h"
 
-// Constructor that accepts an optional GameState pointer
+// Constructor that accepts a required GameState pointer
 ScreenManager::ScreenManager(GameState* initializedGameState)
     : window(nullptr)
     , currentScreen(nullptr)
     , isRunning(true) {
-    // If an external GameState was provided, use it
-    if (initializedGameState) {
-        gameState = std::unique_ptr<GameState>(initializedGameState);
-        std::cout << "Using externally initialized GameState" << std::endl;
+    // GameState is now required
+    if (!initializedGameState) {
+        throw std::runtime_error("GameState must be provided to ScreenManager constructor");
     }
-    // Otherwise, the initialize() method will create one
+    gameState = std::unique_ptr<GameState>(initializedGameState);
+    std::cout << "Using provided GameState" << std::endl;
 }
 
 ScreenManager::~ScreenManager() {
@@ -97,18 +97,6 @@ bool ScreenManager::initialize() {
         glfwDestroyWindow(window);
         glfwTerminate();
         return false;
-    }
-
-    // Create shared game state only if one wasn't provided in constructor
-    if (!gameState) {
-        gameState = std::make_unique<GameState>();
-        if (!gameState) {
-             std::cerr << "ERROR: Failed to create GameState" << std::endl;
-             return false;
-        }
-        std::cout << "Created new GameState in ScreenManager::initialize()" << std::endl;
-    } else {
-        std::cout << "Using existing GameState provided to constructor" << std::endl;
     }
 
     // *** Create all screens now that camera and window are ready ***
@@ -211,36 +199,6 @@ bool ScreenManager::initializeOpenGL() {
         -halfHeight, halfHeight,
         -1000.0f, 1000.0f
     );
-
-    // Make sure we have a valid GameState before proceeding
-    if (!gameState) {
-        // If no GameState exists yet, create a temporary one that will be replaced later
-        std::cout << "WARNING: No GameState available in initializeOpenGL(), creating a temporary one" << std::endl;
-        gameState = std::make_unique<GameState>();
-        if (!gameState) {
-            std::cerr << "ERROR: Failed to create temporary GameState" << std::endl;
-            return false;
-        }
-    }
-    
-    // Pre-initialize some key GameState values to prevent access violations
-    try {
-        gameState->set("system.version", "0.1.0");
-        gameState->set("system.fps", "0");
-        gameState->set("world.totalTiles", "0");
-        gameState->set("world.shownTiles", "0");
-        gameState->set("world.totalShapes", "0");
-        gameState->set("world.tileMemKB", "0");
-        gameState->set("world.shapeMemKB", "0");
-        gameState->set("world.totalMemKB", "0");
-        gameState->set("input.windowPos", "0, 0");
-        gameState->set("input.worldPos", "0, 0");
-        gameState->set("camera.position", "0, 0");
-        gameState->set("rend.vertices", "0");
-        gameState->set("rend.indices", "0");
-    } catch (const std::exception& e) {
-        std::cerr << "ERROR: Exception when initializing GameState values: " << e.what() << std::endl;
-    }
     
     // Initialize interface (pass gameState, camera, and window)
     try {
