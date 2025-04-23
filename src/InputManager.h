@@ -6,13 +6,11 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "Camera.h"
-#include "Screens/Game/Entity/Entity.h"
-#include "Screens/Game/Entities.h"
 #include "GameState.h"
 
 class InputManager {
 public:
-    InputManager(GLFWwindow* window, Camera& camera, Entities& entities, GameState& gameState);
+    InputManager(GLFWwindow* window, Camera& camera, GameState& gameState);
     ~InputManager();
 
     void update(float deltaTime);
@@ -43,7 +41,6 @@ public:
 private:
     GLFWwindow* window;
     Camera& camera;
-    Entities& entities;
     GameState& gameState;
     
     // Camera control settings
@@ -74,7 +71,6 @@ private:
     glm::vec2 windowSize;
     bool isDragging = false;
     glm::vec2 dragStartPos;
-    int selectedEntity = -1;
 
     // Key mappings
     std::unordered_map<std::string, int> keyMappings;
@@ -83,5 +79,4 @@ private:
     void processEdgePan(float deltaTime);
     void applyPan(const glm::vec2& direction, float speed, float deltaTime);
     void applyZoom(float amount);
-    void handleEntitySelection(const glm::vec2& mousePos);
 };

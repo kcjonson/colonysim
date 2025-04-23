@@ -5,9 +5,9 @@
 #include "../Camera.h"
 #include "../GameState.h"
 #include "Game/World.h"
-#include "Game/Entities.h"
+// Removed include: #include "Game/Entities.h"
 #include "../InputManager.h"
-#include "Game/Interface.h"
+// Removed include: #include "Game/Interface.h"
 #include "../ConfigManager.h"
 #include "../VectorGraphics.h"
 #include "../Renderer.h"
@@ -200,23 +200,6 @@ bool ScreenManager::initializeOpenGL() {
         -1000.0f, 1000.0f
     );
     
-    // Initialize interface (pass gameState, camera, and window)
-    try {
-        interface = std::make_unique<Interface>(*gameState, camera.get(), window);
-        if (!interface) {
-            std::cerr << "ERROR: Failed to create Interface" << std::endl;
-            return false;
-        }
-        
-        if (!interface->initialize()) {
-            std::cerr << "ERROR: Interface initialization failed!" << std::endl;
-            return false;
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "ERROR: Exception during Interface initialization: " << e.what() << std::endl;
-        return false;
-    }
-    
     // Initialize world (pass gameState, camera, and window)
     try {
         world = std::make_unique<World>(*gameState, "default_seed", camera.get(), window);
@@ -234,22 +217,10 @@ bool ScreenManager::initializeOpenGL() {
         return false;
     }
     
-    // Initialize entities (pass camera and window)
-    try {
-        entities = std::make_unique<Entities>(camera.get(), window);
-        if (!entities) {
-            std::cerr << "ERROR: Failed to create Entities" << std::endl;
-            return false;
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "ERROR: Exception during Entities initialization: " << e.what() << std::endl;
-        return false;
-    }
-    
     // Initialize input manager
     try {
-        // Pass camera reference, window pointer, and other dependencies
-        inputManager = std::make_unique<InputManager>(window, *camera, *entities, *gameState);
+        // Pass camera reference, window pointer, and gameState (Entities removed)
+        inputManager = std::make_unique<InputManager>(window, *camera, *gameState); // Removed entities
         if (!inputManager) {
             std::cerr << "ERROR: Failed to create InputManager" << std::endl;
             return false;
@@ -386,9 +357,7 @@ void ScreenManager::cleanup() {
     // Clear other resources
     examples.reset();
     inputManager.reset();
-    entities.reset();
     world.reset();
-    interface.reset();
     camera.reset();
     gameState.reset();
     

@@ -2,10 +2,14 @@
 
 #include "../Screen.h"
 #include <glm/glm.hpp>
+#include <memory> // Required for std::unique_ptr
 
 // Forward declarations
 class Camera;
 struct GLFWwindow;
+class Interface; // Added forward declaration
+class Entities;  // Added forward declaration
+struct GameState;// Added forward declaration
 
 class GameplayScreen : public Screen {
 public:
@@ -23,6 +27,9 @@ private:
     // Store pointers to camera and window
     Camera* camera_ = nullptr;
     GLFWwindow* window_ = nullptr;
-    
-    // Any gameplay specific data
+    GameState* gameState_ = nullptr; // Added GameState pointer
+
+    // Gameplay specific components owned by this screen
+    std::unique_ptr<Interface> interface_;
+    std::unique_ptr<Entities> entities_;
 };

@@ -18,7 +18,8 @@ Game::Game()
     // Pass camera and window to constructors in initializer list
     , world(gameState, "default_seed", &camera, window) // Provide seed, camera, window
     , entities(&camera, window) // Pass camera, window
-    , inputManager(window, camera, entities, gameState)
+    // Removed entities argument from InputManager constructor call
+    , inputManager(window, camera, gameState)
     // Pass gameState, camera, window
     , interface(gameState, &camera, window) 
     , examples(&camera, window) // Pass camera, window

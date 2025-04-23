@@ -10,9 +10,9 @@ struct GLFWwindow;  // Changed from class to struct to maintain consistency acro
 class Camera;
 struct GameState;   // Changed to struct to match GameState.h
 class World;
-class Entities;
+// Removed: class Entities;
 class InputManager;
-class Interface;
+// Removed: class Interface;
 class Examples;
 
 // Screen types enum
@@ -44,9 +44,9 @@ public:
     Camera* getCamera() const { return camera.get(); }
     GameState* getGameState() const { return gameState.get(); }
     World* getWorld() const { return world.get(); }
-    Entities* getEntities() const { return entities.get(); }
+    // Removed: Entities* getEntities() const { return entities.get(); }
     InputManager* getInputManager() const { return inputManager.get(); }
-    Interface* getInterface() const { return interface.get(); }
+    // Removed: Interface* getInterface() const { return interface.get(); }
     Examples* getExamples() const { return examples.get(); }
 
     // Window callback handlers
@@ -60,9 +60,9 @@ private:
     std::unique_ptr<Camera> camera;
     std::unique_ptr<GameState> gameState;
     std::unique_ptr<World> world;
-    std::unique_ptr<Entities> entities;
+    // Removed: std::unique_ptr<Entities> entities;
     std::unique_ptr<InputManager> inputManager;
-    std::unique_ptr<Interface> interface;
+    // Removed: std::unique_ptr<Interface> interface;
     std::unique_ptr<Examples> examples;
     
     // Screen management

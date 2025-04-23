@@ -8,10 +8,10 @@ using json = nlohmann::json;
 // Static member to store the instance pointer
 static InputManager* s_instance = nullptr;
 
-InputManager::InputManager(GLFWwindow* window, Camera& camera, Entities& entities, GameState& gameState)
+// Removed Entities& entities parameter
+InputManager::InputManager(GLFWwindow* window, Camera& camera, GameState& gameState)
     : window(window)
     , camera(camera)
-    , entities(entities)
     , gameState(gameState)
     , isDragging(false) {
     
@@ -131,7 +131,7 @@ void InputManager::handleMouseButton(int button, int action) {
             dragStartPos = lastMousePos;
         } else if (action == GLFW_RELEASE) {
             isDragging = false;
-            handleEntitySelection(lastMousePos);
+            // Entity selection logic should now be handled elsewhere (e.g., GameplayScreen)
         }
     }
 }
@@ -258,43 +258,7 @@ void InputManager::applyZoom(float amount) {
     camera.zoom(amount);
 }
 
-void InputManager::handleEntitySelection(const glm::vec2& mousePos) {
-    // Convert mouse position to world coordinates
-    glm::vec3 worldPos = camera.screenToWorld(glm::vec3(mousePos, 0.0f));
-    
-    // // Check each entity for selection
-    // for (size_t i = 0; i < entities.getEntityCount(); ++i) {
-    //     const Entity* entity = entities.getEntity(i);
-    //     if (entity) {
-    //         glm::vec2 entityPos = entity->getPosition();
-    //         glm::vec2 entitySize = entity->getSize();
-            
-    //         // Check if mouse is within entity bounds
-    //         if (worldPos.x >= entityPos.x - entitySize.x * 0.5f &&
-    //             worldPos.x <= entityPos.x + entitySize.x * 0.5f &&
-    //             worldPos.y >= entityPos.y - entitySize.y * 0.5f &&
-    //             worldPos.y <= entityPos.y + entitySize.y * 0.5f) {
-                
-    //             // Entity found, store its index
-    //             selectedEntity = static_cast<int>(i);
-    //             gameState.set("input.selectedEntity", std::to_string(selectedEntity));
-                
-    //             // Update entity state to selected
-    //             Entity* selectedEntity = entities.getEntity(i);
-    //             if (selectedEntity) {
-    //                 // Apply selection effect
-    //                 std::cout << "Selected entity " << i << std::endl;
-    //             }
-                
-    //             return;
-    //         }
-    //     }
-    // }
-    
-    // // No entity selected
-    // selectedEntity = -1;
-    // gameState.set("input.selectedEntity", "-1");
-}
+// Removed handleEntitySelection method implementation
 
 void InputManager::loadConfig(const std::string& configPath) {
     std::ifstream file(configPath);
