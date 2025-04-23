@@ -13,6 +13,8 @@
 #include "../MainMenu/MainMenu.h" // For MenuButton structure
 #include "TerrainGenerator.h"
 #include "Planet/GlobeRenderer.h"
+#include "Plate/PlateGenerator.h"
+#include "Plate/PlateRenderer.h"
 
 class WorldGenScreen : public Screen {
 public:
@@ -62,4 +64,10 @@ private:
     std::shared_ptr<Rendering::Layer> controlsLayer;
     std::shared_ptr<Rendering::Layer> buttonLayer;
     std::shared_ptr<Rendering::Layer> sidebarLayer;
+
+    // Plate generation
+    std::unique_ptr<WorldGen::PlateGenerator> m_plateGenerator;
+    std::unique_ptr<WorldGen::PlateRenderer> m_plateRenderer;
+    std::vector<std::shared_ptr<WorldGen::TectonicPlate>> m_plates;
+    bool m_platesGenerated;
 };

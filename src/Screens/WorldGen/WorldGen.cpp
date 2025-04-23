@@ -19,11 +19,12 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)
     , worldGenerated(false)
     , m_cameraDistance(5.0f)
     , m_rotationAngle(0.0f)
-    , m_isDragging(false) {
+    , m_isDragging(false)
+    , m_platesGenerated(false) {
     
     // Generate a random seed
     std::random_device rd;
-    seed = rd();
+    uint64_t seed = rd();
     
     // Create layers with different z-indices and pass pointers
     // Order from back to front:
@@ -34,7 +35,11 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)
     controlsLayer = std::make_shared<Rendering::Layer>(150.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
     buttonLayer = std::make_shared<Rendering::Layer>(200.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
     
-    // Initialize globe renderer
+    // Initialize plate generator and renderer
+    WorldGen::PlanetParameters params;
+    params.numTectonicPlates = 8;  // Hardcode 8 plates for now
+    m_plateGenerator = std::make_unique<WorldGen::PlateGenerator>(params, seed);
+    m_plateRenderer = std::make_unique<WorldGen::PlateRenderer>();
     m_globeRenderer = std::make_unique<WorldGen::GlobeRenderer>();
 }
 
@@ -45,6 +50,12 @@ bool WorldGenScreen::initialize() {
     // Initialize globe renderer
     if (!m_globeRenderer->initialize()) {
         std::cerr << "Failed to initialize globe renderer" << std::endl;
+        return false;
+    }
+    
+    // Initialize plate renderer
+    if (!m_plateRenderer->initialize()) {
+        std::cerr << "Failed to initialize plate renderer" << std::endl;
         return false;
     }
     
@@ -64,11 +75,18 @@ bool WorldGenScreen::initialize() {
                  glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),   // Green
                  glm::vec4(0.3f, 0.7f, 0.4f, 1.0f),   // Lighter green
                  [this]() {
-                     generatedTerrainData.clear();
-                     unsigned int hashedSeed = WorldGen::TerrainGenerator::getHashedSeed(std::to_string(seed));
-                     WorldGen::TerrainGenerator::generateTerrain(
-                         generatedTerrainData, worldWidth / 2, hashedSeed);
-                     worldGenerated = true;
+                     // Generate plates
+                     m_plates = m_plateGenerator->GeneratePlates();
+                     if (!m_plates.empty()) {
+                         // Simulate some movement to make boundaries more interesting
+                         m_plateGenerator->SimulatePlateMovement(m_plates, 10);
+                         // Analyze boundaries to set stress levels
+                         m_plateGenerator->AnalyzeBoundaries(m_plates);
+                         m_platesGenerated = true;
+                         std::cout << "Generated " << m_plates.size() << " plates" << std::endl;
+                     } else {
+                         std::cerr << "Failed to generate plates" << std::endl;
+                     }
                      layoutUI();
                  });
     
@@ -430,10 +448,22 @@ void WorldGenScreen::render() {
         layer->render();
     }
     
-    // Then render the planet in its viewport
+    // Then render the planet and plates in its viewport
     glViewport(static_cast<GLint>(sidebarWidth), 0, width - static_cast<GLint>(sidebarWidth), height);
     glEnable(GL_DEPTH_TEST);
+    
+    // Create model matrix for both globe and plates
+    glm::mat4 modelMatrix = glm::rotate(glm::mat4(1.0f), m_rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
+    
+    // Render the globe
     m_globeRenderer->render(m_viewMatrix, m_projectionMatrix);
+    
+    // Render plates if they've been generated
+    if (m_platesGenerated && !m_plates.empty()) {
+        glLineWidth(2.0f); // Make plate boundaries more visible
+        m_plateRenderer->render(m_plates, modelMatrix, m_viewMatrix, m_projectionMatrix);
+        glLineWidth(1.0f);
+    }
 }
 
 void WorldGenScreen::handleInput() {
