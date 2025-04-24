@@ -3,59 +3,33 @@
 #include <vector>
 #include <memory>
 #include <random>
-#include "TectonicPlate.h"
-// #include "../../../Core/ProgressTracker.h"
+// #include "Lithosphere.h" // REMOVE: Causes circular dependency, forward declare instead
 #include "../Planet/PlanetData.h"
+#include "../WorldGenParameters.h" // Include the new parameters header
 
 namespace WorldGen {
 
-struct PlanetParameters {
-    int numTectonicPlates = 12;
-    int resolution = 32;
-};
+// Forward declare Lithosphere
+class Lithosphere;
+
+// Remove the local struct definition
+// struct PlanetParameters {
+//     int numTectonicPlates = 12;
+//     int planetResolution = 32; // Renamed from resolution to avoid conflict if PlanetData has one
+//     // Add other parameters as needed
+//     // float simulationSpeedFactor = 1.0f;
+// };
 
 class PlateGenerator {
 public:
+    // Use PlanetParameters from WorldGenParameters.h
     PlateGenerator(const PlanetParameters& parameters, uint64_t seed);
 
-    std::vector<std::shared_ptr<TectonicPlate>> GeneratePlates();
-
-    void SimulatePlateMovement(
-        std::vector<std::shared_ptr<TectonicPlate>>& plates,
-        int simulationSteps);
-
-    // Analyze plate boundaries
-    void AnalyzeBoundaries(
-        std::vector<std::shared_ptr<TectonicPlate>>& plates);
-
-    // Generate elevation data for the planet
-    std::vector<float> GenerateElevationData(
-        const std::vector<std::shared_ptr<TectonicPlate>>& plates,
-        int resolution);
+    // Getter for the Lithosphere instance
+    Lithosphere* GetLithosphere() const { return m_lithosphere.get(); }
 
 private:
-    void GeneratePlateCenters(std::vector<glm::vec3>& centers, int numPlates);
-    void AssignTilesToPlates(std::vector<std::shared_ptr<TectonicPlate>>& plates, int resolution);
-    void DetectPlateBoundaries(std::vector<std::shared_ptr<TectonicPlate>>& plates);
-    void GeneratePlateMovements(std::vector<std::shared_ptr<TectonicPlate>>& plates);
-    
-    BoundaryType DetermineBoundaryType(
-        const glm::vec3& point,
-        const TectonicPlate& plate1,
-        const TectonicPlate& plate2);
-        
-    float CalculateStressAtBoundary(
-        const PlateBoundary& boundary,
-        const TectonicPlate& plate1,
-        const TectonicPlate& plate2);
-
-    float CalculateElevationAtPoint(
-        const glm::vec3& point,
-        const std::vector<std::shared_ptr<TectonicPlate>>& plates);
-
-private:
-    PlanetParameters m_parameters;
-    std::mt19937_64 m_random;
+    std::unique_ptr<Lithosphere> m_lithosphere; // Added Lithosphere member
 };
 
-} // namespace WorldGen 
+} // namespace WorldGen

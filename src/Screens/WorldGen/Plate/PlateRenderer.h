@@ -15,6 +15,7 @@ public:
     
     bool initialize();
     void render(const std::vector<std::shared_ptr<TectonicPlate>>& plates,
+                const std::vector<glm::vec3>& planetVertices, // Added: Need vertex positions
                 const glm::mat4& modelMatrix,
                 const glm::mat4& viewMatrix,
                 const glm::mat4& projectionMatrix);
@@ -35,7 +36,6 @@ private:
     // Helper methods
     bool compileShaders();
     void setupBuffers();
-    void updateBoundaryBuffers(const std::vector<std::shared_ptr<TectonicPlate>>& plates);
 };
 
-} // namespace WorldGen 
+} // namespace WorldGen

@@ -7,7 +7,9 @@
 #include <random>
 #include "TerrainGenerator.h"
 #include "VectorGraphics.h"
-#include <algorithm>
+#include <algorithm> // Keep algorithm include
+#include "Plate/Lithosphere.h" // Added include for Lithosphere
+#include "Planet/PlanetData.h" // Added include for PlanetData
 
 // Initialize the static instances map
 std::unordered_map<GLFWwindow*, WorldGenScreen*> WorldGenScreen::s_instances;
@@ -45,6 +47,21 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)
     m_plateGenerator = std::make_unique<WorldGen::PlateGenerator>(params, seed);
     m_plateRenderer = std::make_unique<WorldGen::PlateRenderer>();
     m_globeRenderer = std::make_unique<WorldGen::GlobeRenderer>();
+    
+    // Get planet mesh data after initializing GlobeRenderer
+    if (m_globeRenderer) {
+        const auto* planetData = m_globeRenderer->getPlanetData(); // Use the added getter
+        if (planetData) {
+            // Use the new method to get vertices as vec3
+            m_planetVertices = planetData->getVerticesVec3();
+            m_planetIndices = planetData->getIndices(); // Get indices as well
+            std::cout << "Loaded planet mesh: " << m_planetVertices.size() << " vertices, " << m_planetIndices.size() << " indices." << std::endl;
+        } else {
+            std::cerr << "Error: Failed to get PlanetData from GlobeRenderer." << std::endl;
+        }
+    } else {
+         std::cerr << "Error: GlobeRenderer is null after creation." << std::endl;
+    }
 }
 
 WorldGenScreen::~WorldGenScreen() {
@@ -90,33 +107,48 @@ bool WorldGenScreen::initialize() {
         m_worldGenUI->setState(WorldGen::UIState::Generating);
         m_worldGenUI->updateProgress(0.1f, "Generating tectonic plates...");
         
-        // Generate plates
-        m_plates = m_plateGenerator->GeneratePlates();
+        // Get Lithosphere instance from PlateGenerator
+        WorldGen::Lithosphere* lithosphere = m_plateGenerator->GetLithosphere();
+        if (!lithosphere) {
+            std::cerr << "Error: Lithosphere instance is null." << std::endl;
+            m_worldGenUI->setState(WorldGen::UIState::ParameterSetup); // Go back if error
+            return;
+        }
+
+        // Generate plates using Lithosphere (needs vertex data)
+        lithosphere->CreatePlates(m_planetVertices);
+        m_plates = lithosphere->GetPlates(); // Get the generated plates (reference)
+
         if (!m_plates.empty()) {
+            m_worldGenUI->updateProgress(0.3f, "Detecting boundaries..."); // Adjusted progress
+
+            // Detect initial boundaries using Lithosphere (needs vertex and index data)
+            lithosphere->DetectBoundaries(m_planetVertices, m_planetIndices);
+
             m_worldGenUI->updateProgress(0.4f, "Simulating plate movement...");
-            
-            // Simulate some movement to make boundaries more interesting
-            m_plateGenerator->SimulatePlateMovement(m_plates, 10);
-            
+
+            // Simulate some movement (placeholder for now, real simulation happens in Update)
+            // lithosphere->Update(0.1f, m_planetVertices, m_planetIndices); // Example: Simulate one step
+            // For now, just keep the initial state after creation & boundary detection
+
             m_worldGenUI->updateProgress(0.7f, "Analyzing boundaries...");
-            
-            // Analyze boundaries to set stress levels
-            m_plateGenerator->AnalyzeBoundaries(m_plates);
-            
+
+            // Analyze boundaries using Lithosphere (placeholder for now)
+            lithosphere->AnalyzeBoundaries(m_planetVertices);
+
             m_platesGenerated = true;
-            std::cout << "Generated " << m_plates.size() << " plates" << std::endl;
-            
+            std::cout << "Generated " << m_plates.size() << " plates and detected initial boundaries." << std::endl;
+
             m_worldGenUI->updateProgress(1.0f, "World generation complete!");
-            
+
             // Switch to viewing state after generation is complete
             worldGenerated = true;
             m_worldGenUI->setState(WorldGen::UIState::Viewing);
         } else {
             std::cerr << "Failed to generate plates" << std::endl;
-            // Return to parameter setup state if generation failed
             m_worldGenUI->setState(WorldGen::UIState::ParameterSetup);
         }
-        
+
         // Update UI
         int width, height;
         glfwGetWindowSize(m_window, &width, &height);
@@ -248,6 +280,20 @@ void WorldGenScreen::update(float deltaTime) {
     m_globeRenderer->setRotationAngle(m_rotationAngle);
     m_globeRenderer->setCameraDistance(m_cameraDistance);
     m_globeRenderer->resize(width, height);
+
+    // Update Lithosphere simulation if plates are generated
+    if (m_platesGenerated) {
+        WorldGen::Lithosphere* lithosphere = m_plateGenerator->GetLithosphere();
+        if (lithosphere) {
+            // Use a fixed simulation step or scale deltaTime
+            float simulationTimeStep = deltaTime * 0.5f; // Adjust speed as needed
+            lithosphere->Update(simulationTimeStep, m_planetVertices, m_planetIndices);
+            // Update the local copy of plates if needed (GetPlates returns a reference)
+            // m_plates = lithosphere->GetPlates(); // Not strictly necessary if GetPlates returns reference
+        } else {
+            std::cerr << "Error: Lithosphere instance is null during update." << std::endl;
+        }
+    }
 }
 
 void WorldGenScreen::render() {
@@ -273,8 +319,9 @@ void WorldGenScreen::render() {
     
     // Render plates if they've been generated
     if (m_platesGenerated && !m_plates.empty()) {
-        glLineWidth(2.0f); // Make plate boundaries more visible
-        m_plateRenderer->render(m_plates, modelMatrix, m_viewMatrix, m_projectionMatrix);
+        glLineWidth(2.0f); // Make plate boundaries more visible (optional)
+        // Pass planet vertices needed for drawing edges
+        m_plateRenderer->render(m_plates, m_planetVertices, modelMatrix, m_viewMatrix, m_projectionMatrix);
         glLineWidth(1.0f);
     }
     

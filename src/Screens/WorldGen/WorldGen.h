@@ -24,7 +24,7 @@ namespace WorldGen {
     class PlateGenerator;
     class PlateRenderer;
     class GlobeRenderer;
-    struct TectonicPlate;
+    class TectonicPlate; // Changed from struct to class
 }
 
 class WorldGenScreen : public Screen {
@@ -78,6 +78,10 @@ private:
     std::unique_ptr<WorldGen::PlateRenderer> m_plateRenderer;
     std::vector<std::shared_ptr<WorldGen::TectonicPlate>> m_plates;
     bool m_platesGenerated;
+
+    // Added members for planet mesh data
+    std::vector<glm::vec3> m_planetVertices;
+    std::vector<unsigned int> m_planetIndices;
 
     // Input tracking
     float lastCursorX;

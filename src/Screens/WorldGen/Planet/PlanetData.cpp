@@ -99,4 +99,13 @@ void PlanetData::generateNormals() {
     }
 }
 
-} // namespace WorldGen 
+std::vector<glm::vec3> PlanetData::getVerticesVec3() const {
+    std::vector<glm::vec3> verticesVec3;
+    verticesVec3.reserve(m_vertices.size() / 3);
+    for (size_t i = 0; i < m_vertices.size(); i += 3) {
+        verticesVec3.emplace_back(m_vertices[i], m_vertices[i + 1], m_vertices[i + 2]);
+    }
+    return verticesVec3;
+}
+
+} // namespace WorldGen

@@ -21,17 +21,19 @@ find_package(Freetype REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(Catch2 CONFIG REQUIRED)
 
-
 # Add source files
 # Using file(GLOB) to find source files automatically
 file(GLOB_RECURSE SOURCES 
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
-     "${CMAKE_CURRENT_SOURCE_DIR}/src/Screens/WorldGen/WorldGenUI.cpp")
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/Screens/WorldGen/WorldGenUI.cpp"
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/Screens/WorldGen/Plate/Lithosphere.cpp")
 
 file(GLOB_RECURSE HEADERS
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
-     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp"
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/Screens/WorldGen/Plate/Lithosphere.h"
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/Screens/WorldGen/WorldGenParameters.h")
 
 # Create executable
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})

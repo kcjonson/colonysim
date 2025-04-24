@@ -18,6 +18,7 @@ public:
     void setRotationAngle(float angle);
     void setCameraDistance(float distance);
     void resize(int width, int height);
+    const PlanetData* getPlanetData() const { return m_planetData.get(); } // Added getter
     
 private:
     std::unique_ptr<PlanetData> m_planetData;
@@ -49,4 +50,4 @@ private:
     void updateModelMatrix();
 };
 
-} // namespace WorldGen 
+} // namespace WorldGen

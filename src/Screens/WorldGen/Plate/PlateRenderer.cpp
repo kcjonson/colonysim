@@ -2,6 +2,8 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <glm/gtc/type_ptr.hpp> // For glm::value_ptr
+#include <algorithm> // For std::min/max
 
 namespace WorldGen {
 
@@ -39,49 +41,89 @@ bool PlateRenderer::initialize() {
 
 void PlateRenderer::render(
     const std::vector<std::shared_ptr<TectonicPlate>>& plates,
+    const std::vector<glm::vec3>& planetVertices, // Added
     const glm::mat4& modelMatrix,
     const glm::mat4& viewMatrix,
     const glm::mat4& projectionMatrix)
 {
+    if (planetVertices.empty()) return; // Cannot render edges without vertices
+
     glUseProgram(m_shaderProgram);
-    
+
     // Set matrices
-    glUniformMatrix4fv(m_modelLoc, 1, GL_FALSE, &modelMatrix[0][0]);
-    glUniformMatrix4fv(m_viewLoc, 1, GL_FALSE, &viewMatrix[0][0]);
-    glUniformMatrix4fv(m_projectionLoc, 1, GL_FALSE, &projectionMatrix[0][0]);
-    
+    glUniformMatrix4fv(m_modelLoc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
+    glUniformMatrix4fv(m_viewLoc, 1, GL_FALSE, glm::value_ptr(viewMatrix));
+    glUniformMatrix4fv(m_projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
+
     // Enable line smoothing for better visibility
     glEnable(GL_LINE_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-    
-    // Render plate boundaries
+    glLineWidth(2.0f); // Make lines thicker
+
+    // Render plate boundaries by drawing each edge individually
     glBindVertexArray(m_vao);
-    
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo); // Bind the VBO once
+
     for (const auto& plate : plates) {
         for (const auto& boundary : plate->GetBoundaries()) {
-            // Skip if we've already rendered this boundary
-            if (boundary.plate1Index > boundary.plate2Index) {
+            // Skip if we've already rendered this boundary (convention: plate1Index < plate2Index)
+            // Ensure we process each boundary pair only once
+            int plate1Id = plate->GetId();
+            int plate2Id = (boundary.plate1Index == plate1Id) ? boundary.plate2Index : boundary.plate1Index;
+            if (plate1Id >= plate2Id) {
                 continue;
             }
-            
-            // Set color based on stress
-            float stress = boundary.stress;
-            // Use a more visible color scheme: red for high stress, blue for low stress
-            glm::vec3 color(stress, 0.2f, 1.0f - stress);
-            glUniform3fv(m_colorLoc, 1, &color[0]);
-            
-            // Update boundary buffer with the current boundary's points
-            std::vector<glm::vec3> boundaryPoints = boundary.points;
-            glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-            glBufferData(GL_ARRAY_BUFFER, boundaryPoints.size() * sizeof(glm::vec3),
-                         boundaryPoints.data(), GL_DYNAMIC_DRAW);
-            
-            // Draw boundary
-            glDrawArrays(GL_LINE_STRIP, 0, static_cast<GLsizei>(boundaryPoints.size()));
+
+            // Set color based on boundary type
+            glm::vec3 color;
+            switch (boundary.type) {
+                case BoundaryType::Convergent:
+                    color = glm::vec3(1.0f, 0.0f, 0.0f); // Red
+                    break;
+                case BoundaryType::Divergent:
+                    color = glm::vec3(0.0f, 0.0f, 1.0f); // Blue
+                    break;
+                case BoundaryType::Transform:
+                    color = glm::vec3(0.0f, 1.0f, 0.0f); // Green
+                    break;
+                default:
+                    color = glm::vec3(1.0f, 1.0f, 1.0f); // White (fallback)
+            }
+            // Optional: Modulate color by stress (e.g., make brighter for higher stress)
+            // float stressNormalized = glm::clamp(boundary.stress / 10.0f, 0.0f, 1.0f); // Example normalization
+            // color = glm::mix(glm::vec3(0.5f), color, stressNormalized); // Mix with gray based on stress
+
+            glUniform3fv(m_colorLoc, 1, glm::value_ptr(color));
+
+            // Draw each edge segment of the boundary
+            for (const auto& edgeIndices : boundary.m_sharedEdgeIndices) {
+                int u_idx = edgeIndices.first;
+                int v_idx = edgeIndices.second;
+
+                // Ensure indices are valid
+                if (u_idx >= 0 && u_idx < planetVertices.size() && v_idx >= 0 && v_idx < planetVertices.size()) {
+                    glm::vec3 edgeVertices[2] = {
+                        planetVertices[u_idx],
+                        planetVertices[v_idx]
+                    };
+
+                    // Update VBO data for this single edge
+                    // Use glBufferSubData for potentially better performance than glBufferData
+                    // Allocate buffer size once if possible, or ensure it's large enough
+                    glBufferData(GL_ARRAY_BUFFER, 2 * sizeof(glm::vec3), edgeVertices, GL_DYNAMIC_DRAW); // Keep using glBufferData for simplicity now
+
+                    // Draw the line segment
+                    glDrawArrays(GL_LINES, 0, 2);
+                } else {
+                    std::cerr << "Warning: Invalid edge index in PlateRenderer." << std::endl;
+                }
+            }
         }
     }
-    
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
     glDisable(GL_LINE_SMOOTH);
+    glLineWidth(1.0f); // Reset line width
     glBindVertexArray(0);
     glUseProgram(0);
 }
@@ -165,6 +207,15 @@ bool PlateRenderer::compileShaders() {
     m_viewLoc = glGetUniformLocation(m_shaderProgram, "view");
     m_projectionLoc = glGetUniformLocation(m_shaderProgram, "projection");
     m_colorLoc = glGetUniformLocation(m_shaderProgram, "color");
+
+    // Check if uniforms were found
+    if (m_modelLoc == -1 || m_viewLoc == -1 || m_projectionLoc == -1 || m_colorLoc == -1) {
+        std::cerr << "Error: Could not get uniform locations in PlateRenderer shader." << std::endl;
+        // You might want to delete the program here if locations are critical
+        // glDeleteProgram(m_shaderProgram);
+        // m_shaderProgram = 0;
+        // return false; // Optionally return false if uniforms are essential
+    }
     
     return true;
 }
@@ -184,22 +235,4 @@ void PlateRenderer::setupBuffers() {
     glBindVertexArray(0);
 }
 
-void PlateRenderer::updateBoundaryBuffers(const std::vector<std::shared_ptr<TectonicPlate>>& plates) {
-    std::vector<glm::vec3> boundaryPoints;
-    
-    for (const auto& plate : plates) {
-        for (const auto& boundary : plate->GetBoundaries()) {
-            if (boundary.plate1Index > boundary.plate2Index) {
-                continue;
-            }
-            boundaryPoints.insert(boundaryPoints.end(), boundary.points.begin(), boundary.points.end());
-        }
-    }
-    
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    glBufferData(GL_ARRAY_BUFFER, boundaryPoints.size() * sizeof(glm::vec3),
-                 boundaryPoints.data(), GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-} // namespace WorldGen 
+} // namespace WorldGen
