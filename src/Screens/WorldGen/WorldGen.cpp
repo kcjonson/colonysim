@@ -153,7 +153,18 @@ bool WorldGenScreen::initialize() {
             screenManager->getWorld()->setTerrainData(generatedTerrainData);
         } else {
             std::cerr << "ERROR: World is null in screenManager" << std::endl;
+            return;
         }
+        
+        // Reset OpenGL state before switching to Game screen
+        // This is critical to ensure the Game screen gets the correct viewport and rendering state
+        int width, height;
+        glfwGetWindowSize(m_window, &width, &height);
+        glViewport(0, 0, width, height);  // Reset to full window viewport
+        glDisable(GL_DEPTH_TEST);         // Disable depth testing which Game screen doesn't use
+        glEnable(GL_BLEND);               // Ensure blending is enabled
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Set standard alpha blending
+        glLineWidth(1.0f);                // Reset line width to default
         
         // Switch to gameplay screen
         screenManager->switchScreen(ScreenType::Gameplay);
@@ -161,6 +172,15 @@ bool WorldGenScreen::initialize() {
     
     // Back button event
     m_worldGenUI->addEventListener(WorldGen::UIEvent::Back, [this]() {
+        // Reset OpenGL state before switching screens
+        int width, height;
+        glfwGetWindowSize(m_window, &width, &height);
+        glViewport(0, 0, width, height);  // Reset to full window viewport
+        glDisable(GL_DEPTH_TEST);         // Disable depth testing
+        glEnable(GL_BLEND);               // Ensure blending is enabled
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Set standard alpha blending
+        glLineWidth(1.0f);                // Reset line width to default
+        
         screenManager->switchScreen(ScreenType::MainMenu);
     });
     
@@ -214,12 +234,12 @@ void WorldGenScreen::update(float deltaTime) {
         glm::vec3(0.0f, 1.0f, 0.0f)
     );
     
-    // Update projection matrix
+    // Update projection matrix - use full width for proper aspect ratio
     int width, height;
     glfwGetWindowSize(m_window, &width, &height);
     m_projectionMatrix = glm::perspective(
         glm::radians(45.0f),
-        static_cast<float>(width - m_worldGenUI->getSidebarWidth()) / height,
+        static_cast<float>(width) / height,
         0.1f,
         100.0f
     );
@@ -227,7 +247,7 @@ void WorldGenScreen::update(float deltaTime) {
     // Update globe renderer
     m_globeRenderer->setRotationAngle(m_rotationAngle);
     m_globeRenderer->setCameraDistance(m_cameraDistance);
-    m_globeRenderer->resize(width - static_cast<int>(m_worldGenUI->getSidebarWidth()), height);
+    m_globeRenderer->resize(width, height);
 }
 
 void WorldGenScreen::render() {
@@ -239,13 +259,29 @@ void WorldGenScreen::render() {
     int width, height;
     glfwGetWindowSize(m_window, &width, &height);
     
-    // Enable blending for all transparent objects
+    // Use the full window viewport for all rendering
+    glViewport(0, 0, width, height);
+    
+    // First render the 3D globe and plates with depth testing
+    glEnable(GL_DEPTH_TEST);
+    
+    // Create model matrix for both globe and plates
+    glm::mat4 modelMatrix = glm::rotate(glm::mat4(1.0f), m_rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
+    
+    // Render the globe
+    m_globeRenderer->render(m_viewMatrix, m_projectionMatrix);
+    
+    // Render plates if they've been generated
+    if (m_platesGenerated && !m_plates.empty()) {
+        glLineWidth(2.0f); // Make plate boundaries more visible
+        m_plateRenderer->render(m_plates, modelMatrix, m_viewMatrix, m_projectionMatrix);
+        glLineWidth(1.0f);
+    }
+    
+    // Now render the 2D UI elements over the 3D scene
+    glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    
-    // First render the full-screen background (stars)
-    glViewport(0, 0, width, height);
-    glDisable(GL_DEPTH_TEST);
     
     // Get UI layers
     std::vector<std::shared_ptr<Rendering::Layer>> uiLayers = m_worldGenUI->getAllLayers();
@@ -265,28 +301,10 @@ void WorldGenScreen::render() {
     for (const auto& layer : allLayers) {
         layer->render();
     }
-    
-    // Then render the planet and plates in its viewport
-    glViewport(static_cast<GLint>(m_worldGenUI->getSidebarWidth()), 0, 
-              width - static_cast<GLint>(m_worldGenUI->getSidebarWidth()), height);
-    glEnable(GL_DEPTH_TEST);
-    
-    // Create model matrix for both globe and plates
-    glm::mat4 modelMatrix = glm::rotate(glm::mat4(1.0f), m_rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
-    
-    // Render the globe
-    m_globeRenderer->render(m_viewMatrix, m_projectionMatrix);
-    
-    // Render plates if they've been generated
-    if (m_platesGenerated && !m_plates.empty()) {
-        glLineWidth(2.0f); // Make plate boundaries more visible
-        m_plateRenderer->render(m_plates, modelMatrix, m_viewMatrix, m_projectionMatrix);
-        glLineWidth(1.0f);
-    }
 }
 
 void WorldGenScreen::handleInput() {
-    // Handle mouse input for planet rotation
+    // Handle planet rotation with mouse drag
     if (glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
         double xpos, ypos;
         glfwGetCursorPos(m_window, &xpos, &ypos);
@@ -336,9 +354,8 @@ void WorldGenScreen::handleInput() {
 }
 
 void WorldGenScreen::onResize(int width, int height) {
-    // Update viewport for planet rendering
-    glViewport(static_cast<GLint>(m_worldGenUI->getSidebarWidth()), 0, 
-              width - static_cast<GLint>(m_worldGenUI->getSidebarWidth()), height);
+    // Update viewport to use the full window
+    glViewport(0, 0, width, height);
     
     // Update stars and UI layout
     renderStars(width, height);

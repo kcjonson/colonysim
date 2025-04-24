@@ -216,7 +216,7 @@ void World::setTerrainData(const std::unordered_map<WorldGen::TileCoord, WorldGe
     worldLayer->clearItems(); // Clear items from the layer when terrain changes
     lastVisibleTiles.clear();
     currentVisibleTiles.clear();
-    // Reset cached camera state when terrain changes
+    // Res cached camera state when terrain changes
     lastCameraPos = glm::vec3(-1e9f); // Set to unlikely value to force update
     lastCameraProjBounds = glm::vec4(-1e9f);
 }
