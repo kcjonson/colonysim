@@ -4,17 +4,18 @@
 #include <iostream>
 #include <glm/gtc/type_ptr.hpp> // For glm::value_ptr
 #include <algorithm> // For std::min/max
+#include <vector> // Ensure vector is included
 
 namespace WorldGen {
 
 PlateRenderer::PlateRenderer()
     : m_vao(0)
     , m_vbo(0)
+    , m_colorVbo(0) // Initialize color VBO
     , m_shaderProgram(0)
     , m_modelLoc(0)
     , m_viewLoc(0)
     , m_projectionLoc(0)
-    , m_colorLoc(0)
 {
 }
 
@@ -24,6 +25,9 @@ PlateRenderer::~PlateRenderer() {
     }
     if (m_vbo) {
         glDeleteBuffers(1, &m_vbo);
+    }
+    if (m_colorVbo) {
+        glDeleteBuffers(1, &m_colorVbo);
     }
     if (m_vao) {
         glDeleteVertexArrays(1, &m_vao);
@@ -46,7 +50,58 @@ void PlateRenderer::render(
     const glm::mat4& viewMatrix,
     const glm::mat4& projectionMatrix)
 {
-    if (planetVertices.empty()) return; // Cannot render edges without vertices
+    if (planetVertices.empty() || plates.empty()) return;
+
+    std::vector<glm::vec3> lineVertices;
+    std::vector<glm::vec3> lineColors;
+
+    // Estimate capacity to reduce reallocations (rough estimate)
+    size_t estimatedEdges = 0;
+    for (const auto& plate : plates) {
+        for (const auto& boundary : plate->GetBoundaries()) {
+            estimatedEdges += boundary.m_sharedEdgeIndices.size();
+        }
+    }
+    lineVertices.reserve(estimatedEdges * 2);
+    lineColors.reserve(estimatedEdges * 2);
+
+    // Collect all line vertices and colors
+    for (const auto& plate : plates) {
+        for (const auto& boundary : plate->GetBoundaries()) {
+            // Ensure we process each boundary pair only once
+            int plate1Id = plate->GetId();
+            int plate2Id = (boundary.plate1Index == plate1Id) ? boundary.plate2Index : boundary.plate1Index;
+            if (plate1Id >= plate2Id) {
+                continue;
+            }
+
+            // Determine color based on boundary type
+            glm::vec3 color;
+            switch (boundary.type) {
+                case BoundaryType::Convergent:  color = glm::vec3(1.0f, 0.0f, 0.0f); break; // Red
+                case BoundaryType::Divergent:   color = glm::vec3(0.0f, 0.0f, 1.0f); break; // Blue
+                case BoundaryType::Transform:   color = glm::vec3(0.0f, 1.0f, 0.0f); break; // Green
+                default:                        color = glm::vec3(1.0f, 1.0f, 1.0f); break; // White
+            }
+
+            // Add vertices and colors for each edge segment
+            for (const auto& edgeIndices : boundary.m_sharedEdgeIndices) {
+                int u_idx = edgeIndices.first;
+                int v_idx = edgeIndices.second;
+
+                if (u_idx >= 0 && u_idx < planetVertices.size() && v_idx >= 0 && v_idx < planetVertices.size()) {
+                    lineVertices.push_back(planetVertices[u_idx]);
+                    lineVertices.push_back(planetVertices[v_idx]);
+                    lineColors.push_back(color);
+                    lineColors.push_back(color);
+                } else {
+                    std::cerr << "Warning: Invalid edge index in PlateRenderer." << std::endl;
+                }
+            }
+        }
+    }
+
+    if (lineVertices.empty()) return; // Nothing to draw
 
     glUseProgram(m_shaderProgram);
 
@@ -55,76 +110,30 @@ void PlateRenderer::render(
     glUniformMatrix4fv(m_viewLoc, 1, GL_FALSE, glm::value_ptr(viewMatrix));
     glUniformMatrix4fv(m_projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
 
-    // Enable line smoothing for better visibility
+    // Enable line smoothing and set width
     glEnable(GL_LINE_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-    glLineWidth(2.0f); // Make lines thicker
+    glLineWidth(2.0f);
 
-    // Render plate boundaries by drawing each edge individually
+    // Bind VAO
     glBindVertexArray(m_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo); // Bind the VBO once
 
-    for (const auto& plate : plates) {
-        for (const auto& boundary : plate->GetBoundaries()) {
-            // Skip if we've already rendered this boundary (convention: plate1Index < plate2Index)
-            // Ensure we process each boundary pair only once
-            int plate1Id = plate->GetId();
-            int plate2Id = (boundary.plate1Index == plate1Id) ? boundary.plate2Index : boundary.plate1Index;
-            if (plate1Id >= plate2Id) {
-                continue;
-            }
+    // Update vertex position buffer
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    glBufferData(GL_ARRAY_BUFFER, lineVertices.size() * sizeof(glm::vec3), lineVertices.data(), GL_DYNAMIC_DRAW);
 
-            // Set color based on boundary type
-            glm::vec3 color;
-            switch (boundary.type) {
-                case BoundaryType::Convergent:
-                    color = glm::vec3(1.0f, 0.0f, 0.0f); // Red
-                    break;
-                case BoundaryType::Divergent:
-                    color = glm::vec3(0.0f, 0.0f, 1.0f); // Blue
-                    break;
-                case BoundaryType::Transform:
-                    color = glm::vec3(0.0f, 1.0f, 0.0f); // Green
-                    break;
-                default:
-                    color = glm::vec3(1.0f, 1.0f, 1.0f); // White (fallback)
-            }
-            // Optional: Modulate color by stress (e.g., make brighter for higher stress)
-            // float stressNormalized = glm::clamp(boundary.stress / 10.0f, 0.0f, 1.0f); // Example normalization
-            // color = glm::mix(glm::vec3(0.5f), color, stressNormalized); // Mix with gray based on stress
+    // Update vertex color buffer
+    glBindBuffer(GL_ARRAY_BUFFER, m_colorVbo);
+    glBufferData(GL_ARRAY_BUFFER, lineColors.size() * sizeof(glm::vec3), lineColors.data(), GL_DYNAMIC_DRAW);
 
-            glUniform3fv(m_colorLoc, 1, glm::value_ptr(color));
+    // Draw all lines at once
+    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(lineVertices.size()));
 
-            // Draw each edge segment of the boundary
-            for (const auto& edgeIndices : boundary.m_sharedEdgeIndices) {
-                int u_idx = edgeIndices.first;
-                int v_idx = edgeIndices.second;
-
-                // Ensure indices are valid
-                if (u_idx >= 0 && u_idx < planetVertices.size() && v_idx >= 0 && v_idx < planetVertices.size()) {
-                    glm::vec3 edgeVertices[2] = {
-                        planetVertices[u_idx],
-                        planetVertices[v_idx]
-                    };
-
-                    // Update VBO data for this single edge
-                    // Use glBufferSubData for potentially better performance than glBufferData
-                    // Allocate buffer size once if possible, or ensure it's large enough
-                    glBufferData(GL_ARRAY_BUFFER, 2 * sizeof(glm::vec3), edgeVertices, GL_DYNAMIC_DRAW); // Keep using glBufferData for simplicity now
-
-                    // Draw the line segment
-                    glDrawArrays(GL_LINES, 0, 2);
-                } else {
-                    std::cerr << "Warning: Invalid edge index in PlateRenderer." << std::endl;
-                }
-            }
-        }
-    }
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
-    glDisable(GL_LINE_SMOOTH);
-    glLineWidth(1.0f); // Reset line width
+    // Unbind and cleanup state
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+    glDisable(GL_LINE_SMOOTH);
+    glLineWidth(1.0f);
     glUseProgram(0);
 }
 
@@ -137,23 +146,30 @@ bool PlateRenderer::compileShaders() {
     std::string vertexSource = R"(
         #version 330 core
         layout (location = 0) in vec3 aPos;
+        layout (location = 1) in vec3 aColor; // Added color attribute
+
         uniform mat4 model;
         uniform mat4 view;
         uniform mat4 projection;
+
+        out vec3 vColor; // Pass color to fragment shader
+
         void main() {
             gl_Position = projection * view * model * vec4(aPos, 1.0);
+            vColor = aColor;
         }
     )";
-    
+
     std::string fragmentSource = R"(
         #version 330 core
+        in vec3 vColor; // Receive color from vertex shader
         out vec4 FragColor;
-        uniform vec3 color;
+
         void main() {
-            FragColor = vec4(color, 1.0);
+            FragColor = vec4(vColor, 1.0);
         }
     )";
-    
+
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     const char* vertexSourcePtr = vertexSource.c_str();
@@ -206,10 +222,9 @@ bool PlateRenderer::compileShaders() {
     m_modelLoc = glGetUniformLocation(m_shaderProgram, "model");
     m_viewLoc = glGetUniformLocation(m_shaderProgram, "view");
     m_projectionLoc = glGetUniformLocation(m_shaderProgram, "projection");
-    m_colorLoc = glGetUniformLocation(m_shaderProgram, "color");
 
     // Check if uniforms were found
-    if (m_modelLoc == -1 || m_viewLoc == -1 || m_projectionLoc == -1 || m_colorLoc == -1) {
+    if (m_modelLoc == -1 || m_viewLoc == -1 || m_projectionLoc == -1) {
         std::cerr << "Error: Could not get uniform locations in PlateRenderer shader." << std::endl;
         // You might want to delete the program here if locations are critical
         // glDeleteProgram(m_shaderProgram);
@@ -222,15 +237,24 @@ bool PlateRenderer::compileShaders() {
 
 void PlateRenderer::setupBuffers() {
     glGenVertexArrays(1, &m_vao);
-    glGenBuffers(1, &m_vbo);
-    
+    glGenBuffers(1, &m_vbo);      // For positions
+    glGenBuffers(1, &m_colorVbo); // For colors
+
     glBindVertexArray(m_vao);
+
+    // Position attribute (location 0)
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    
-    // Position attribute
+    // We'll upload data in render(), so just configure the attribute pointer for now
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    
+
+    // Color attribute (location 1)
+    glBindBuffer(GL_ARRAY_BUFFER, m_colorVbo);
+    // We'll upload data in render(), so just configure the attribute pointer for now
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+
+    // Unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 }

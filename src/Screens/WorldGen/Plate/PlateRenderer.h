@@ -24,14 +24,14 @@ public:
 private:
     // OpenGL objects
     GLuint m_vao;
-    GLuint m_vbo;
+    GLuint m_vbo; // Vertex positions
+    GLuint m_colorVbo; // Added: Vertex colors
     GLuint m_shaderProgram;
     
     // Shader uniforms
     GLint m_modelLoc;
     GLint m_viewLoc;
     GLint m_projectionLoc;
-    GLint m_colorLoc;
     
     // Helper methods
     bool compileShaders();

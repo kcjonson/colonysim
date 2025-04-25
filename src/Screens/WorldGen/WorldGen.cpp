@@ -43,7 +43,7 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)
     
     // Initialize plate generator and renderer
     WorldGen::PlanetParameters params;
-    params.numTectonicPlates = 8;  // Hardcode 8 plates for now
+    params.numTectonicPlates = 12;  // Hardcode 8 plates for now
     m_plateGenerator = std::make_unique<WorldGen::PlateGenerator>(params, seed);
     m_plateRenderer = std::make_unique<WorldGen::PlateRenderer>();
     m_globeRenderer = std::make_unique<WorldGen::GlobeRenderer>();

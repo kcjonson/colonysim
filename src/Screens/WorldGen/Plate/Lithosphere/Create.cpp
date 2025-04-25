@@ -49,7 +49,7 @@ void Lithosphere::GeneratePlateCenters(std::vector<glm::vec3>& centers, int numP
     // Minimum distance between plate centers (adjusted based on number of plates)
     // Use angular distance for sphere
     // Reduce the factor further for potentially better spacing
-    float minAngleDistance = 1.2f * std::sqrt(4.0f * glm::pi<float>() / static_cast<float>(numPlates)); // Adjusted factor
+    float minAngleDistance = 0.8f * std::sqrt(4.0f * glm::pi<float>() / static_cast<float>(numPlates)); // Adjusted factor
     std::cout << "Minimum angle distance: " << minAngleDistance << std::endl; // Added log
 
     // Generate first point randomly
@@ -77,7 +77,13 @@ void Lithosphere::GeneratePlateCenters(std::vector<glm::vec3>& centers, int numP
         if (attempts > 0 && attempts % 1000 == 0) { // Log every 1000 attempts
             std::cout << "GeneratePlateCenters attempt " << attempts << ", centers found: " << centers.size() << std::endl;
         }
-        // Generate random point on sphere
+
+        /* 
+        Generate random point on sphere
+        This loop repeatedly generates random 3D points within a cube from (-1,-1,-1) to (1,1,1) until it finds one that is not extremely close to the origin (0,0,0). 
+        This avoids potential issues with zero vectors, especially since the next step in the surrounding code is to normalize 
+        this candidate vector (dividing by its length), which would fail if the length were zero.
+        */
         glm::vec3 candidate;
         do {
             candidate = glm::vec3(

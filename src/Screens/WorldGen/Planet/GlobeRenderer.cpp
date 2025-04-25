@@ -16,7 +16,8 @@ GlobeRenderer::GlobeRenderer()
     , m_cameraDistance(5.0f)
     , m_viewportWidth(800)
     , m_viewportHeight(600) {
-    m_planetData = std::make_unique<PlanetData>();
+
+    m_planetData = std::make_unique<PlanetData>(1.0f, 64);  // second arg is resolution (increase for more detail, hurts performance)
 }
 
 GlobeRenderer::~GlobeRenderer() {
@@ -228,4 +229,4 @@ void GlobeRenderer::updateModelMatrix() {
     m_modelMatrix = glm::rotate(m_modelMatrix, m_rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
-} // namespace WorldGen 
+} // namespace WorldGen
