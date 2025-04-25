@@ -99,44 +99,20 @@ bool ScreenManager::initialize() {
         return false;
     }
 
-    // *** Create all screens now that camera and window are ready ***
-    try {
-        // Pass camera and window pointers to constructors where needed
-        screens[ScreenType::Splash] = std::make_unique<SplashScreen>(camera.get(), window); // Pass camera and window
-        screens[ScreenType::MainMenu] = std::make_unique<MainMenuScreen>(camera.get(), window);
-        screens[ScreenType::WorldGen] = std::make_unique<WorldGenScreen>(camera.get(), window);
-        // Update to create GameScreen instead of GameplayScreen
-        screens[ScreenType::Gameplay] = std::make_unique<GameScreen>(camera.get(), window);
-        screens[ScreenType::Settings] = std::make_unique<SettingsScreen>(camera.get(), window);
-        screens[ScreenType::Developer] = std::make_unique<DeveloperScreen>(camera.get(), window);
-    }
-    catch (const std::exception& e) {
-        std::cerr << "ERROR: Failed to create screens: " << e.what() << std::endl;
-        return false;
-    }
-    catch (...) {
-        std::cerr << "ERROR: Unknown exception when creating screens" << std::endl;
-        return false;
-    }
+    // *** Create screen factories (do NOT create screens yet) ***
+    screenFactories[ScreenType::Splash] = [this]() { return std::make_unique<SplashScreen>(camera.get(), window); };
+    screenFactories[ScreenType::MainMenu] = [this]() { return std::make_unique<MainMenuScreen>(camera.get(), window); };
+    screenFactories[ScreenType::WorldGen] = [this]() { return std::make_unique<WorldGenScreen>(camera.get(), window); };
+    screenFactories[ScreenType::Gameplay] = [this]() { return std::make_unique<GameScreen>(camera.get(), window); };
+    screenFactories[ScreenType::Settings] = [this]() { return std::make_unique<SettingsScreen>(camera.get(), window); };
+    screenFactories[ScreenType::Developer] = [this]() { return std::make_unique<DeveloperScreen>(camera.get(), window); };
 
-    // *** Initialize all screens ***
-    for (auto& [type, screen] : screens) {
-        if (!screen) {
-            std::cerr << "ERROR: Screen is null for type: " << static_cast<int>(type) << std::endl;
-            return false; // Fail initialization if a screen is null
-        }
-        screen->setScreenManager(this); // Set manager reference
-        if (!screen->initialize()) {
-            std::cerr << "Failed to initialize screen: " << static_cast<int>(type) << std::endl;
-            return false;
-        }
-    }
-
-    // Set current screen to splash screen
-    currentScreen = screens[ScreenType::Splash].get();
+    // Only create and initialize the splash screen at startup
+    initializeScreen(ScreenType::Splash);
+    currentScreen = activeScreens[ScreenType::Splash].get();
     if (!currentScreen) {
-         std::cerr << "ERROR: Splash screen is null after creation" << std::endl;
-         return false;
+        std::cerr << "ERROR: Splash screen is null after creation" << std::endl;
+        return false;
     }
 
     std::cout << "ScreenManager initialization complete." << std::endl;
@@ -340,19 +316,36 @@ void ScreenManager::run() {
     std::cout << "Game loop ended" << std::endl;
 }
 
-void ScreenManager::switchScreen(ScreenType screenType) {
-    auto it = screens.find(screenType);
-    if (it != screens.end()) {
-        currentScreen = it->second.get();
-        std::cout << "Switched to screen: " << static_cast<int>(screenType) << std::endl;
-    } else {
-        std::cerr << "Screen not found: " << static_cast<int>(screenType) << std::endl;
+void ScreenManager::initializeScreen(ScreenType screenType) {
+    // If already created, do nothing
+    if (activeScreens.count(screenType) && activeScreens[screenType]) return;
+    auto it = screenFactories.find(screenType);
+    if (it == screenFactories.end()) {
+        std::cerr << "ERROR: No factory registered for screen type: " << static_cast<int>(screenType) << std::endl;
+        return;
     }
+    auto screen = it->second();
+    screen->setScreenManager(this);
+    if (!screen->initialize()) {
+        std::cerr << "Failed to initialize screen: " << static_cast<int>(screenType) << std::endl;
+        return;
+    }
+    activeScreens[screenType] = std::move(screen);
+}
+
+void ScreenManager::switchScreen(ScreenType screenType) {
+    // Lazy initialize if needed
+    initializeScreen(screenType);
+    if (!activeScreens[screenType]) {
+        std::cerr << "ERROR: Screen instance is null for type: " << static_cast<int>(screenType) << std::endl;
+        return;
+    }
+    currentScreen = activeScreens[screenType].get();
 }
 
 void ScreenManager::cleanup() {
     // Clear screens first
-    screens.clear();
+    activeScreens.clear();
     
     // Clear other resources
     examples.reset();

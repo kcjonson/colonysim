@@ -43,7 +43,7 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)
     
     // Initialize plate generator and renderer
     WorldGen::PlanetParameters params;
-    params.numTectonicPlates = 12;  // Hardcode 8 plates for now
+    params.numTectonicPlates = 24;  // Hardcode 8 plates for now
     m_plateGenerator = std::make_unique<WorldGen::PlateGenerator>(params, seed);
     m_plateRenderer = std::make_unique<WorldGen::PlateRenderer>();
     m_globeRenderer = std::make_unique<WorldGen::GlobeRenderer>();
@@ -317,11 +317,27 @@ void WorldGenScreen::render() {
     float viewWidth = viewHeight * aspect;
     float offsetWorldX = (sidebarWidthPx / static_cast<float>(width)) * viewWidth / 2.0f;
     m_globeRenderer->setHorizontalOffset(offsetWorldX);
-    // Model matrix with horizontal offset for both globe and plates
     glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(offsetWorldX, 0.0f, 0.0f));
     modelMatrix = glm::rotate(modelMatrix, m_rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
 
-    // --- Render globe and plates (opaque, no blending) ---
+    // --- Render stars (background, always first, blending enabled) ---
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    starLayer->render();
+
+    // --- Render sidebar background (blending enabled, before globe) ---
+    // Only render the sidebar/background layer, not all UI layers yet
+    auto uiLayers = m_worldGenUI->getAllLayers();
+    // Find the sidebar layer (zIndex == 100.0f by convention)
+    for (const auto& layer : uiLayers) {
+        if (layer->getZIndex() == 100.0f) {
+            layer->render();
+            break;
+        }
+    }
+
+    // --- Render globe and plates (opaque, depth test ON, blending OFF) ---
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
     m_globeRenderer->render(m_viewMatrix, m_projectionMatrix);
@@ -331,23 +347,15 @@ void WorldGenScreen::render() {
         glLineWidth(1.0f);
     }
 
-    // --- Render stars (blending enabled, so they show through sidebar) ---
+    // --- Render remaining UI layers (controls, buttons, preview, etc) ---
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    // Render only the star layer
-    starLayer->render();
-
-    // --- Render UI/sidebar (blending enabled, sidebar is semi-transparent) ---
-    std::vector<std::shared_ptr<Rendering::Layer>> uiLayers = m_worldGenUI->getAllLayers();
-    // Sort layers by z-index
-    std::sort(uiLayers.begin(), uiLayers.end(),
-        [](const std::shared_ptr<Rendering::Layer>& a, const std::shared_ptr<Rendering::Layer>& b) {
-            return a->getZIndex() < b->getZIndex();
-        }
-    );
+    // Render all UI layers except the sidebar (already rendered)
     for (const auto& layer : uiLayers) {
-        layer->render();
+        if (layer->getZIndex() != 100.0f) {
+            layer->render();
+        }
     }
 }
 

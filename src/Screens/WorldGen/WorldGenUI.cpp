@@ -348,29 +348,7 @@ void WorldGenUI::setupParameterUI(int windowWidth, int windowHeight, int worldWi
         150.0f  // Z-index matching controlsLayer
     );
     controlsLayer->addItem(seedValue);
-    
-    // Preview area message
-    auto customizeMsg = std::make_shared<Rendering::Shapes::Text>(
-        "Use the controls to customize your world",
-        glm::vec2(sidebarWidth + 20.0f, windowHeight / 2.0f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 24.0f
-        }),
-        50.0f  // Z-index matching previewLayer
-    );
-    previewLayer->addItem(customizeMsg);
-    
-    auto generateMsg = std::make_shared<Rendering::Shapes::Text>(
-        "Click 'Generate World' to create your world",
-        glm::vec2(sidebarWidth + 20.0f, windowHeight / 2.0f + 40.0f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 24.0f
-        }),
-        50.0f  // Z-index matching previewLayer
-    );
-    previewLayer->addItem(generateMsg);
+    // Do not add any preview area text here. The previewLayer should remain empty in this state.
 }
 
 void WorldGenUI::setupGeneratingUI(int windowWidth, int windowHeight) {
@@ -456,7 +434,7 @@ void WorldGenUI::setupGeneratingUI(int windowWidth, int windowHeight) {
 void WorldGenUI::setupViewingUI(int windowWidth, int windowHeight) {
     // Create title
     auto titleText = std::make_shared<Rendering::Shapes::Text>(
-        "World Generated",
+        "World Generation Complete!",
         glm::vec2(40.0f, 70.0f),
         Rendering::Styles::Text({
             .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
@@ -465,44 +443,7 @@ void WorldGenUI::setupViewingUI(int windowWidth, int windowHeight) {
         150.0f  // Z-index matching controlsLayer
     );
     controlsLayer->addItem(titleText);
-    
-    // World stats section
-    float startY = 150.0f;
-    float lineHeight = 30.0f;
-    
-    auto statsTitle = std::make_shared<Rendering::Shapes::Text>(
-        "World Statistics:",
-        glm::vec2(40.0f, startY),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 24.0f
-        }),
-        150.0f  // Z-index matching controlsLayer
-    );
-    controlsLayer->addItem(statsTitle);
-    
-    // Preview area message
-    auto generatedMsg = std::make_shared<Rendering::Shapes::Text>(
-        "World Generated",
-        glm::vec2(sidebarWidth + 20.0f, windowHeight / 2.0f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 32.0f
-        }),
-        50.0f  // Z-index matching previewLayer
-    );
-    previewLayer->addItem(generatedMsg);
-    
-    auto landMsg = std::make_shared<Rendering::Shapes::Text>(
-        "Click 'Land' to begin",
-        glm::vec2(sidebarWidth + 20.0f, windowHeight / 2.0f + 50.0f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 24.0f
-        }),
-        50.0f  // Z-index matching previewLayer
-    );
-    previewLayer->addItem(landMsg);
+    // No world stats or preview area message here; all status is shown in the field beneath the globe.
 }
 
 bool WorldGenUI::isPointInRect(float px, float py, float rx, float ry, float rw, float rh) {

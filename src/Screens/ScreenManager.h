@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <functional>
 #include "Screen.h"
 
 // Forward declarations
@@ -54,6 +55,8 @@ public:
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
     static void cursorPosCallback(GLFWwindow* window, double xpos, double ypos);
 
+    void initializeScreen(ScreenType screenType); // Manually initialize a screen (preload)
+
 private:
     // Game shared resources
     GLFWwindow* window;
@@ -65,8 +68,9 @@ private:
     // Removed: std::unique_ptr<Interface> interface;
     std::unique_ptr<Examples> examples;
     
-    // Screen management
-    std::unordered_map<ScreenType, std::unique_ptr<Screen>> screens;
+    // Screen management (lazy init)
+    std::unordered_map<ScreenType, std::function<std::unique_ptr<Screen>()>> screenFactories;
+    std::unordered_map<ScreenType, std::unique_ptr<Screen>> activeScreens;
     Screen* currentScreen;
     bool isRunning;
     

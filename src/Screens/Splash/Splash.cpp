@@ -49,6 +49,10 @@ bool SplashScreen::initialize() {
         110.0f  // Z-index
     );
     splashLayer->addItem(titleText);
+
+    // Manually initialize the main menu screen
+    // move to end of any heavy loading we need to do.
+    screenManager->initializeScreen(ScreenType::MainMenu);
     
     return true;
 }
