@@ -33,6 +33,14 @@ private:
     GLint m_viewLoc;
     GLint m_projectionLoc;
     
+    // Cached geometry for crust thickness lines
+    std::vector<glm::vec3> m_thicknessLineVertices;
+    std::vector<glm::vec4> m_thicknessLineColors;
+    bool m_thicknessCacheDirty = true;
+    size_t m_lastPlateHash = 0;
+    void updateThicknessLineCache(const std::vector<std::shared_ptr<TectonicPlate>>& plates,
+                                  const std::vector<glm::vec3>& planetVertices);
+
     // Helper methods
     bool compileShaders();
     void setupBuffers();

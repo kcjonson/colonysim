@@ -17,6 +17,7 @@ public:
     void render(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
     void setRotationAngle(float angle);
     void setCameraDistance(float distance);
+    void setHorizontalOffset(float offset); // Add this
     void resize(int width, int height);
     const PlanetData* getPlanetData() const { return m_planetData.get(); } // Added getter
     
@@ -33,6 +34,7 @@ private:
     glm::mat4 m_modelMatrix;
     float m_rotationAngle;
     float m_cameraDistance;
+    float m_horizontalOffset = 0.0f; // Add this
     int m_viewportWidth;
     int m_viewportHeight;
     
@@ -47,7 +49,7 @@ private:
     // Helper methods
     bool compileShaders();
     void setupBuffers();
-    void updateModelMatrix();
+    void updateModelMatrix(); // Will use m_horizontalOffset
 };
 
 } // namespace WorldGen

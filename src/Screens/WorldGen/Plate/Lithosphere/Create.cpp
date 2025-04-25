@@ -170,6 +170,7 @@ void Lithosphere::AssignVerticesToPlates(const std::vector<glm::vec3>& planetVer
 
 void Lithosphere::InitializePlateProperties() {
     float totalMassRecalc = 0.0f; // For debug
+    std::uniform_real_distribution<float> noiseDist(-0.05f, 0.05f); // Add up to ±0.05 noise
     for (auto& plate : m_plates) {
         float plateMass = 0.0f;
         float initialThickness = (plate->GetType() == PlateType::Continental) ? 0.5f : 0.2f; // Example values
@@ -177,13 +178,12 @@ void Lithosphere::InitializePlateProperties() {
 
         const auto& vertexIndices = plate->GetVertexIndices();
         for (int vertexIndex : vertexIndices) {
-            // TODO: Add noise or more complex initialization later
-            plate->SetVertexCrustThickness(vertexIndex, initialThickness);
+            // Add random noise to thickness
+            float noisyThickness = initialThickness + noiseDist(m_random);
+            noisyThickness = glm::clamp(noisyThickness, 0.01f, 2.0f); // Clamp to valid range
+            plate->SetVertexCrustThickness(vertexIndex, noisyThickness);
             plate->SetVertexCrustAge(vertexIndex, initialAge);
-
-            // Assume vertex area is roughly constant for mass calculation for now
-            // A better approach would use actual mesh face areas associated with the vertex
-            plateMass += initialThickness; // Simplified mass contribution
+            plateMass += noisyThickness; // Use noisy thickness for mass
         }
         plate->SetTotalMass(plateMass);
         totalMassRecalc += plateMass;

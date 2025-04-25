@@ -3,7 +3,7 @@
 * Please always read this file and make sure you do all these things on every instruction that I give.
 * The terminal is Powershell 7, make sure to use the correct Powershell 7 syntax when executing commands
 * The build can be run via the config in the tasks.json file. Thats the definitive place to look. Don't try and run the build in ways not specified there.
-* The build should be run after you make code changes to make sure there are no build errors. If there are errors, your work is not done, iterate to fix them before declaring that you're done.
+* The build should be run after you make code changes to make sure there are no build errors. If there are errors, your work is not done, iterate to fix them before declaring that you're done. Do not run the build if you have not made code changes since the last time you ran the build.
 * Do not just add comments and expect things to change, make sure you've actually made meaningful changes in code.
 * Do not make unrelated changes to comments in files that you're working on. Leave existing comments alone unless they are out of date, wrong, or I expressly ask you to remove them.
 * Remember to add/update things in the CMakeLists when you're creating, moving, or deleting files, but keep in mind we use glob syntax there, so you probally don't have to.

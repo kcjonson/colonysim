@@ -221,6 +221,20 @@ void WorldGenUI::layoutUI(int windowWidth, int windowHeight, int worldWidth, int
         );
         buttonLayer->addItem(buttons[i].label);
     }
+    
+    // Add status/progress text at bottom center for all states
+    auto statusText = std::make_shared<Rendering::Shapes::Text>(
+        statusMessage,
+        glm::vec2(windowWidth / 2.0f, windowHeight - 40.0f),
+        Rendering::Styles::Text({
+            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            .fontSize = 20.0f,
+            .horizontalAlign = Rendering::TextAlign::Center,
+            .verticalAlign = Rendering::TextAlign::Middle
+        }),
+        250.0f // Above most UI
+    );
+    controlsLayer->addItem(statusText);
 }
 
 void WorldGenUI::setupParameterUI(int windowWidth, int windowHeight, int worldWidth, int worldHeight, 
@@ -414,18 +428,6 @@ void WorldGenUI::setupGeneratingUI(int windowWidth, int windowHeight) {
         152.0f  // Z-index above fill
     );
     controlsLayer->addItem(progressText);
-    
-    // Status message
-    auto statusText = std::make_shared<Rendering::Shapes::Text>(
-        statusMessage,
-        glm::vec2(40.0f, progressBarY + progressBarHeight + 30.0f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f
-        }),
-        150.0f  // Z-index matching controlsLayer
-    );
-    controlsLayer->addItem(statusText);
     
     // Preview area message
     auto generatingMsg = std::make_shared<Rendering::Shapes::Text>(

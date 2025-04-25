@@ -307,45 +307,46 @@ void WorldGenScreen::render() {
     
     // Use the full window viewport for all rendering
     glViewport(0, 0, width, height);
-    
-    // First render the 3D globe and plates with depth testing
+
+    // Calculate horizontal offset for planet in world units
+    float sidebarWidthPx = m_worldGenUI->getSidebarWidth();
+    float fovY = glm::radians(45.0f);
+    float aspect = static_cast<float>(width) / height;
+    float tanHalfFovY = tan(fovY / 2.0f);
+    float viewHeight = 2.0f * m_cameraDistance * tanHalfFovY;
+    float viewWidth = viewHeight * aspect;
+    float offsetWorldX = (sidebarWidthPx / static_cast<float>(width)) * viewWidth / 2.0f;
+    m_globeRenderer->setHorizontalOffset(offsetWorldX);
+    // Model matrix with horizontal offset for both globe and plates
+    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(offsetWorldX, 0.0f, 0.0f));
+    modelMatrix = glm::rotate(modelMatrix, m_rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
+
+    // --- Render globe and plates (opaque, no blending) ---
     glEnable(GL_DEPTH_TEST);
-    
-    // Create model matrix for both globe and plates
-    glm::mat4 modelMatrix = glm::rotate(glm::mat4(1.0f), m_rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
-    
-    // Render the globe
+    glDisable(GL_BLEND);
     m_globeRenderer->render(m_viewMatrix, m_projectionMatrix);
-    
-    // Render plates if they've been generated
     if (m_platesGenerated && !m_plates.empty()) {
-        glLineWidth(2.0f); // Make plate boundaries more visible (optional)
-        // Pass planet vertices needed for drawing edges
+        glLineWidth(2.0f);
         m_plateRenderer->render(m_plates, m_planetVertices, modelMatrix, m_viewMatrix, m_projectionMatrix);
         glLineWidth(1.0f);
     }
-    
-    // Now render the 2D UI elements over the 3D scene
+
+    // --- Render stars (blending enabled, so they show through sidebar) ---
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    
-    // Get UI layers
+    // Render only the star layer
+    starLayer->render();
+
+    // --- Render UI/sidebar (blending enabled, sidebar is semi-transparent) ---
     std::vector<std::shared_ptr<Rendering::Layer>> uiLayers = m_worldGenUI->getAllLayers();
-    
-    // Collect all layers in a vector
-    std::vector<std::shared_ptr<Rendering::Layer>> allLayers = {starLayer};
-    allLayers.insert(allLayers.end(), uiLayers.begin(), uiLayers.end());
-    
     // Sort layers by z-index
-    std::sort(allLayers.begin(), allLayers.end(),
+    std::sort(uiLayers.begin(), uiLayers.end(),
         [](const std::shared_ptr<Rendering::Layer>& a, const std::shared_ptr<Rendering::Layer>& b) {
             return a->getZIndex() < b->getZIndex();
         }
     );
-    
-    // Render layers in sorted order
-    for (const auto& layer : allLayers) {
+    for (const auto& layer : uiLayers) {
         layer->render();
     }
 }

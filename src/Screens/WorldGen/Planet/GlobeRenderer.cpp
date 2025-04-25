@@ -17,7 +17,7 @@ GlobeRenderer::GlobeRenderer()
     , m_viewportWidth(800)
     , m_viewportHeight(600) {
 
-    m_planetData = std::make_unique<PlanetData>(1.0f, 64);  // second arg is resolution (increase for more detail, hurts performance)
+    m_planetData = std::make_unique<PlanetData>(1.0f, 128);  // second arg is resolution (increase for more detail, hurts performance)
 }
 
 GlobeRenderer::~GlobeRenderer() {
@@ -44,6 +44,8 @@ bool GlobeRenderer::initialize() {
 }
 
 void GlobeRenderer::render(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+    // Ensure blending is disabled for planet
+    glDisable(GL_BLEND);
     glUseProgram(m_shaderProgram);
     
     // Update matrices
@@ -85,6 +87,11 @@ void GlobeRenderer::setCameraDistance(float distance) {
 void GlobeRenderer::resize(int width, int height) {
     m_viewportWidth = width;
     m_viewportHeight = height;
+}
+
+void GlobeRenderer::setHorizontalOffset(float offset) {
+    m_horizontalOffset = offset;
+    updateModelMatrix();
 }
 
 bool GlobeRenderer::compileShaders() {
@@ -225,7 +232,9 @@ void GlobeRenderer::setupBuffers() {
 }
 
 void GlobeRenderer::updateModelMatrix() {
+    // Apply translation by m_horizontalOffset (X axis), then rotation
     m_modelMatrix = glm::mat4(1.0f);
+    m_modelMatrix = glm::translate(m_modelMatrix, glm::vec3(m_horizontalOffset, 0.0f, 0.0f));
     m_modelMatrix = glm::rotate(m_modelMatrix, m_rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
