@@ -8,7 +8,7 @@
 #include "TerrainGenerator.h"
 #include "VectorGraphics.h"
 #include <algorithm> // Keep algorithm include
-#include "Plate/Lithosphere.h" // Added include for Lithosphere
+#include "Plate/Lithosphere/Lithosphere.h" // Corrected include path for Lithosphere
 #include "Planet/PlanetData.h" // Added include for PlanetData
 
 // Initialize the static instances map

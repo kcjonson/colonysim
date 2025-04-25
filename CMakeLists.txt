@@ -26,13 +26,11 @@ find_package(Catch2 CONFIG REQUIRED)
 file(GLOB_RECURSE SOURCES 
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
-     "${CMAKE_CURRENT_SOURCE_DIR}/src/Screens/WorldGen/WorldGenUI.cpp"
-     "${CMAKE_CURRENT_SOURCE_DIR}/src/Screens/WorldGen/Plate/Lithosphere.cpp")
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/Screens/WorldGen/WorldGenUI.cpp")
 
 file(GLOB_RECURSE HEADERS
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp"
-     "${CMAKE_CURRENT_SOURCE_DIR}/src/Screens/WorldGen/Plate/Lithosphere.h"
      "${CMAKE_CURRENT_SOURCE_DIR}/src/Screens/WorldGen/WorldGenParameters.h")
 
 # Create executable

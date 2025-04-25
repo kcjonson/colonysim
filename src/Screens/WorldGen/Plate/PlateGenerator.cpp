@@ -3,7 +3,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
 #include "PlateGenerator.h"
-#include "Lithosphere.h" // Include Lithosphere
+#include "Lithosphere/Lithosphere.h" // Include Lithosphere from subdirectory
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtx/norm.hpp>
