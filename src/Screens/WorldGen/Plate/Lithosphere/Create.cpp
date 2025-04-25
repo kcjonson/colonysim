@@ -48,7 +48,7 @@ void Lithosphere::GeneratePlateCenters(std::vector<glm::vec3>& centers, int numP
 
     // Minimum distance between plate centers (adjusted based on number of plates)
     // Use angular distance for sphere
-    // Reduce the factor from 1.8f to 1.2f for potentially better spacing
+    // Reduce the factor further for potentially better spacing
     float minAngleDistance = 1.2f * std::sqrt(4.0f * glm::pi<float>() / static_cast<float>(numPlates)); // Adjusted factor
     std::cout << "Minimum angle distance: " << minAngleDistance << std::endl; // Added log
 

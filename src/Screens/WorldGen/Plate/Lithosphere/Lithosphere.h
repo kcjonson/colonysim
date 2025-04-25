@@ -33,8 +33,8 @@ public:
 
 
 private:
-    // Use PlanetParameters from WorldGenParameters.h
-    const PlanetParameters& m_parameters;
+    // Store parameters by value, not reference
+    PlanetParameters m_parameters;
     std::mt19937_64 m_random;
     std::vector<std::shared_ptr<TectonicPlate>> m_plates;
 
