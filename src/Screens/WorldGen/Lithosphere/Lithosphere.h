@@ -5,8 +5,8 @@
 #include <random>
 #include <glm/glm.hpp>
 #include <map> // Added for boundary map
-#include "../TectonicPlate.h" // Corrected relative path
-#include "../../WorldGenParameters.h" // Corrected relative path
+#include "Plate/TectonicPlate.h" // Updated path to TectonicPlate.h
+#include "../Core/WorldGenParameters.h" // Updated path to WorldGenParameters.h
 
 namespace WorldGen {
 

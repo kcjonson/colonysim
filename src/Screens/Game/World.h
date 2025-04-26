@@ -12,7 +12,7 @@
 #include <memory>
 #include <glm/glm.hpp>
 #include "../../GameState.h"
-#include "../WorldGen/TerrainGenerator.h" // Includes TileCoord and its hash specialization
+#include "../WorldGen/Core/TerrainGenerator.h" // Updated path to TerrainGenerator.h
 
 class World {
 public:

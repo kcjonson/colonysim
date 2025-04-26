@@ -6,11 +6,11 @@
 #include <memory>
 #include <glm/glm.hpp>
 #include <unordered_map>
-#include "../../Rendering/Layer.h"
-#include "../../Rendering/Shapes/Rectangle.h"
-#include "../../Rendering/Shapes/Text.h"
-#include "TerrainGenerator.h"
-#include "../MainMenu/MainMenu.h" // For MenuButton structure
+#include "../../../Rendering/Layer.h"
+#include "../../../Rendering/Shapes/Rectangle.h"
+#include "../../../Rendering/Shapes/Text.h"
+#include "../Core/TerrainGenerator.h" // Updated path to Core directory
+#include "../../MainMenu/MainMenu.h" // Updated path to MainMenu.h
 
 struct GLFWwindow;
 class Camera;

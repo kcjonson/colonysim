@@ -5,11 +5,11 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <random>
-#include "TerrainGenerator.h"
+#include "Core/TerrainGenerator.h"
 #include "VectorGraphics.h"
 #include <algorithm> // Keep algorithm include
-#include "Plate/Lithosphere/Lithosphere.h" // Corrected include path for Lithosphere
-#include "Planet/PlanetData.h" // Added include for PlanetData
+#include "Lithosphere/Lithosphere.h" // Updated path to Lithosphere
+#include "Renderers/PlanetData.h" // Updated path from Planet to Renderers
 
 // Initialize the static instances map
 std::unordered_map<GLFWwindow*, WorldGenScreen*> WorldGenScreen::s_instances;

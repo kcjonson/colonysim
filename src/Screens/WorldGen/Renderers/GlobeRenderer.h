@@ -4,7 +4,7 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include "PlanetData.h"
+#include "PlanetData.h" // Updated include path
 
 namespace WorldGen {
 
@@ -17,9 +17,9 @@ public:
     void render(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
     void setRotationAngle(float angle);
     void setCameraDistance(float distance);
-    void setHorizontalOffset(float offset); // Add this
+    void setHorizontalOffset(float offset);
     void resize(int width, int height);
-    const PlanetData* getPlanetData() const { return m_planetData.get(); } // Added getter
+    const PlanetData* getPlanetData() const { return m_planetData.get(); }
     
 private:
     std::unique_ptr<PlanetData> m_planetData;
@@ -34,7 +34,7 @@ private:
     glm::mat4 m_modelMatrix;
     float m_rotationAngle;
     float m_cameraDistance;
-    float m_horizontalOffset = 0.0f; // Add this
+    float m_horizontalOffset = 0.0f;
     int m_viewportWidth;
     int m_viewportHeight;
     
@@ -49,7 +49,7 @@ private:
     // Helper methods
     bool compileShaders();
     void setupBuffers();
-    void updateModelMatrix(); // Will use m_horizontalOffset
+    void updateModelMatrix();
 };
 
 } // namespace WorldGen

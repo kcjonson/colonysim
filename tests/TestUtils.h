@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include "../src/Screens/WorldGen/TerrainGenerator.h" // Include for WorldGen::TileCoord and WorldGen::TerrainData
+#include "../src/Screens/WorldGen/Core/TerrainGenerator.h" // Include for WorldGen::TileCoord and WorldGen::TerrainData
 
 // Utility for measuring execution time
 class TimingHelper {

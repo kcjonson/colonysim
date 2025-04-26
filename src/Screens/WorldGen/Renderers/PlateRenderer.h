@@ -1,6 +1,6 @@
 #pragma once
 
-#include "TectonicPlate.h"
+#include "../Lithosphere/Plate/TectonicPlate.h" // Updated path to TectonicPlate.h
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <vector>

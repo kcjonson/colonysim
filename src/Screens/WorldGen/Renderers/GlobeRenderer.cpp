@@ -95,7 +95,7 @@ void GlobeRenderer::setHorizontalOffset(float offset) {
 }
 
 bool GlobeRenderer::compileShaders() {
-    // Load shader source code from files
+    // Updated shader paths to reflect our new folder structure
     std::string vertexShaderPath = "shaders/Planet/PlanetVertex.glsl";
     std::string fragmentShaderPath = "shaders/Planet/PlanetFragment.glsl";
     

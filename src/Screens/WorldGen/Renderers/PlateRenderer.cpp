@@ -169,68 +169,68 @@ void PlateRenderer::render(
     }
 
     // --- Draw true boundary lines (at top plate edge) ---
-    std::vector<glm::vec3> boundaryLineVertices;
-    std::vector<glm::vec4> boundaryLineColors;
-    for (const auto& plate : plates) {
-        for (const auto& boundary : plate->GetBoundaries()) {
-            int plate1Id = plate->GetId();
-            int plate2Id = (boundary.plate1Index == plate1Id) ? boundary.plate2Index : boundary.plate1Index;
-            if (plate1Id >= plate2Id) continue; // Only draw once per boundary
-            // Determine which plate is on top at this boundary
-            const TectonicPlate* topPlate = nullptr;
-            if (plate->GetType() == PlateType::Continental) {
-                topPlate = plate.get();
-            } else {
-                // If both oceanic, pick younger (lower avg age at boundary)
-                const TectonicPlate* other = nullptr;
-                for (const auto& p : plates) if (p->GetId() == plate2Id) other = p.get();
-                if (other && other->GetType() == PlateType::Continental) {
-                    topPlate = other;
-                } else if (other) {
-                    // Both oceanic: pick younger
-                    float age1 = 0, age2 = 0;
-                    int n1 = 0, n2 = 0;
-                    for (int idx : boundary.m_sharedVertexIndices) {
-                        if (plate->GetVertexCrustAge(idx) > 0) { age1 += plate->GetVertexCrustAge(idx); n1++; }
-                        if (other->GetVertexCrustAge(idx) > 0) { age2 += other->GetVertexCrustAge(idx); n2++; }
-                    }
-                    float avg1 = n1 ? age1/n1 : 1e6f;
-                    float avg2 = n2 ? age2/n2 : 1e6f;
-                    topPlate = (avg1 < avg2) ? plate.get() : other;
-                }
-            }
-            // Draw the boundary line for all edges in the boundary
-            for (const auto& edge : boundary.m_sharedEdgeIndices) {
-                int u = edge.first, v = edge.second;
-                if (u >= 0 && u < planetVertices.size() && v >= 0 && v < planetVertices.size()) {
-                    boundaryLineVertices.push_back(planetVertices[u]);
-                    boundaryLineVertices.push_back(planetVertices[v]);
-                    boundaryLineColors.push_back(glm::vec4(1.0f, 0.0f, 1.0f, 1.0f)); // Bright magenta, fully opaque
-                    boundaryLineColors.push_back(glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
-                }
-            }
-        }
-    }
-    if (!boundaryLineVertices.empty()) {
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glUseProgram(m_shaderProgram);
-        glUniformMatrix4fv(m_modelLoc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
-        glUniformMatrix4fv(m_viewLoc, 1, GL_FALSE, glm::value_ptr(viewMatrix));
-        glUniformMatrix4fv(m_projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
-        glLineWidth(5.0f);
-        glBindVertexArray(m_vao);
-        glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-        glBufferData(GL_ARRAY_BUFFER, boundaryLineVertices.size() * sizeof(glm::vec3), boundaryLineVertices.data(), GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, m_colorVbo);
-        glBufferData(GL_ARRAY_BUFFER, boundaryLineColors.size() * sizeof(glm::vec4), boundaryLineColors.data(), GL_DYNAMIC_DRAW);
-        glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(boundaryLineVertices.size()));
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-        glLineWidth(1.0f);
-        glUseProgram(0);
-        glDisable(GL_BLEND);
-    }
+    // Disabled: Do not draw plate boundary lines (pink/magenta)
+    // std::vector<glm::vec3> boundaryLineVertices;
+    // std::vector<glm::vec4> boundaryLineColors;
+    // for (const auto& plate : plates) {
+    //     for (const auto& boundary : plate->GetBoundaries()) {
+    //         int plate1Id = plate->GetId();
+    //         int plate2Id = (boundary.plate1Index == plate1Id) ? boundary.plate2Index : boundary.plate1Index;
+    //         if (plate1Id >= plate2Id) continue; // Only draw once per boundary
+    //         // Determine which plate is on top at this boundary
+    //         const TectonicPlate* topPlate = nullptr;
+    //         if (plate->GetType() == PlateType::Continental) {
+    //             topPlate = plate.get();
+    //         } else {
+    //             // If both oceanic, pick younger (lower avg age at boundary)
+    //             const TectonicPlate* other = nullptr;
+    //             for (const auto& p : plates) if (p->GetId() == plate2Id) other = p.get();
+    //             if (other && other->GetType() == PlateType::Continental) {
+    //                 topPlate = other;
+    //             } else if (other) {
+    //                 float age1 = 0, age2 = 0;
+    //                 int n1 = 0, n2 = 0;
+    //                 for (int idx : boundary.m_sharedVertexIndices) {
+    //                     if (plate->GetVertexCrustAge(idx) > 0) { age1 += plate->GetVertexCrustAge(idx); n1++; }
+    //                     if (other->GetVertexCrustAge(idx) > 0) { age2 += other->GetVertexCrustAge(idx); n2++; }
+    //                 }
+    //                 float avg1 = n1 ? age1/n1 : 1e6f;
+    //                 float avg2 = n2 ? age2/n2 : 1e6f;
+    //                 topPlate = (avg1 < avg2) ? plate.get() : other;
+    //             }
+    //         }
+    //         // Draw the boundary line for all edges in the boundary
+    //         for (const auto& edge : boundary.m_sharedEdgeIndices) {
+    //             int u = edge.first, v = edge.second;
+    //             if (u >= 0 && u < planetVertices.size() && v >= 0 && v < planetVertices.size()) {
+    //                 boundaryLineVertices.push_back(planetVertices[u]);
+    //                 boundaryLineVertices.push_back(planetVertices[v]);
+    //                 boundaryLineColors.push_back(glm::vec4(1.0f, 0.0f, 1.0f, 1.0f)); // Bright magenta, fully opaque
+    //                 boundaryLineColors.push_back(glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
+    //             }
+    //         }
+    //     }
+    // }
+    // if (!boundaryLineVertices.empty()) {
+    //     glEnable(GL_BLEND);
+    //     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //     glUseProgram(m_shaderProgram);
+    //     glUniformMatrix4fv(m_modelLoc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
+    //     glUniformMatrix4fv(m_viewLoc, 1, GL_FALSE, glm::value_ptr(viewMatrix));
+    //     glUniformMatrix4fv(m_projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
+    //     glLineWidth(5.0f);
+    //     glBindVertexArray(m_vao);
+    //     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    //     glBufferData(GL_ARRAY_BUFFER, boundaryLineVertices.size() * sizeof(glm::vec3), boundaryLineVertices.data(), GL_DYNAMIC_DRAW);
+    //     glBindBuffer(GL_ARRAY_BUFFER, m_colorVbo);
+    //     glBufferData(GL_ARRAY_BUFFER, boundaryLineColors.size() * sizeof(glm::vec4), boundaryLineColors.data(), GL_DYNAMIC_DRAW);
+    //     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(boundaryLineVertices.size()));
+    //     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //     glBindVertexArray(0);
+    //     glLineWidth(1.0f);
+    //     glUseProgram(0);
+    //     glDisable(GL_BLEND);
+    // }
 }
 
 void PlateRenderer::resize(int width, int height) {

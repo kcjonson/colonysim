@@ -1,89 +1,79 @@
 #pragma once
 
-#include "../Screen.h"
-#include <vector>
-#include <string>
-#include <functional>
+#include "../Screen.h" // Changed from ../GameplayScreen.h to ../Screen.h
 #include <memory>
-#include <glm/glm.hpp>
 #include <unordered_map>
-#include "../../Rendering/Layer.h"
-#include "../../Rendering/Shapes/Rectangle.h"
-#include "../../Rendering/Shapes/Text.h"
-#include "../MainMenu/MainMenu.h" // For MenuButton structure
-#include "TerrainGenerator.h"
-#include "Planet/GlobeRenderer.h"
-#include "Plate/PlateGenerator.h"
-#include "Plate/PlateRenderer.h"
-#include "WorldGenUI.h"
+#include <vector>
+#include <glm/glm.hpp>
+#include "../../Rendering/Layer.h" // Updated path to Layer.h
+#include "../../Rendering/Shapes/Rectangle.h" // Updated path to Rectangle.h
+#include "UI/WorldGenUI.h" // Updated path
+#include "Lithosphere/Plate/TectonicPlate.h" // Updated path
+#include "Lithosphere/Plate/PlateGenerator.h" // Updated path
+#include "Renderers/PlateRenderer.h" // Updated path
+#include "Renderers/GlobeRenderer.h" // Updated path from Planet/GlobeRenderer.h
 
-struct GLFWwindow;
-class Camera;
-
-namespace WorldGen {
-    class PlateGenerator;
-    class PlateRenderer;
-    class GlobeRenderer;
-    class TectonicPlate; // Changed from struct to class
-}
-
-class WorldGenScreen : public Screen {
+class WorldGenScreen : public Screen { // Changed from GameplayScreen to Screen
 public:
     WorldGenScreen(Camera* camera, GLFWwindow* window);
     ~WorldGenScreen() override;
-
+    
     bool initialize() override;
     void update(float deltaTime) override;
     void render() override;
     void handleInput() override;
     void onResize(int width, int height) override;
-
-private:
-    // Window callbacks
-    static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+    
+    // Keep isPointInRect helper method for UI detection
+    bool isPointInRect(float px, float py, float rx, float ry, float rw, float rh);
+    
+    // Scroll handler
     void handleScroll(double xoffset, double yoffset);
 
-    // Helper methods
-    void renderStars(int width, int height);
-    bool isPointInRect(float px, float py, float rx, float ry, float rw, float rh);
-
-    // Used for managing multiple instances with callbacks
-    static std::unordered_map<GLFWwindow*, WorldGenScreen*> s_instances;
-    GLFWwindow* m_window;
-
-    // World generation parameters
+private:
+    // Terrain data
+    std::unordered_map<WorldGen::TileCoord, WorldGen::TerrainData> generatedTerrainData;
+    
+    // Store world parameters
     int worldWidth;
     int worldHeight;
     float waterLevel;
-    int seed;
+    unsigned int seed;
     bool worldGenerated;
-    std::unordered_map<WorldGen::TileCoord, WorldGen::TerrainData> generatedTerrainData; // Store generated terrain using TileCoord
-
-    // Planet rendering
-    std::unique_ptr<WorldGen::GlobeRenderer> m_globeRenderer;
+    
+    // Star background layer
+    std::shared_ptr<Rendering::Layer> starLayer;
+    void renderStars(int width, int height);
+    
+    // 3D rendering properties
     glm::mat4 m_viewMatrix;
     glm::mat4 m_projectionMatrix;
     float m_cameraDistance;
     float m_rotationAngle;
     bool m_isDragging;
-
-    // Star layer (part of Planet display)
-    std::shared_ptr<Rendering::Layer> starLayer;
-
-    // UI system
-    std::unique_ptr<WorldGen::WorldGenUI> m_worldGenUI;
-
-    // Plate generation
-    std::unique_ptr<WorldGen::PlateGenerator> m_plateGenerator;
-    std::unique_ptr<WorldGen::PlateRenderer> m_plateRenderer;
-    std::vector<std::shared_ptr<WorldGen::TectonicPlate>> m_plates;
-    bool m_platesGenerated;
-
-    // Added members for planet mesh data
-    std::vector<glm::vec3> m_planetVertices;
-    std::vector<unsigned int> m_planetIndices;
-
-    // Input tracking
+    
+    // UI and input tracking
     float lastCursorX;
     float lastCursorY;
+    
+    // Tectonic plate system
+    bool m_platesGenerated;
+    std::vector<std::shared_ptr<WorldGen::TectonicPlate>> m_plates;
+    std::vector<glm::vec3> m_planetVertices;
+    std::vector<unsigned int> m_planetIndices;
+    
+    // UI system
+    std::unique_ptr<WorldGen::WorldGenUI> m_worldGenUI;
+    
+    // Planet generation components 
+    std::unique_ptr<WorldGen::PlateGenerator> m_plateGenerator;
+    std::unique_ptr<WorldGen::PlateRenderer> m_plateRenderer;
+    std::unique_ptr<WorldGen::GlobeRenderer> m_globeRenderer;
+    
+    // Store window pointer for callbacks
+    GLFWwindow* m_window;
+    
+    // Static callback handling
+    static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+    static std::unordered_map<GLFWwindow*, WorldGenScreen*> s_instances;
 };
