@@ -25,26 +25,42 @@ Lithosphere::Lithosphere(const PlanetParameters& parameters, uint64_t seed)
 }
 
 
-void Lithosphere::Update(float deltaTime, const std::vector<glm::vec3>& planetVertices, const std::vector<unsigned int>& planetIndices) {
+bool Lithosphere::Update(float deltaTime, const std::vector<glm::vec3>& planetVertices, const std::vector<unsigned int>& planetIndices) {
     // std::cout << "Lithosphere::Update called with deltaTime: " << deltaTime << std::endl;
 
+    // Track whether any changes occurred
+    bool platesChanged = false;
+
     // 1. Move plates based on their velocity and rotation
-    MovePlates(deltaTime);
+    bool platesMoved = MovePlates(deltaTime);
+    platesChanged |= platesMoved;
 
     // 2. Re-assign vertices to the plates based on new centers
-    AssignVerticesToPlates(planetVertices);
+    if (platesMoved) {
+        AssignVerticesToPlates(planetVertices);
+        platesChanged = true;
+    }
 
     // 3. Re-detect boundaries based on the new vertex assignments
-    DetectBoundaries(planetVertices, planetIndices);
+    if (platesChanged) {
+        DetectBoundaries(planetVertices, planetIndices);
+    }
 
     // 4. Analyze boundaries (Determine type, calculate stress)
-    AnalyzeBoundaries(planetVertices); // Pass vertices needed for calculations
+    if (platesChanged) {
+        AnalyzeBoundaries(planetVertices); // Pass vertices needed for calculations
+    }
 
     // 5. Modify crust based on boundary interactions (subduction, uplift, etc.)
-    ModifyCrust(deltaTime); // Pass deltaTime
+    bool crustModified = ModifyCrust(deltaTime); // Pass deltaTime
+    platesChanged |= crustModified;
 
     // 6. Recalculate plate masses based on potentially changed crust thickness
-    RecalculatePlateMasses();
+    if (crustModified) {
+        RecalculatePlateMasses();
+    }
+
+    return platesChanged;
 }
 
 const std::vector<std::shared_ptr<TectonicPlate>>& Lithosphere::GetPlates() const {

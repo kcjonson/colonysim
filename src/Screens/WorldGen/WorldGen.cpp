@@ -22,11 +22,16 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)
     , worldHeight(256)
     , waterLevel(0.4f)
     , worldGenerated(false)
-    , m_cameraDistance(5.0f)
+    , m_cameraDistance(3.0f)  // Adjusted camera distance for better visibility of the planet
     , m_rotationAngle(0.0f)
     , m_isDragging(false)
     , m_platesGenerated(false) 
-    , m_window(window) {
+    , m_window(window)
+    , m_renderGlobe(true)   // Enable base globe rendering by default for fallback
+    , m_renderCrust(true)   // Enable crust rendering by default
+    , m_renderPlates(false) // Disable plate boundaries rendering
+    , m_simulationTimer(0.0f) // Initialize simulation timer
+{
     
     // Register this instance in the static map
     s_instances[window] = this;
@@ -41,12 +46,13 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)
     // Initialize WorldGenUI
     m_worldGenUI = std::make_unique<WorldGen::WorldGenUI>(camera, window);
     
-    // Initialize plate generator and renderer
+    // Initialize planet renderers
     WorldGen::PlanetParameters params;
     params.numTectonicPlates = 24;  // Hardcode 8 plates for now
     m_plateGenerator = std::make_unique<WorldGen::PlateGenerator>(params, seed);
     m_plateRenderer = std::make_unique<WorldGen::PlateRenderer>();
     m_globeRenderer = std::make_unique<WorldGen::GlobeRenderer>();
+    m_crustRenderer = std::make_unique<WorldGen::CrustRenderer>(); // Initialize the CrustRenderer
     
     // Get planet mesh data after initializing GlobeRenderer
     if (m_globeRenderer) {
@@ -83,6 +89,12 @@ bool WorldGenScreen::initialize() {
     // Initialize plate renderer
     if (!m_plateRenderer->initialize()) {
         std::cerr << "Failed to initialize plate renderer" << std::endl;
+        return false;
+    }
+    
+    // Initialize crust renderer
+    if (!m_crustRenderer->initialize()) {
+        std::cerr << "Failed to initialize crust renderer" << std::endl;
         return false;
     }
 
@@ -125,6 +137,9 @@ bool WorldGenScreen::initialize() {
             // Detect initial boundaries using Lithosphere (needs vertex and index data)
             lithosphere->DetectBoundaries(m_planetVertices, m_planetIndices);
 
+            // Explicitly mark geometry as dirty when plates are created
+            m_crustRenderer->markGeometryDirty();
+
             m_worldGenUI->updateProgress(0.4f, "Simulating plate movement...");
 
             // Simulate some movement (placeholder for now, real simulation happens in Update)
@@ -143,6 +158,13 @@ bool WorldGenScreen::initialize() {
 
             // Switch to viewing state after generation is complete
             worldGenerated = true;
+            // Disable base globe rendering now that we have the detailed planet
+            m_renderGlobe = false;
+            
+            // Explicitly mark crust geometry as dirty to force regeneration
+            m_crustRenderer->markGeometryDirty();
+            std::cout << "Globe renderer disabled, crust renderer activated." << std::endl;
+            
             m_worldGenUI->setState(WorldGen::UIState::Viewing);
         } else {
             std::cerr << "Failed to generate plates" << std::endl;
@@ -259,39 +281,73 @@ void WorldGenScreen::renderStars(int width, int height) {
 }
 
 void WorldGenScreen::update(float deltaTime) {
-    // Update camera matrices
+    // Create a view matrix that ensures the planet is visible
+    // Move camera back along Z-axis and look at origin
     m_viewMatrix = glm::lookAt(
-        glm::vec3(0.0f, 0.0f, m_cameraDistance),
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 1.0f, 0.0f)
+        glm::vec3(0.0f, 0.0f, 3.0f),    // Position: closer to make planet more visible
+        glm::vec3(0.0f, 0.0f, 0.0f),    // Look at origin
+        glm::vec3(0.0f, 1.0f, 0.0f)     // Up vector
     );
     
-    // Update projection matrix - use full width for proper aspect ratio
+    // Update projection matrix with wider field of view for debugging
     int width, height;
     glfwGetWindowSize(m_window, &width, &height);
     m_projectionMatrix = glm::perspective(
-        glm::radians(45.0f),
+        glm::radians(60.0f),            // Wider FOV (60 degrees instead of 45)
         static_cast<float>(width) / height,
-        0.1f,
-        100.0f
+        0.1f,                           // Near plane
+        100.0f                          // Far plane
     );
     
-    // Update globe renderer
+    // Print camera parameters for debugging
+    std::cout << "Camera: pos=(0,0," << m_cameraDistance << "), FOV=60°" << std::endl;
+    
+    // Update globe renderer properties
     m_globeRenderer->setRotationAngle(m_rotationAngle);
     m_globeRenderer->setCameraDistance(m_cameraDistance);
     m_globeRenderer->resize(width, height);
-
-    // Update Lithosphere simulation if plates are generated
-    if (m_platesGenerated) {
-        WorldGen::Lithosphere* lithosphere = m_plateGenerator->GetLithosphere();
-        if (lithosphere) {
-            // Use a fixed simulation step or scale deltaTime
-            float simulationTimeStep = deltaTime * 0.5f; // Adjust speed as needed
-            lithosphere->Update(simulationTimeStep, m_planetVertices, m_planetIndices);
-            // Update the local copy of plates if needed (GetPlates returns a reference)
-            // m_plates = lithosphere->GetPlates(); // Not strictly necessary if GetPlates returns reference
-        } else {
-            std::cerr << "Error: Lithosphere instance is null during update." << std::endl;
+    
+    // Remaining simulation code...
+    if (m_platesGenerated && !m_disableSimulation) {
+        // Accumulate time since last simulation update
+        m_simulationTimer += deltaTime;
+        
+        // Only run simulation when the timer exceeds the update interval
+        if (m_simulationTimer >= SIMULATION_UPDATE_INTERVAL) {
+            WorldGen::Lithosphere* lithosphere = m_plateGenerator->GetLithosphere();
+            if (lithosphere) {
+                // Use accumulated time as the simulation step
+                float simulationTimeStep = m_simulationTimer * 0.5f; // Adjust speed as needed
+                
+                // Track significant changes with a counter to reduce regeneration frequency
+                static int changeCounter = 0;
+                static const int CHANGE_THRESHOLD = 3; // Only update every N changes
+                
+                // Only mark geometry as dirty if plates actually moved or changed
+                bool platesChanged = lithosphere->Update(simulationTimeStep, m_planetVertices, m_planetIndices);
+                
+                if (platesChanged) {
+                    changeCounter++;
+                    
+                    // Only regenerate geometry periodically based on the counter threshold
+                    if (changeCounter >= CHANGE_THRESHOLD) {
+                        // After first round of significant changes post-generation, disable further simulation
+                        // This prevents continuous updates when viewing the initial planet
+                        m_disableSimulation = true;
+                        
+                        m_crustRenderer->markGeometryDirty();
+                        std::cout << "Final plate adjustments applied. Simulation stabilized." << std::endl;
+                        changeCounter = 0; // Reset counter
+                    } else {
+                        std::cout << "Minor plate changes detected (" << changeCounter << "/" << CHANGE_THRESHOLD << "), deferring geometry update." << std::endl;
+                    }
+                }
+            } else {
+                std::cerr << "Error: Lithosphere instance is null during update." << std::endl;
+            }
+            
+            // Reset the timer
+            m_simulationTimer = 0.0f;
         }
     }
 }
@@ -316,7 +372,11 @@ void WorldGenScreen::render() {
     float viewHeight = 2.0f * m_cameraDistance * tanHalfFovY;
     float viewWidth = viewHeight * aspect;
     float offsetWorldX = (sidebarWidthPx / static_cast<float>(width)) * viewWidth / 2.0f;
+    
+    // Set the horizontal offset for the globe renderer
     m_globeRenderer->setHorizontalOffset(offsetWorldX);
+    
+    // Create model matrix for all planet renderers
     glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(offsetWorldX, 0.0f, 0.0f));
     modelMatrix = glm::rotate(modelMatrix, m_rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
 
@@ -337,14 +397,52 @@ void WorldGenScreen::render() {
         }
     }
 
-    // --- Render globe and plates (opaque, depth test ON, blending OFF) ---
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND);
-    m_globeRenderer->render(m_viewMatrix, m_projectionMatrix);
-    if (m_platesGenerated && !m_plates.empty()) {
-        glLineWidth(2.0f);
-        m_plateRenderer->render(m_plates, m_planetVertices, modelMatrix, m_viewMatrix, m_projectionMatrix);
-        glLineWidth(1.0f);
+    // Check if we're in Generating state - don't render the planet during generation
+    bool isGenerating = (m_worldGenUI->getState() == WorldGen::UIState::Generating);
+    
+    // Only render the planet if we're not in the generating state
+    if (!isGenerating) {
+        // --- Render planet visualization (3D rendering with depth test) ---
+        glEnable(GL_DEPTH_TEST);
+        
+        // Print debug information about what we're about to render
+        if (m_debugRender) {
+            std::cout << "Rendering planet - Globe:" << (m_renderGlobe ? "ON" : "OFF") 
+                      << ", Crust:" << (m_renderCrust ? "ON" : "OFF") 
+                      << ", PlatesGenerated:" << (m_platesGenerated ? "YES" : "NO")
+                      << ", NumPlates:" << (m_plates.empty() ? 0 : m_plates.size())
+                      << std::endl;
+        }
+
+        // ALWAYS draw crust first if we have plates - the key fix is order of operations
+        if (m_renderCrust && m_platesGenerated && !m_plates.empty()) {
+            // Completely reset OpenGL state for reliable rendering
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS); // Use default depth function
+            glDisable(GL_BLEND); // Disable blending for solid crust
+            
+            std::cout << "Rendering crust..." << std::endl;
+            m_crustRenderer->render(m_plates, m_planetVertices, modelMatrix, m_viewMatrix, m_projectionMatrix);
+        }
+        
+        // Only render globe if explicitly enabled AND we don't have a crust
+        if (m_renderGlobe && (!m_platesGenerated || m_plates.empty())) {
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS);
+            glDisable(GL_BLEND);
+            m_globeRenderer->render(m_viewMatrix, m_projectionMatrix);
+        }
+        
+        // Plate boundaries always render last and with blending
+        if (m_renderPlates && m_platesGenerated && !m_plates.empty()) {
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LEQUAL); // Use LEQUAL for lines to appear over terrain
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glLineWidth(2.0f);
+            m_plateRenderer->render(m_plates, m_planetVertices, modelMatrix, m_viewMatrix, m_projectionMatrix);
+            glLineWidth(1.0f);
+        }
     }
 
     // --- Render remaining UI layers (controls, buttons, preview, etc) ---

@@ -12,6 +12,7 @@
 #include "Lithosphere/Plate/PlateGenerator.h" // Updated path
 #include "Renderers/PlateRenderer.h" // Updated path
 #include "Renderers/GlobeRenderer.h" // Updated path from Planet/GlobeRenderer.h
+#include "Renderers/CrustRenderer.h" // Added CrustRenderer
 
 class WorldGenScreen : public Screen { // Changed from GameplayScreen to Screen
 public:
@@ -52,12 +53,21 @@ private:
     float m_rotationAngle;
     bool m_isDragging;
     
+    // Rendering layer toggles
+    bool m_renderGlobe = false;
+    bool m_renderCrust = true;
+    bool m_renderPlates = false;  // Default to false since it's for debugging
+    
+    // Debug toggle for rendering states
+    bool m_debugRender = true;  // Enable debug rendering by default
+    
     // UI and input tracking
     float lastCursorX;
     float lastCursorY;
     
     // Tectonic plate system
     bool m_platesGenerated;
+    bool m_disableSimulation = false;  // Flag to disable simulation after initial generation
     std::vector<std::shared_ptr<WorldGen::TectonicPlate>> m_plates;
     std::vector<glm::vec3> m_planetVertices;
     std::vector<unsigned int> m_planetIndices;
@@ -69,9 +79,14 @@ private:
     std::unique_ptr<WorldGen::PlateGenerator> m_plateGenerator;
     std::unique_ptr<WorldGen::PlateRenderer> m_plateRenderer;
     std::unique_ptr<WorldGen::GlobeRenderer> m_globeRenderer;
+    std::unique_ptr<WorldGen::CrustRenderer> m_crustRenderer;  // Added CrustRenderer
     
     // Store window pointer for callbacks
     GLFWwindow* m_window;
+    
+    // Simulation timing control
+    float m_simulationTimer = 0.0f;
+    static constexpr float SIMULATION_UPDATE_INTERVAL = 0.2f; // Update simulation every 0.2 seconds
     
     // Static callback handling
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);

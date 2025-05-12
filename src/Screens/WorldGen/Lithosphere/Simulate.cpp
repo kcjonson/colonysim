@@ -15,8 +15,14 @@
 
 namespace WorldGen {
 
-void Lithosphere::MovePlates(float deltaTime) {
-    if (deltaTime <= 0.0f) return;
+bool Lithosphere::MovePlates(float deltaTime) {
+    if (deltaTime <= 0.0f) return false;
+
+    bool anyPlatesMoved = false;
+    // Define thresholds for significant movement - increase these to reduce false positives
+    const float MIN_POSITION_CHANGE = 0.001f;  // Increased from 0.0001f
+    const float MIN_ANGLE_CHANGE = 0.001f;     // Increased from 0.0001f
+    const float MIN_MOVEMENT_MAGNITUDE = 0.001f; // New threshold for movement vector magnitude
 
     for (auto& plate : m_plates) {
         glm::vec3 currentCenter = plate->GetCenter();
@@ -24,38 +30,57 @@ void Lithosphere::MovePlates(float deltaTime) {
         float rotationRate = plate->GetRotationRate(); // Angular velocity around plate center
 
         // 1. Apply linear movement (translate center along great circle)
-        if (glm::length(movementVector) > 0.0001f) {
+        bool positionChanged = false;
+        if (glm::length(movementVector) > MIN_MOVEMENT_MAGNITUDE) {
             float distance = glm::length(movementVector) * deltaTime;
-            glm::vec3 axis = glm::normalize(glm::cross(currentCenter, movementVector));
-            currentCenter = glm::rotate(currentCenter, distance, axis);
-            plate->SetCenter(currentCenter); // Update the plate's center
+            // Only count as moved if the distance is significant
+            if (distance > MIN_POSITION_CHANGE) {
+                glm::vec3 axis = glm::normalize(glm::cross(currentCenter, movementVector));
+                glm::vec3 newCenter = glm::rotate(currentCenter, distance, axis);
+                
+                // Only update if the change is significant - use distance squared for efficiency
+                float distanceSquared = glm::distance2(newCenter, currentCenter);
+                if (distanceSquared > MIN_POSITION_CHANGE * MIN_POSITION_CHANGE) {
+                    plate->SetCenter(newCenter); // Update the plate's center
+                    positionChanged = true;
+                    anyPlatesMoved = true;
+                }
+            }
         }
 
         // 2. Apply rotation around the plate's center
-        // This rotation affects the orientation of the plate, which influences boundary interactions
-        // and how vertices might be assigned if using a more sophisticated method later.
-        // For now, we just update the plate's internal rotation state if needed.
-        // The actual effect on vertices happens during re-assignment based on the *new* center.
-        if (std::abs(rotationRate) > 0.0001f) {
+        bool rotationChanged = false;
+        if (std::abs(rotationRate) > MIN_ANGLE_CHANGE) {  // Only process if rotation rate is significant
             float angle = rotationRate * deltaTime;
-            glm::vec3 rotationAxis = plate->GetCenter(); // Rotate around axis passing through center
+            // Only count as rotated if the angle change is significant
+            if (std::abs(angle) > MIN_ANGLE_CHANGE) {
+                glm::vec3 rotationAxis = plate->GetCenter(); // Rotate around axis passing through center
 
-            // We need to update the plate's internal representation of its orientation.
-            // Let's assume TectonicPlate stores a rotation quaternion or similar.
-            // For now, we'll just conceptually note that the plate rotates.
-            // plate->ApplyRotation(rotationAxis, angle); // Hypothetical method
-
-            // Also, update the movement vector to reflect the rotation of the plate itself
-            movementVector = glm::rotate(movementVector, angle, rotationAxis);
-            plate->SetMovementVector(movementVector);
+                // Update the movement vector to reflect the rotation of the plate itself
+                glm::vec3 newMovementVector = glm::rotate(movementVector, angle, rotationAxis);
+                
+                // Only update if the movement vector changed significantly - use distance squared
+                float movementChangeSquared = glm::distance2(newMovementVector, movementVector);
+                if (movementChangeSquared > MIN_POSITION_CHANGE * MIN_POSITION_CHANGE) {
+                    plate->SetMovementVector(newMovementVector);
+                    rotationChanged = true;
+                    anyPlatesMoved = true;
+                }
+            }
         }
     }
-    // std::cout << "Moved plates for deltaTime: " << deltaTime << std::endl;
+    
+    return anyPlatesMoved;
 }
 
-void Lithosphere::ModifyCrust(float deltaTime) {
-    // std::cout << "Lithosphere::ModifyCrust called." << std::endl; // Less verbose
-    if (m_plates.empty() || deltaTime <= 0.0f) return;
+bool Lithosphere::ModifyCrust(float deltaTime) {
+    if (m_plates.empty() || deltaTime <= 0.0f) return false;
+
+    bool anyCrustModified = false;
+    
+    // Constants for crust modification thresholds
+    const float SIGNIFICANT_THICKNESS_CHANGE = 0.01f; // Only count thickness changes above this threshold
+    const float SIGNIFICANT_AGE_CHANGE = 5.0f;        // Only count age changes above this threshold
 
     // Constants for crust modification (tune these values)
     const float subductionRate = 0.1f * deltaTime; // Rate at which oceanic crust subducts
@@ -90,9 +115,12 @@ void Lithosphere::ModifyCrust(float deltaTime) {
             float convergenceSpeed = boundary.m_convergenceSpeed; // Positive for convergence, negative for divergence
             float stress = boundary.stress;
 
+            // Skip boundaries with negligible effects
+            if (std::abs(convergenceSpeed) < 0.001f || stress < 0.001f) continue;
+
             // Apply effects based on boundary type
             switch (boundary.type) {
-                case BoundaryType::Convergent: { // Add opening brace for case scope
+                case BoundaryType::Convergent: {
                     // Determine which plate subducts (oceanic under continental, older oceanic under younger oceanic)
                     TectonicPlate* subductingPlate = nullptr;
                     TectonicPlate* overridingPlate = nullptr;
@@ -105,15 +133,13 @@ void Lithosphere::ModifyCrust(float deltaTime) {
                     } else if (plate1.GetType() == PlateType::Oceanic && plate2.GetType() == PlateType::Oceanic) {
                         // Simplistic: Assume older plate subducts (needs average age near boundary)
                         // For now, just pick one based on ID for determinism
-                        // TODO: Implement age-based subduction for O-O
-                        if (plate1Id < plate2Id) { // Arbitrary choice for now
+                        if (plate1Id < plate2Id) {
                              subductingPlate = &plate1; overridingPlate = &plate2;
                         } else {
                              subductingPlate = &plate2; overridingPlate = &plate1;
-                        } // <<< Added missing closing brace here
+                        }
                     } else { // Continental-Continental
                         continentalCollision = true;
-                        // Both plates contribute to orogeny
                     }
 
                     // Apply effects to vertices near the boundary
@@ -121,48 +147,61 @@ void Lithosphere::ModifyCrust(float deltaTime) {
                         if (continentalCollision) {
                             // Orogeny: Thicken crust on both plates at the boundary
                             float thicknessIncrease = orogenyRate * std::abs(convergenceSpeed) * stress * 0.5f; // Split effect
-                            thicknessChanges[vertexIndex] += thicknessIncrease; // Accumulate changes
-                            ageChanges[vertexIndex] = 0.0f; // Reset age due to mountain building (simplification)
+                            
+                            // Only record significant changes
+                            if (std::abs(thicknessIncrease) > SIGNIFICANT_THICKNESS_CHANGE) {
+                                thicknessChanges[vertexIndex] += thicknessIncrease; // Accumulate changes
+                                ageChanges[vertexIndex] = 0.0f; // Reset age due to mountain building
+                            }
                         } else {
                             // Subduction/Orogeny involving at least one oceanic plate
                             if (overridingPlate) {
                                 // Thicken overriding plate's crust (orogeny/volcanic arc)
                                 float thicknessIncrease = orogenyRate * std::abs(convergenceSpeed) * stress;
-                                thicknessChanges[vertexIndex] += thicknessIncrease;
-                                ageChanges[vertexIndex] = 0.0f; // Reset age due to uplift/volcanism
+                                
+                                // Only record significant changes
+                                if (std::abs(thicknessIncrease) > SIGNIFICANT_THICKNESS_CHANGE) {
+                                    thicknessChanges[vertexIndex] += thicknessIncrease;
+                                    ageChanges[vertexIndex] = 0.0f; // Reset age due to uplift/volcanism
+                                }
                             }
                             if (subductingPlate && subductingPlate->GetType() == PlateType::Oceanic) {
                                 // Subduction: Thin/destroy subducting oceanic crust
                                 float thicknessDecrease = -subductionRate * std::abs(convergenceSpeed);
-                                thicknessChanges[vertexIndex] += thicknessDecrease;
-                                // Age becomes irrelevant as it's destroyed/recycled
-                                ageChanges[vertexIndex] = 0.0f; // Reset age
+                                
+                                // Only record significant changes
+                                if (std::abs(thicknessDecrease) > SIGNIFICANT_THICKNESS_CHANGE) {
+                                    thicknessChanges[vertexIndex] += thicknessDecrease;
+                                    ageChanges[vertexIndex] = 0.0f; // Reset age
+                                }
                             }
                         }
                     }
                     break;
-                } // Add closing brace for case scope
-                case BoundaryType::Divergent: { // Add opening brace for case scope
+                }
+                case BoundaryType::Divergent: {
                     // Rifting: Thin crust and create new young crust
                     for (int vertexIndex : boundary.m_sharedVertexIndices) {
                         float thicknessChange = -riftingRate * std::abs(convergenceSpeed); // Thinning
-                        thicknessChanges[vertexIndex] += thicknessChange;
-                        ageChanges[vertexIndex] = 0.0f; // New crust is young
+                        
+                        // Only record significant changes
+                        if (std::abs(thicknessChange) > SIGNIFICANT_THICKNESS_CHANGE) {
+                            thicknessChanges[vertexIndex] += thicknessChange;
+                            ageChanges[vertexIndex] = 0.0f; // New crust is young
+                        }
                     }
                     break;
-                } // Add closing brace for case scope
-                case BoundaryType::Transform: { // Add opening brace for case scope
-                    // Minimal crust modification, maybe some minor stress-related effects later
-                    // For now, just age the crust normally (handled in the final loop)
+                }
+                case BoundaryType::Transform: {
+                    // Minimal crust modification, no changes recorded
                     break;
-                } // Add closing brace for case scope
+                }
             }
         }
     }
 
     // Apply accumulated changes and general aging to all vertices
     for (auto& plate : m_plates) {
-        // std::vector<int> verticesToRemove; // If subducted crust gets removed entirely
         auto& thicknessMap = plate->GetVertexCrustThickness();
         auto& ageMap = plate->GetVertexCrustAge();
         const auto& vertexIndices = plate->GetVertexIndices(); // Get indices for this plate
@@ -170,33 +209,46 @@ void Lithosphere::ModifyCrust(float deltaTime) {
         for (int vertexIndex : vertexIndices) {
             float currentThickness = thicknessMap[vertexIndex];
             float currentAge = ageMap[vertexIndex];
+            float newThickness = currentThickness;
+            float newAge = currentAge;
+            bool vertexModified = false;
 
             // Apply specific boundary changes
             if (thicknessChanges.count(vertexIndex)) {
-                currentThickness += thicknessChanges[vertexIndex];
+                newThickness += thicknessChanges[vertexIndex];
+                vertexModified = true;
             }
+            
             if (ageChanges.count(vertexIndex)) {
-                currentAge = ageChanges[vertexIndex]; // Set new absolute age
+                newAge = ageChanges[vertexIndex]; // Set new absolute age
+                // Note: We don't count age changes as visual modifications anymore
             } else {
                 // Apply general aging if no boundary interaction reset it
-                currentAge += ageIncreaseRate;
+                newAge += ageIncreaseRate;
+                // Don't count age changes as significant visual modifications anymore
+                // Age changes don't affect the appearance of the planet in this simulation
             }
 
             // Clamp thickness
-            thicknessMap[vertexIndex] = glm::clamp(currentThickness, minThickness, maxThickness);
-            ageMap[vertexIndex] = currentAge;
-
-            // Check for crust removal (e.g., fully subducted) - More complex logic needed
-            // if (thicknessMap[vertexIndex] <= minThickness && plate->GetType() == PlateType::Oceanic) {
-            //     // Mark vertex for removal or transfer? Requires careful handling of mesh data.
-            // }
+            newThickness = glm::clamp(newThickness, minThickness, maxThickness);
+            
+            // Only update thickness and set the modified flag if there was a significant thickness change
+            if (std::abs(newThickness - currentThickness) > SIGNIFICANT_THICKNESS_CHANGE) {
+                thicknessMap[vertexIndex] = newThickness;
+                vertexModified = true;
+            }
+            
+            // Always update age, but DO NOT count it for the dirty flag
+            ageMap[vertexIndex] = newAge;
+            
+            if (vertexModified) {
+                anyCrustModified = true;
+            }
         }
-
-        // Process vertex removals/transfers here if implemented
     }
-     // std::cout << "Finished modifying crust." << std::endl; // Less verbose
+    
+    return anyCrustModified;
 }
-
 
 void Lithosphere::RecalculatePlateMasses() {
     // std::cout << "Lithosphere::RecalculatePlateMasses called." << std::endl; // Less verbose

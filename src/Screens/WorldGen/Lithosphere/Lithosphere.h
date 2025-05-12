@@ -21,7 +21,8 @@ public:
 
     // Runs one step of the simulation.
     // Needs planet mesh data for boundary detection and analysis.
-    void Update(float deltaTime, const std::vector<glm::vec3>& planetVertices, const std::vector<unsigned int>& planetIndices);
+    // Returns true if plates were modified during this update
+    bool Update(float deltaTime, const std::vector<glm::vec3>& planetVertices, const std::vector<unsigned int>& planetIndices);
 
     // Getter for the plates
     const std::vector<std::shared_ptr<TectonicPlate>>& GetPlates() const;
@@ -43,8 +44,8 @@ private:
     void AssignVerticesToPlates(const std::vector<glm::vec3>& planetVertices);
     void InitializePlateProperties();
     void GeneratePlateMovements();
-    void MovePlates(float deltaTime);
-    void ModifyCrust(float deltaTime); // Added deltaTime
+    bool MovePlates(float deltaTime); // Return true if any plates moved
+    bool ModifyCrust(float deltaTime); // Return true if crust was modified
     void RecalculatePlateMasses();
 
     // Helper to get plate by ID

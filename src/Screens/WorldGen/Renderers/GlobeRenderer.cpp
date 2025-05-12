@@ -44,8 +44,18 @@ bool GlobeRenderer::initialize() {
 }
 
 void GlobeRenderer::render(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
-    // Ensure blending is disabled for planet
+    // Save current OpenGL states
+    GLboolean depthTestEnabled = glIsEnabled(GL_DEPTH_TEST);
+    GLboolean blendEnabled = glIsEnabled(GL_BLEND);
+    GLboolean cullFaceEnabled = glIsEnabled(GL_CULL_FACE);
+    
+    // Set proper OpenGL state for 3D planet rendering
+    glEnable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
+    
+    // IMPORTANT: Disable face culling to ensure the sphere is visible from all angles
+    glDisable(GL_CULL_FACE);
+    
     glUseProgram(m_shaderProgram);
     
     // Update matrices
@@ -58,8 +68,8 @@ void GlobeRenderer::render(const glm::mat4& viewMatrix, const glm::mat4& project
     glUniform3fv(glGetUniformLocation(m_shaderProgram, "viewPos"), 1, &viewPos[0]);
     
     // Set light direction (pointing towards the planet)
-    glm::vec3 lightDir = glm::normalize(glm::vec3(-1.0f, -1.0f, -1.0f));
-    glUniform3fv(m_lightDirLoc, 1, &lightDir[0]);
+    glm::vec3 lightPos = glm::vec3(5.0f, 5.0f, 5.0f);
+    glUniform3fv(glGetUniformLocation(m_shaderProgram, "lightPos"), 1, &lightPos[0]);
     
     // Set light color (white light)
     glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -73,6 +83,25 @@ void GlobeRenderer::render(const glm::mat4& viewMatrix, const glm::mat4& project
     glBindVertexArray(m_vao);
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_planetData->getIndices().size()), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
+    
+    // Reset state
+    glUseProgram(0);
+    
+    // Restore previous OpenGL states
+    if (depthTestEnabled)
+        glEnable(GL_DEPTH_TEST);
+    else
+        glDisable(GL_DEPTH_TEST);
+        
+    if (blendEnabled)
+        glEnable(GL_BLEND);
+    else
+        glDisable(GL_BLEND);
+        
+    if (cullFaceEnabled)
+        glEnable(GL_CULL_FACE);
+    else
+        glDisable(GL_CULL_FACE);
 }
 
 void GlobeRenderer::setRotationAngle(float angle) {

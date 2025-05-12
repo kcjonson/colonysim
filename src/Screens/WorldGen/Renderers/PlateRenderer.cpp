@@ -78,6 +78,9 @@ void PlateRenderer::updateThicknessLineCache(
     std::unordered_set<int> uniqueIndices;
     size_t numLines = 0;
 
+    // Disable thickness lines by not adding any vertices
+    // Original thickness line generation code is commented out
+    /*
     std::vector<glm::vec4> thicknessLineColors;
     for (const auto& plate : plates) {
         glm::vec3 plateColor = (plate->GetType() == PlateType::Continental) ? glm::vec3(0.8f, 0.7f, 0.3f) : glm::vec3(0.2f, 0.4f, 0.8f);
@@ -97,140 +100,134 @@ void PlateRenderer::updateThicknessLineCache(
         }
     }
     m_thicknessLineColors = thicknessLineColors;
+    */
+    
     m_thicknessCacheDirty = false;
     auto end = std::chrono::high_resolution_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::cout << "[PlateRenderer] Rebuilt thickness line cache: " << numLines << " lines in " << ms << " ms\n";
+    std::cout << "[PlateRenderer] Thickness line rendering disabled" << std::endl;
 }
 
 void PlateRenderer::render(
     const std::vector<std::shared_ptr<TectonicPlate>>& plates,
-    const std::vector<glm::vec3>& planetVertices, // Added
+    const std::vector<glm::vec3>& planetVertices,
     const glm::mat4& modelMatrix,
     const glm::mat4& viewMatrix,
     const glm::mat4& projectionMatrix)
 {
     if (planetVertices.empty() || plates.empty()) return;
 
-    // --- Draw faint plate regions (unique color per plate) ---
-    std::vector<glm::vec3> regionVertices;
-    std::vector<glm::vec4> regionColors;
+    // Save current OpenGL states
+    GLboolean depthTestEnabled = glIsEnabled(GL_DEPTH_TEST);
+    GLboolean cullFaceEnabled = glIsEnabled(GL_CULL_FACE);
+    GLboolean blendEnabled = glIsEnabled(GL_BLEND);
+    GLint currentLineWidth;
+    glGetIntegerv(GL_LINE_WIDTH, &currentLineWidth);
+    
+    // --- Draw boundaries between plates ---
+    // Set OpenGL state for boundary line rendering
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glLineWidth(2.0f);
+    
+    // Use shader and set uniforms
+    glUseProgram(m_shaderProgram);
+    glUniformMatrix4fv(m_modelLoc, 1, GL_FALSE, &modelMatrix[0][0]);
+    glUniformMatrix4fv(m_viewLoc, 1, GL_FALSE, &viewMatrix[0][0]);
+    glUniformMatrix4fv(m_projectionLoc, 1, GL_FALSE, &projectionMatrix[0][0]);
+    
+    // Create and draw boundary lines between plates
+    glBindVertexArray(m_vao);
+    
+    // For each plate, render its boundaries
     for (const auto& plate : plates) {
-        glm::vec3 color = PlateIdToColor(plate->GetId(), (int)plates.size());
-        glm::vec4 colorWithAlpha = glm::vec4(glm::mix(color, glm::vec3(1.0f), 0.3f), 0.5f); // More visible, alpha=0.5
-        for (int idx : plate->GetVertexIndices()) {
-            if (idx >= 0 && idx < planetVertices.size()) {
-                regionVertices.push_back(planetVertices[idx]);
-                regionColors.push_back(colorWithAlpha);
+        const auto& boundaries = plate->GetBoundaries();
+        
+        // Scan through all boundaries of this plate
+        for (const auto& boundary : boundaries) {
+            // Set color based on boundary type
+            glm::vec4 lineColor;
+            switch (boundary.type) {
+                case BoundaryType::Convergent:
+                    lineColor = glm::vec4(1.0f, 0.0f, 0.0f, 0.8f); // Red for convergent
+                    break;
+                case BoundaryType::Divergent:
+                    lineColor = glm::vec4(0.0f, 0.8f, 0.0f, 0.8f); // Green for divergent
+                    break;
+                case BoundaryType::Transform:
+                    lineColor = glm::vec4(0.8f, 0.8f, 0.0f, 0.8f); // Yellow for transform
+                    break;
+                default:
+                    lineColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.8f); // White for undefined
+                    break;
+            }
+            
+            // For each shared vertex in this boundary, we'll draw a line
+            // connecting adjacent vertices to form a continuous boundary
+            const auto& sharedVertices = boundary.m_sharedVertexIndices;
+            if (sharedVertices.size() >= 2) {
+                // Create line segments joining adjacent vertices
+                std::vector<glm::vec3> lineVertices;
+                std::vector<glm::vec4> lineColors;
+                
+                for (size_t i = 0; i < sharedVertices.size(); i++) {
+                    int vertexIndex = sharedVertices[i];
+                    if (vertexIndex >= 0 && vertexIndex < planetVertices.size()) {
+                        // Small offset to avoid z-fighting
+                        glm::vec3 pos = planetVertices[vertexIndex] * 1.001f;
+                        lineVertices.push_back(pos);
+                        lineColors.push_back(lineColor);
+                    }
+                }
+                
+                // Draw the line segments
+                if (!lineVertices.empty()) {
+                    // Buffer the vertex data
+                    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+                    glBufferData(GL_ARRAY_BUFFER, lineVertices.size() * sizeof(glm::vec3), 
+                                lineVertices.data(), GL_DYNAMIC_DRAW);
+                    
+                    // Buffer the color data
+                    glBindBuffer(GL_ARRAY_BUFFER, m_colorVbo);
+                    glBufferData(GL_ARRAY_BUFFER, lineColors.size() * sizeof(glm::vec4), 
+                                lineColors.data(), GL_DYNAMIC_DRAW);
+                    
+                    // Draw the lines
+                    glBindVertexArray(m_vao);
+                    glDrawArrays(GL_LINE_STRIP, 0, static_cast<GLsizei>(lineVertices.size()));
+                }
             }
         }
     }
-    if (!regionVertices.empty()) {
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glUseProgram(m_shaderProgram);
-        glUniformMatrix4fv(m_modelLoc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
-        glUniformMatrix4fv(m_viewLoc, 1, GL_FALSE, glm::value_ptr(viewMatrix));
-        glUniformMatrix4fv(m_projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
-        glPointSize(6.0f);
-        glBindVertexArray(m_vao);
-        glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-        glBufferData(GL_ARRAY_BUFFER, regionVertices.size() * sizeof(glm::vec3), regionVertices.data(), GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, m_colorVbo);
-        glBufferData(GL_ARRAY_BUFFER, regionColors.size() * sizeof(glm::vec4), regionColors.data(), GL_DYNAMIC_DRAW);
-        glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(regionVertices.size()));
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-        glPointSize(1.0f);
-        glUseProgram(0);
-        glDisable(GL_BLEND);
-    }
-
-    // --- Draw thickness lines (existing code) ---
+    
+    // Unbind VAO and shader
+    glBindVertexArray(0);
+    glUseProgram(0);
+    
+    // Also draw thickness lines if cache is dirty
     if (m_thicknessCacheDirty) {
         updateThicknessLineCache(plates, planetVertices);
     }
-    if (!m_thicknessLineVertices.empty()) {
-        glUseProgram(m_shaderProgram);
-        glUniformMatrix4fv(m_modelLoc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
-        glUniformMatrix4fv(m_viewLoc, 1, GL_FALSE, glm::value_ptr(viewMatrix));
-        glUniformMatrix4fv(m_projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
-        glLineWidth(2.0f);
-        glBindVertexArray(m_vao);
-        glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-        glBufferData(GL_ARRAY_BUFFER, m_thicknessLineVertices.size() * sizeof(glm::vec3), m_thicknessLineVertices.data(), GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, m_colorVbo);
-        glBufferData(GL_ARRAY_BUFFER, m_thicknessLineColors.size() * sizeof(glm::vec4), m_thicknessLineColors.data(), GL_DYNAMIC_DRAW);
-        glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(m_thicknessLineVertices.size()));
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-        glLineWidth(1.0f);
-        glUseProgram(0);
-    }
-
-    // --- Draw true boundary lines (at top plate edge) ---
-    // Disabled: Do not draw plate boundary lines (pink/magenta)
-    // std::vector<glm::vec3> boundaryLineVertices;
-    // std::vector<glm::vec4> boundaryLineColors;
-    // for (const auto& plate : plates) {
-    //     for (const auto& boundary : plate->GetBoundaries()) {
-    //         int plate1Id = plate->GetId();
-    //         int plate2Id = (boundary.plate1Index == plate1Id) ? boundary.plate2Index : boundary.plate1Index;
-    //         if (plate1Id >= plate2Id) continue; // Only draw once per boundary
-    //         // Determine which plate is on top at this boundary
-    //         const TectonicPlate* topPlate = nullptr;
-    //         if (plate->GetType() == PlateType::Continental) {
-    //             topPlate = plate.get();
-    //         } else {
-    //             // If both oceanic, pick younger (lower avg age at boundary)
-    //             const TectonicPlate* other = nullptr;
-    //             for (const auto& p : plates) if (p->GetId() == plate2Id) other = p.get();
-    //             if (other && other->GetType() == PlateType::Continental) {
-    //                 topPlate = other;
-    //             } else if (other) {
-    //                 float age1 = 0, age2 = 0;
-    //                 int n1 = 0, n2 = 0;
-    //                 for (int idx : boundary.m_sharedVertexIndices) {
-    //                     if (plate->GetVertexCrustAge(idx) > 0) { age1 += plate->GetVertexCrustAge(idx); n1++; }
-    //                     if (other->GetVertexCrustAge(idx) > 0) { age2 += other->GetVertexCrustAge(idx); n2++; }
-    //                 }
-    //                 float avg1 = n1 ? age1/n1 : 1e6f;
-    //                 float avg2 = n2 ? age2/n2 : 1e6f;
-    //                 topPlate = (avg1 < avg2) ? plate.get() : other;
-    //             }
-    //         }
-    //         // Draw the boundary line for all edges in the boundary
-    //         for (const auto& edge : boundary.m_sharedEdgeIndices) {
-    //             int u = edge.first, v = edge.second;
-    //             if (u >= 0 && u < planetVertices.size() && v >= 0 && v < planetVertices.size()) {
-    //                 boundaryLineVertices.push_back(planetVertices[u]);
-    //                 boundaryLineVertices.push_back(planetVertices[v]);
-    //                 boundaryLineColors.push_back(glm::vec4(1.0f, 0.0f, 1.0f, 1.0f)); // Bright magenta, fully opaque
-    //                 boundaryLineColors.push_back(glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
-    //             }
-    //         }
-    //     }
-    // }
-    // if (!boundaryLineVertices.empty()) {
-    //     glEnable(GL_BLEND);
-    //     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    //     glUseProgram(m_shaderProgram);
-    //     glUniformMatrix4fv(m_modelLoc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
-    //     glUniformMatrix4fv(m_viewLoc, 1, GL_FALSE, glm::value_ptr(viewMatrix));
-    //     glUniformMatrix4fv(m_projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
-    //     glLineWidth(5.0f);
-    //     glBindVertexArray(m_vao);
-    //     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    //     glBufferData(GL_ARRAY_BUFFER, boundaryLineVertices.size() * sizeof(glm::vec3), boundaryLineVertices.data(), GL_DYNAMIC_DRAW);
-    //     glBindBuffer(GL_ARRAY_BUFFER, m_colorVbo);
-    //     glBufferData(GL_ARRAY_BUFFER, boundaryLineColors.size() * sizeof(glm::vec4), boundaryLineColors.data(), GL_DYNAMIC_DRAW);
-    //     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(boundaryLineVertices.size()));
-    //     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    //     glBindVertexArray(0);
-    //     glLineWidth(1.0f);
-    //     glUseProgram(0);
-    //     glDisable(GL_BLEND);
-    // }
+    
+    // Restore previous OpenGL states
+    if (depthTestEnabled)
+        glEnable(GL_DEPTH_TEST);
+    else
+        glDisable(GL_DEPTH_TEST);
+        
+    if (cullFaceEnabled)
+        glEnable(GL_CULL_FACE);
+    else
+        glDisable(GL_CULL_FACE);
+        
+    if (blendEnabled)
+        glEnable(GL_BLEND);
+    else
+        glDisable(GL_BLEND);
+        
+    glLineWidth(static_cast<GLfloat>(currentLineWidth));
 }
 
 void PlateRenderer::resize(int width, int height) {
