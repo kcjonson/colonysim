@@ -7,8 +7,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "../../Rendering/Layer.h" // Updated path to Layer.h
-#include "../../Rendering/Shapes/Rectangle.h" // Updated path to Rectangle.h
+#include "Stars.h" // Added Stars class inclusion
 #include "UI/WorldGenUI.h" // Updated path
 
 class WorldGenScreen : public Screen { // Changed from GameplayScreen to Screen
@@ -31,17 +30,14 @@ public:
 private:
     // Terrain data
     std::unordered_map<WorldGen::TileCoord, WorldGen::TerrainData> generatedTerrainData;
-    
-    // Store world parameters
+      // Store world parameters
     int worldWidth;
     int worldHeight;
     float waterLevel;
     unsigned int seed;
     bool worldGenerated;
-    
-    // Star background layer
-    std::shared_ptr<Rendering::Layer> starLayer;
-    void renderStars(int width, int height);
+      // Star background
+    std::unique_ptr<WorldGen::Stars> m_stars;
       // 3D rendering properties
     glm::mat4 m_viewMatrix;
     glm::mat4 m_projectionMatrix;

@@ -25,13 +25,12 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)    : lastCurs
     , m_window(window) {
     
     // Register this instance in the static map
-    s_instances[window] = this;
-      // Generate a random seed
+    s_instances[window] = this;    // Generate a random seed
     std::random_device rd;
     seed = rd();
     
-    // Star Layuer
-    starLayer = std::make_shared<Rendering::Layer>(-100.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    // Initialize Stars
+    m_stars = std::make_unique<WorldGen::Stars>(camera, window);
     
     // Initialize WorldGenUI
     m_worldGenUI = std::make_unique<WorldGen::WorldGenUI>(camera, window);
@@ -75,11 +74,10 @@ bool WorldGenScreen::initialize() {
         
         m_worldGenUI->updateProgress(1.0f, "World generation complete!");
         m_worldGenUI->setState(WorldGen::UIState::Viewing);
-        
-        // Update UI
+          // Update UI
         int width, height;
         glfwGetWindowSize(m_window, &width, &height);
-        renderStars(width, height);
+        m_stars->generate(width, height);
         m_worldGenUI->layoutUI(width, height, worldWidth, worldHeight, waterLevel, seed, worldGenerated);
     });
     
@@ -145,47 +143,17 @@ bool WorldGenScreen::initialize() {
     
     // Set initial UI state
     m_worldGenUI->setState(WorldGen::UIState::ParameterSetup);
-    
-    // Set initial UI layout
+      // Set initial UI layout
     int width, height;
     glfwGetWindowSize(m_window, &width, &height);
-    renderStars(width, height);
+    m_stars->generate(width, height);
     m_worldGenUI->layoutUI(width, height, worldWidth, worldHeight, waterLevel, seed, worldGenerated);
     
     return true;
 }
 
-void WorldGenScreen::renderStars(int width, int height) {
-    // Clear the star layer
-    starLayer->clearItems();
-    
-    // Create star background
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> disX(0.0f, static_cast<float>(width));
-    std::uniform_real_distribution<float> disY(0.0f, static_cast<float>(height));
-    std::uniform_real_distribution<float> disSize(1.0f, 3.0f);
-    std::uniform_real_distribution<float> disAlpha(0.5f, 1.0f);
-    
-    for (int i = 0; i < 200; ++i) {
-        float x = disX(gen);
-        float y = disY(gen);
-        float size = disSize(gen);
-        float alpha = disAlpha(gen);
-        
-        auto star = std::make_shared<Rendering::Shapes::Rectangle>(
-            glm::vec2(x, y),
-            glm::vec2(size, size),
-            Rendering::Styles::Rectangle({
-                .color = glm::vec4(1.0f, 1.0f, 1.0f, alpha)
-            }),
-            -100.0f  // Z-index matching starLayer
-        );
-        starLayer->addItem(star);
-    }
-}
-
 void WorldGenScreen::update(float deltaTime) {
+    // deltaTime parameter not used in this implementation
     // // Update camera matrices
     // m_viewMatrix = glm::lookAt(
     //     glm::vec3(0.0f, 0.0f, m_cameraDistance),
@@ -214,13 +182,11 @@ void WorldGenScreen::render() {
     glfwGetWindowSize(m_window, &width, &height);
     
     // Use the full window viewport for all rendering
-    glViewport(0, 0, width, height);
-
-    // --- Render stars (background, always first, blending enabled) ---
+    glViewport(0, 0, width, height);    // --- Render stars (background, always first, blending enabled) ---
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    starLayer->render();
+    m_stars->render();
 
     // --- Render UI layers ---
     auto uiLayers = m_worldGenUI->getAllLayers();
@@ -284,9 +250,8 @@ void WorldGenScreen::handleInput() {
 void WorldGenScreen::onResize(int width, int height) {
     // Update viewport to use the full window
     glViewport(0, 0, width, height);
-    
-    // Update stars and UI layout
-    renderStars(width, height);
+      // Update stars and UI layout
+    m_stars->generate(width, height);
     m_worldGenUI->layoutUI(width, height, worldWidth, worldHeight, waterLevel, seed, worldGenerated);
 }
 
