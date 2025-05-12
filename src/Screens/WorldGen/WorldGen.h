@@ -5,13 +5,11 @@
 #include <unordered_map>
 #include <vector>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include "../../Rendering/Layer.h" // Updated path to Layer.h
 #include "../../Rendering/Shapes/Rectangle.h" // Updated path to Rectangle.h
 #include "UI/WorldGenUI.h" // Updated path
-#include "Lithosphere/Plate/TectonicPlate.h" // Updated path
-#include "Lithosphere/Plate/PlateGenerator.h" // Updated path
-#include "Renderers/PlateRenderer.h" // Updated path
-#include "Renderers/GlobeRenderer.h" // Updated path from Planet/GlobeRenderer.h
 
 class WorldGenScreen : public Screen { // Changed from GameplayScreen to Screen
 public:
@@ -44,8 +42,7 @@ private:
     // Star background layer
     std::shared_ptr<Rendering::Layer> starLayer;
     void renderStars(int width, int height);
-    
-    // 3D rendering properties
+      // 3D rendering properties
     glm::mat4 m_viewMatrix;
     glm::mat4 m_projectionMatrix;
     float m_cameraDistance;
@@ -56,19 +53,8 @@ private:
     float lastCursorX;
     float lastCursorY;
     
-    // Tectonic plate system
-    bool m_platesGenerated;
-    std::vector<std::shared_ptr<WorldGen::TectonicPlate>> m_plates;
-    std::vector<glm::vec3> m_planetVertices;
-    std::vector<unsigned int> m_planetIndices;
-    
     // UI system
     std::unique_ptr<WorldGen::WorldGenUI> m_worldGenUI;
-    
-    // Planet generation components 
-    std::unique_ptr<WorldGen::PlateGenerator> m_plateGenerator;
-    std::unique_ptr<WorldGen::PlateRenderer> m_plateRenderer;
-    std::unique_ptr<WorldGen::GlobeRenderer> m_globeRenderer;
     
     // Store window pointer for callbacks
     GLFWwindow* m_window;

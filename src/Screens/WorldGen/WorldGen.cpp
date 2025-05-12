@@ -8,15 +8,12 @@
 #include "Core/TerrainGenerator.h"
 #include "VectorGraphics.h"
 #include <algorithm> // Keep algorithm include
-#include "Lithosphere/Lithosphere.h" // Updated path to Lithosphere
-#include "Renderers/PlanetData.h" // Updated path from Planet to Renderers
 
 // Initialize the static instances map
 std::unordered_map<GLFWwindow*, WorldGenScreen*> WorldGenScreen::s_instances;
 
 // Update constructor definition to accept Camera* and GLFWwindow*
-WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)
-    : lastCursorX(0.0f)
+WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)    : lastCursorX(0.0f)
     , lastCursorY(0.0f)
     , worldWidth(256)
     , worldHeight(256)
@@ -25,43 +22,19 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)
     , m_cameraDistance(5.0f)
     , m_rotationAngle(0.0f)
     , m_isDragging(false)
-    , m_platesGenerated(false) 
     , m_window(window) {
     
     // Register this instance in the static map
     s_instances[window] = this;
-    
-    // Generate a random seed
+      // Generate a random seed
     std::random_device rd;
     seed = rd();
     
-    // Keep only star layer in WorldGenScreen
+    // Star Layuer
     starLayer = std::make_shared<Rendering::Layer>(-100.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
     
     // Initialize WorldGenUI
     m_worldGenUI = std::make_unique<WorldGen::WorldGenUI>(camera, window);
-    
-    // Initialize plate generator and renderer
-    WorldGen::PlanetParameters params;
-    params.numTectonicPlates = 24;  // Hardcode 8 plates for now
-    m_plateGenerator = std::make_unique<WorldGen::PlateGenerator>(params, seed);
-    m_plateRenderer = std::make_unique<WorldGen::PlateRenderer>();
-    m_globeRenderer = std::make_unique<WorldGen::GlobeRenderer>();
-    
-    // Get planet mesh data after initializing GlobeRenderer
-    if (m_globeRenderer) {
-        const auto* planetData = m_globeRenderer->getPlanetData(); // Use the added getter
-        if (planetData) {
-            // Use the new method to get vertices as vec3
-            m_planetVertices = planetData->getVerticesVec3();
-            m_planetIndices = planetData->getIndices(); // Get indices as well
-            std::cout << "Loaded planet mesh: " << m_planetVertices.size() << " vertices, " << m_planetIndices.size() << " indices." << std::endl;
-        } else {
-            std::cerr << "Error: Failed to get PlanetData from GlobeRenderer." << std::endl;
-        }
-    } else {
-         std::cerr << "Error: GlobeRenderer is null after creation." << std::endl;
-    }
 }
 
 WorldGenScreen::~WorldGenScreen() {
@@ -74,18 +47,6 @@ WorldGenScreen::~WorldGenScreen() {
 }
 
 bool WorldGenScreen::initialize() {
-    // Initialize globe renderer
-    if (!m_globeRenderer->initialize()) {
-        std::cerr << "Failed to initialize globe renderer" << std::endl;
-        return false;
-    }
-    
-    // Initialize plate renderer
-    if (!m_plateRenderer->initialize()) {
-        std::cerr << "Failed to initialize plate renderer" << std::endl;
-        return false;
-    }
-
     // Initialize UI
     if (!m_worldGenUI->initialize()) {
         std::cerr << "Failed to initialize world gen UI" << std::endl;
@@ -100,55 +61,21 @@ bool WorldGenScreen::initialize() {
     glfwSetScrollCallback(m_window, scrollCallback);
     
     // Register event handlers for UI events
-    
-    // Generate World button event
+      // Generate World button event
     m_worldGenUI->addEventListener(WorldGen::UIEvent::GenerateWorld, [this]() {
         // Switch to generating state
         m_worldGenUI->setState(WorldGen::UIState::Generating);
-        m_worldGenUI->updateProgress(0.1f, "Generating tectonic plates...");
+        m_worldGenUI->updateProgress(0.1f, "Generating world...");
         
-        // Get Lithosphere instance from PlateGenerator
-        WorldGen::Lithosphere* lithosphere = m_plateGenerator->GetLithosphere();
-        if (!lithosphere) {
-            std::cerr << "Error: Lithosphere instance is null." << std::endl;
-            m_worldGenUI->setState(WorldGen::UIState::ParameterSetup); // Go back if error
-            return;
-        }
-
-        // Generate plates using Lithosphere (needs vertex data)
-        lithosphere->CreatePlates(m_planetVertices);
-        m_plates = lithosphere->GetPlates(); // Get the generated plates (reference)
-
-        if (!m_plates.empty()) {
-            m_worldGenUI->updateProgress(0.3f, "Detecting boundaries..."); // Adjusted progress
-
-            // Detect initial boundaries using Lithosphere (needs vertex and index data)
-            lithosphere->DetectBoundaries(m_planetVertices, m_planetIndices);
-
-            m_worldGenUI->updateProgress(0.4f, "Simulating plate movement...");
-
-            // Simulate some movement (placeholder for now, real simulation happens in Update)
-            // lithosphere->Update(0.1f, m_planetVertices, m_planetIndices); // Example: Simulate one step
-            // For now, just keep the initial state after creation & boundary detection
-
-            m_worldGenUI->updateProgress(0.7f, "Analyzing boundaries...");
-
-            // Analyze boundaries using Lithosphere (placeholder for now)
-            lithosphere->AnalyzeBoundaries(m_planetVertices);
-
-            m_platesGenerated = true;
-            std::cout << "Generated " << m_plates.size() << " plates and detected initial boundaries." << std::endl;
-
-            m_worldGenUI->updateProgress(1.0f, "World generation complete!");
-
-            // Switch to viewing state after generation is complete
-            worldGenerated = true;
-            m_worldGenUI->setState(WorldGen::UIState::Viewing);
-        } else {
-            std::cerr << "Failed to generate plates" << std::endl;
-            m_worldGenUI->setState(WorldGen::UIState::ParameterSetup);
-        }
-
+        // Simple placeholder for world generation
+        m_worldGenUI->updateProgress(0.5f, "Processing terrain...");
+        
+        // Mark generation as complete
+        worldGenerated = true;
+        
+        m_worldGenUI->updateProgress(1.0f, "World generation complete!");
+        m_worldGenUI->setState(WorldGen::UIState::Viewing);
+        
         // Update UI
         int width, height;
         glfwGetWindowSize(m_window, &width, &height);
@@ -259,41 +186,22 @@ void WorldGenScreen::renderStars(int width, int height) {
 }
 
 void WorldGenScreen::update(float deltaTime) {
-    // Update camera matrices
-    m_viewMatrix = glm::lookAt(
-        glm::vec3(0.0f, 0.0f, m_cameraDistance),
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 1.0f, 0.0f)
-    );
+    // // Update camera matrices
+    // m_viewMatrix = glm::lookAt(
+    //     glm::vec3(0.0f, 0.0f, m_cameraDistance),
+    //     glm::vec3(0.0f, 0.0f, 0.0f),
+    //     glm::vec3(0.0f, 1.0f, 0.0f)
+    // );
     
-    // Update projection matrix - use full width for proper aspect ratio
-    int width, height;
-    glfwGetWindowSize(m_window, &width, &height);
-    m_projectionMatrix = glm::perspective(
-        glm::radians(45.0f),
-        static_cast<float>(width) / height,
-        0.1f,
-        100.0f
-    );
-    
-    // Update globe renderer
-    m_globeRenderer->setRotationAngle(m_rotationAngle);
-    m_globeRenderer->setCameraDistance(m_cameraDistance);
-    m_globeRenderer->resize(width, height);
-
-    // Update Lithosphere simulation if plates are generated
-    if (m_platesGenerated) {
-        WorldGen::Lithosphere* lithosphere = m_plateGenerator->GetLithosphere();
-        if (lithosphere) {
-            // Use a fixed simulation step or scale deltaTime
-            float simulationTimeStep = deltaTime * 0.5f; // Adjust speed as needed
-            lithosphere->Update(simulationTimeStep, m_planetVertices, m_planetIndices);
-            // Update the local copy of plates if needed (GetPlates returns a reference)
-            // m_plates = lithosphere->GetPlates(); // Not strictly necessary if GetPlates returns reference
-        } else {
-            std::cerr << "Error: Lithosphere instance is null during update." << std::endl;
-        }
-    }
+    // // Update projection matrix - use full width for proper aspect ratio
+    // int width, height;
+    // glfwGetWindowSize(m_window, &width, &height);
+    // m_projectionMatrix = glm::perspective(
+    //     glm::radians(45.0f),
+    //     static_cast<float>(width) / height,
+    //     0.1f,
+    //     100.0f
+    // );
 }
 
 void WorldGenScreen::render() {
@@ -308,54 +216,18 @@ void WorldGenScreen::render() {
     // Use the full window viewport for all rendering
     glViewport(0, 0, width, height);
 
-    // Calculate horizontal offset for planet in world units
-    float sidebarWidthPx = m_worldGenUI->getSidebarWidth();
-    float fovY = glm::radians(45.0f);
-    float aspect = static_cast<float>(width) / height;
-    float tanHalfFovY = tan(fovY / 2.0f);
-    float viewHeight = 2.0f * m_cameraDistance * tanHalfFovY;
-    float viewWidth = viewHeight * aspect;
-    float offsetWorldX = (sidebarWidthPx / static_cast<float>(width)) * viewWidth / 2.0f;
-    m_globeRenderer->setHorizontalOffset(offsetWorldX);
-    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(offsetWorldX, 0.0f, 0.0f));
-    modelMatrix = glm::rotate(modelMatrix, m_rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
-
     // --- Render stars (background, always first, blending enabled) ---
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     starLayer->render();
 
-    // --- Render sidebar background (blending enabled, before globe) ---
-    // Only render the sidebar/background layer, not all UI layers yet
+    // --- Render UI layers ---
     auto uiLayers = m_worldGenUI->getAllLayers();
-    // Find the sidebar layer (zIndex == 100.0f by convention)
+    
+    // Render all UI layers
     for (const auto& layer : uiLayers) {
-        if (layer->getZIndex() == 100.0f) {
-            layer->render();
-            break;
-        }
-    }
-
-    // --- Render globe and plates (opaque, depth test ON, blending OFF) ---
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND);
-    m_globeRenderer->render(m_viewMatrix, m_projectionMatrix);
-    if (m_platesGenerated && !m_plates.empty()) {
-        glLineWidth(2.0f);
-        m_plateRenderer->render(m_plates, m_planetVertices, modelMatrix, m_viewMatrix, m_projectionMatrix);
-        glLineWidth(1.0f);
-    }
-
-    // --- Render remaining UI layers (controls, buttons, preview, etc) ---
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    // Render all UI layers except the sidebar (already rendered)
-    for (const auto& layer : uiLayers) {
-        if (layer->getZIndex() != 100.0f) {
-            layer->render();
-        }
+        layer->render();
     }
 }
 
