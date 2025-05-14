@@ -34,6 +34,11 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)    : lastCurs
     
     // Initialize WorldGenUI
     m_worldGenUI = std::make_unique<WorldGen::WorldGenUI>(camera, window);
+    
+    // Initialize planet parameters
+    m_planetParams.seed = seed;
+    m_planetParams.radius = 1.0f;
+    m_planetParams.resolution = 512; // Start with a medium resolution
 }
 
 WorldGenScreen::~WorldGenScreen() {
@@ -58,6 +63,24 @@ bool WorldGenScreen::initialize() {
     
     // Set up scroll callback without overriding window user pointer
     glfwSetScrollCallback(m_window, scrollCallback);
+      // Initialize world generator and renderer
+    m_world = WorldGen::Generators::Generator::CreateWorld(m_planetParams);
+    m_worldRenderer = std::make_unique<WorldGen::Renderers::World>();
+    m_worldRenderer->SetWorld(m_world.get());
+    m_worldRenderer->SetRenderMode(WorldGen::Renderers::World::RenderMode::Wireframe); // Use Debug mode for better visibility
+
+    // Initialize the projection matrix
+    int windowWidth, windowHeight;
+    glfwGetWindowSize(m_window, &windowWidth, &windowHeight);
+    m_projectionMatrix = glm::perspective(glm::radians(45.0f), static_cast<float>(windowWidth) / windowHeight, 0.1f, 100.0f);
+      // Initialize the view matrix
+    // Adjust camera distance based on world radius (if world is generated)
+    m_cameraDistance = 2.5f; // Default camera distance
+    m_viewMatrix = glm::lookAt(
+        glm::vec3(0.0f, 0.0f, m_cameraDistance),  // Camera position
+        glm::vec3(0.0f, 0.0f, 0.0f),              // Look at origin
+        glm::vec3(0.0f, 1.0f, 0.0f)               // Up vector
+    );
     
     // Register event handlers for UI events
       // Generate World button event
@@ -66,8 +89,18 @@ bool WorldGenScreen::initialize() {
         m_worldGenUI->setState(WorldGen::UIState::Generating);
         m_worldGenUI->updateProgress(0.1f, "Generating world...");
         
-        // Simple placeholder for world generation
+        // Update seed from UI and create a new world
+        m_planetParams.seed = seed;
+        
+        // Re-generate the world with the new parameters
+        m_world = WorldGen::Generators::Generator::CreateWorld(m_planetParams);
+        m_worldRenderer->SetWorld(m_world.get());
+        
         m_worldGenUI->updateProgress(0.5f, "Processing terrain...");
+        
+        // Generate the world with subdivided icosahedron
+        int subdivisionLevel = WorldGen::Generators::Generator::GetSubdivisionLevel(m_planetParams.resolution);
+        m_world->Generate(subdivisionLevel, m_distortionFactor);
         
         // Mark generation as complete
         worldGenerated = true;
@@ -88,21 +121,25 @@ bool WorldGenScreen::initialize() {
             m_worldGenUI->setState(WorldGen::UIState::Generating);
             m_worldGenUI->updateProgress(0.1f, "Generating terrain data...");
             
-            // Clear previous terrain data
-            generatedTerrainData.clear();
+            // Update seed from UI and create a new world
+            m_planetParams.seed = seed;
             
-            // Generate new terrain with the current seed
-            unsigned int hashedSeed = WorldGen::TerrainGenerator::getHashedSeed(std::to_string(seed));
+            // Re-generate the world with the new parameters
+            m_world = WorldGen::Generators::Generator::CreateWorld(m_planetParams);
+            m_worldRenderer->SetWorld(m_world.get());
             
-            // Call the TerrainGenerator with the correct terrain data type
-            WorldGen::TerrainGenerator::generateTerrain(
-                generatedTerrainData, worldWidth / 2, hashedSeed);
-            
-            std::cout << "Generated " << generatedTerrainData.size() << " terrain tiles" << std::endl;
+            // Generate the world with subdivided icosahedron
+            int subdivisionLevel = WorldGen::Generators::Generator::GetSubdivisionLevel(m_planetParams.resolution);
+            m_world->Generate(subdivisionLevel, m_distortionFactor);
             
             worldGenerated = true;
             m_worldGenUI->updateProgress(1.0f, "World generation complete!");
         }
+        
+        // Convert the icosahedron world to terrain data
+        m_worldGenUI->updateProgress(0.5f, "Converting to terrain data...");
+        convertWorldToTerrainData();
+        m_worldGenUI->updateProgress(0.8f, "Finalizing...");
         
         // Transfer the terrain data to the game world
         if (screenManager->getWorld()) {
@@ -153,23 +190,38 @@ bool WorldGenScreen::initialize() {
 }
 
 void WorldGenScreen::update(float deltaTime) {
-    // deltaTime parameter not used in this implementation
-    // // Update camera matrices
-    // m_viewMatrix = glm::lookAt(
-    //     glm::vec3(0.0f, 0.0f, m_cameraDistance),
-    //     glm::vec3(0.0f, 0.0f, 0.0f),
-    //     glm::vec3(0.0f, 1.0f, 0.0f)
-    // );
+    // If world is generated, adjust camera distance based on world radius
+    if (worldGenerated && m_world) {
+        // Set the camera distance based on the world's radius (add a margin for better visibility)
+        float worldRadius = m_world->GetRadius();
+        m_cameraDistance = worldRadius * 2.5f;
+    }
+
+    // Update camera matrices
+    m_viewMatrix = glm::lookAt(
+        glm::vec3(0.0f, 0.0f, m_cameraDistance),
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 1.0f, 0.0f)
+    );
     
-    // // Update projection matrix - use full width for proper aspect ratio
-    // int width, height;
-    // glfwGetWindowSize(m_window, &width, &height);
-    // m_projectionMatrix = glm::perspective(
-    //     glm::radians(45.0f),
-    //     static_cast<float>(width) / height,
-    //     0.1f,
-    //     100.0f
-    // );
+    // Update model-view matrix with current rotation
+    glm::mat4 rotationMatrix = glm::rotate(
+        glm::mat4(1.0f),
+        m_rotationAngle,
+        glm::vec3(0.0f, 1.0f, 0.0f)
+    );
+    
+    m_viewMatrix = m_viewMatrix * rotationMatrix;
+    
+    // Update projection matrix - use full width for proper aspect ratio
+    int width, height;
+    glfwGetWindowSize(m_window, &width, &height);
+    m_projectionMatrix = glm::perspective(
+        glm::radians(45.0f),
+        static_cast<float>(width) / height,
+        0.1f,
+        100.0f
+    );
 }
 
 void WorldGenScreen::render() {
@@ -182,11 +234,42 @@ void WorldGenScreen::render() {
     glfwGetWindowSize(m_window, &width, &height);
     
     // Use the full window viewport for all rendering
-    glViewport(0, 0, width, height);    // --- Render stars (background, always first, blending enabled) ---
+    glViewport(0, 0, width, height);
+    
+    // --- Render stars (background, always first, blending enabled) ---
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    m_stars->render();
+    m_stars->render();    // --- Render the icosahedron world if generated ---
+    if (worldGenerated && m_world && m_worldRenderer) {
+        // Enable depth testing for 3D rendering
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LESS);
+        
+        // Only render in the main area (not over sidebar)
+        float sidebarWidth = m_worldGenUI->getSidebarWidth();
+        int renderWidth = width - static_cast<int>(sidebarWidth);
+        int renderHeight = height;
+        glViewport(static_cast<int>(sidebarWidth), 0, renderWidth, renderHeight);
+        
+        // Calculate correct aspect ratio for the viewport
+        float aspectRatio = static_cast<float>(renderWidth) / renderHeight;
+        
+        // Create adjusted projection matrix for this viewport
+        glm::mat4 adjustedProjection = glm::perspective(
+            glm::radians(45.0f),  // FOV
+            aspectRatio,          // Aspect ratio
+            0.1f,                 // Near plane
+            100.0f                // Far plane
+        );
+        
+        // Render the world with adjusted projection
+        m_worldRenderer->Render(m_viewMatrix, adjustedProjection);
+        
+        // Reset viewport for UI
+        glViewport(0, 0, width, height);
+        glDisable(GL_DEPTH_TEST);
+    }
 
     // --- Render UI layers ---
     auto uiLayers = m_worldGenUI->getAllLayers();
@@ -248,11 +331,16 @@ void WorldGenScreen::handleInput() {
 }
 
 void WorldGenScreen::onResize(int width, int height) {
-    // Update viewport to use the full window
-    glViewport(0, 0, width, height);
-      // Update stars and UI layout
-    m_stars->generate(width, height);
+    // Update UI layout
     m_worldGenUI->layoutUI(width, height, worldWidth, worldHeight, waterLevel, seed, worldGenerated);
+    
+    // Update projection matrix
+    m_projectionMatrix = glm::perspective(
+        glm::radians(45.0f),
+        static_cast<float>(width) / height,
+        0.1f,
+        100.0f
+    );
 }
 
 bool WorldGenScreen::isPointInRect(float px, float py, float rx, float ry, float rw, float rh) {
@@ -260,13 +348,152 @@ bool WorldGenScreen::isPointInRect(float px, float py, float rx, float ry, float
 }
 
 void WorldGenScreen::handleScroll(double xoffset, double yoffset) {
-    m_cameraDistance = glm::clamp(m_cameraDistance - static_cast<float>(yoffset) * 0.1f, 2.0f, 10.0f);
+    // Adjust camera distance with scroll wheel (zoom in/out)
+    m_cameraDistance -= static_cast<float>(yoffset) * 0.5f;
+    
+    // Clamp to reasonable limits
+    m_cameraDistance = std::max(1.5f, std::min(10.0f, m_cameraDistance));
 }
 
+// Static callback that routes scroll events to the right instance
 void WorldGenScreen::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
-    // Find the instance associated with this window
     auto it = s_instances.find(window);
     if (it != s_instances.end()) {
         it->second->handleScroll(xoffset, yoffset);
     }
+}
+
+// Convert the icosahedron world to terrain data
+void WorldGenScreen::convertWorldToTerrainData() {
+    if (!m_world) {
+        std::cerr << "ERROR: World not initialized for conversion" << std::endl;
+        return;
+    }
+    
+    // Clear previous terrain data
+    generatedTerrainData.clear();
+    
+    // Get the tiles from the world
+    const auto& tiles = m_world->GetTiles();
+    
+    // Counters for terrain types
+    int waterTileCount = 0;
+    int landTileCount = 0;
+    int totalTileCount = 0;
+    
+    // Project tiles onto a 2D grid based on spherical coordinates
+    for (size_t i = 0; i < tiles.size(); ++i) {
+        const auto& tile = tiles[i];
+        const auto& center = tile.GetCenter();
+        
+        // Convert 3D position to longitude/latitude
+        float longitude = std::atan2(center.z, center.x);
+        float latitude = std::asin(center.y / m_world->GetRadius());
+        
+        // Convert longitude/latitude to grid coordinates
+        int x = static_cast<int>((longitude / (2.0f * 3.14159f) + 0.5f) * worldWidth);
+        int y = static_cast<int>((latitude / 3.14159f + 0.5f) * worldHeight);
+        
+        // Create terrain data
+        WorldGen::TerrainData terrainData;
+        
+        // Assign terrain type based on some attributes of the tile
+        // For example, use the elevation for terrain type
+        float elevation = tile.GetElevation();
+        
+        if (elevation < waterLevel - 0.2f) {
+            terrainData.type = WorldGen::TerrainType::Ocean;
+            waterTileCount++;
+        } else if (elevation < waterLevel - 0.05f) {
+            terrainData.type = WorldGen::TerrainType::Shallow;
+            waterTileCount++;
+        } else if (elevation < waterLevel + 0.05f) {
+            terrainData.type = WorldGen::TerrainType::Beach;
+            landTileCount++;
+        } else if (elevation < waterLevel + 0.3f) {
+            terrainData.type = WorldGen::TerrainType::Lowland;
+            landTileCount++;
+        } else if (elevation < waterLevel + 0.6f) {
+            terrainData.type = WorldGen::TerrainType::Highland;
+            landTileCount++;
+        } else if (elevation < waterLevel + 0.8f) {
+            terrainData.type = WorldGen::TerrainType::Mountain;
+            landTileCount++;
+        } else {
+            terrainData.type = WorldGen::TerrainType::Peak;
+            landTileCount++;
+        }
+        
+        totalTileCount++;
+        
+        // Set extra terrain data
+        terrainData.elevation = elevation;
+        terrainData.humidity = tile.GetMoisture();
+        terrainData.temperature = tile.GetTemperature();
+        terrainData.height = elevation; // Also set the legacy height field
+        
+        // Set a color based on terrain type
+        switch (terrainData.type) {
+            case WorldGen::TerrainType::Ocean:
+                terrainData.color = glm::vec4(0.0f, 0.0f, 0.8f, 1.0f);
+                break;
+            case WorldGen::TerrainType::Shallow:
+                terrainData.color = glm::vec4(0.0f, 0.4f, 0.8f, 1.0f);
+                break;
+            case WorldGen::TerrainType::Beach:
+                terrainData.color = glm::vec4(0.9f, 0.9f, 0.7f, 1.0f);
+                break;
+            case WorldGen::TerrainType::Lowland:
+                terrainData.color = glm::vec4(0.0f, 0.6f, 0.0f, 1.0f);
+                break;
+            case WorldGen::TerrainType::Highland:
+                terrainData.color = glm::vec4(0.0f, 0.4f, 0.0f, 1.0f);
+                break;
+            case WorldGen::TerrainType::Mountain:
+                terrainData.color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+                break;
+            case WorldGen::TerrainType::Peak:
+                terrainData.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+                break;
+            default:
+                terrainData.color = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f); // Magenta for unknown
+        }
+        
+        // Store in the terrain data map
+        generatedTerrainData[{x, y}] = terrainData;
+    }
+    
+    // Log tile statistics with more detailed information
+    std::cout << "\n============ WORLD GENERATION STATS ============" << std::endl;
+    std::cout << "Total tiles: " << totalTileCount << std::endl;
+    std::cout << "Water tiles: " << waterTileCount << " (" << (static_cast<float>(waterTileCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "Land tiles: " << landTileCount << " (" << (static_cast<float>(landTileCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "Water level: " << waterLevel << std::endl;
+
+    // Distribution of terrain types
+    int oceanCount = 0, shallowCount = 0, beachCount = 0, lowlandCount = 0;
+    int highlandCount = 0, mountainCount = 0, peakCount = 0;
+
+    for (const auto& [coord, data] : generatedTerrainData) {
+        switch (data.type) {
+            case WorldGen::TerrainType::Ocean: oceanCount++; break;
+            case WorldGen::TerrainType::Shallow: shallowCount++; break;
+            case WorldGen::TerrainType::Beach: beachCount++; break;
+            case WorldGen::TerrainType::Lowland: lowlandCount++; break;
+            case WorldGen::TerrainType::Highland: highlandCount++; break;
+            case WorldGen::TerrainType::Mountain: mountainCount++; break;
+            case WorldGen::TerrainType::Peak: peakCount++; break;
+        }
+    }
+
+    std::cout << "Terrain distribution:" << std::endl;
+    std::cout << "  Ocean: " << oceanCount << " tiles (" << (static_cast<float>(oceanCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "  Shallow: " << shallowCount << " tiles (" << (static_cast<float>(shallowCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "  Beach: " << beachCount << " tiles (" << (static_cast<float>(beachCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "  Lowland: " << lowlandCount << " tiles (" << (static_cast<float>(lowlandCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "  Highland: " << highlandCount << " tiles (" << (static_cast<float>(highlandCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "  Mountain: " << mountainCount << " tiles (" << (static_cast<float>(mountainCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "  Peak: " << peakCount << " tiles (" << (static_cast<float>(peakCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "Converted " << generatedTerrainData.size() << " tiles to terrain data" << std::endl;
+    std::cout << "================================================\n" << std::endl;
 }

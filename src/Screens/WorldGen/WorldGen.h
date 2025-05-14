@@ -9,6 +9,9 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "Stars.h" // Added Stars class inclusion
 #include "UI/WorldGenUI.h" // Updated path
+#include "Generators/World.h"
+#include "Generators/Generator.h"
+#include "Renderers/World.h"
 
 class WorldGenScreen : public Screen { // Changed from GameplayScreen to Screen
 public:
@@ -26,6 +29,9 @@ public:
     
     // Scroll handler
     void handleScroll(double xoffset, double yoffset);
+    
+    // Convert icosahedron world to terrain data
+    void convertWorldToTerrainData();
 
 private:
     // Terrain data
@@ -54,6 +60,12 @@ private:
     
     // Store window pointer for callbacks
     GLFWwindow* m_window;
+
+    // New icosahedron-based world generator
+    std::unique_ptr<WorldGen::Generators::World> m_world;
+    std::unique_ptr<WorldGen::Renderers::World> m_worldRenderer;
+    WorldGen::PlanetParameters m_planetParams;
+    float m_distortionFactor = 0.15f;
     
     // Static callback handling
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);

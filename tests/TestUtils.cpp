@@ -93,28 +93,36 @@ namespace TestData {
                 // Calculate normalized position
                 float nx = static_cast<float>(x) / width;
                 float ny = static_cast<float>(y) / height;
-                
-                // Generate height using a simple algorithm
-                float height = 0.2f + 0.3f * std::sin(nx * 5.0f) * std::cos(ny * 3.0f);
+                  // Generate height using a simple algorithm
+                float perlinValue = (glm::simplex(glm::vec2(x * 0.1f, y * 0.1f)) + 1.0f) * 0.5f;
+                float height = perlinValue; // Normalize to [0, 1]
                 
                 // Determine terrain type based on height
-                int type = (height > 0.6f) ? 2 :  // Mountains
-                          (height > 0.3f) ? 1 :  // Grass
-                          0;                     // Water
+                WorldGen::TerrainType terrainType = (height > 0.6f) ? WorldGen::TerrainType::Mountain :  // Mountains
+                                                  (height > 0.3f) ? WorldGen::TerrainType::Lowland :  // Grass
+                                                  WorldGen::TerrainType::Ocean;                     // Water
                 
                 // Assign color based on type
                 glm::vec4 color;
-                switch (type) {
-                    case 2: color = glm::vec4(0.5f, 0.35f, 0.05f, 1.0f); break; // Brown
-                    case 1: color = glm::vec4(0.0f, 0.5f, 0.0f, 1.0f); break;  // Green
+                switch (terrainType) {
+                    case WorldGen::TerrainType::Mountain: color = glm::vec4(0.5f, 0.35f, 0.05f, 1.0f); break; // Brown
+                    case WorldGen::TerrainType::Lowland: color = glm::vec4(0.0f, 0.5f, 0.0f, 1.0f); break;  // Green
                     default: color = glm::vec4(0.0f, 0.0f, 0.8f, 1.0f); break; // Blue
                 }
+                  // Create terrain data
+                WorldGen::TerrainData terrainData;
+                terrainData.height = height;
+                terrainData.resource = 0.0f;
+                terrainData.type = terrainType;
+                terrainData.color = color;
                 
-                // Store terrain data using WorldGen::TerrainData
-                // Note: The original TestData::WorldGen::TerrainData only had height, type, color.
-                // The actual WorldGen::TerrainData has height, resource, type, color.
-                // We'll set resource to 0.0f for simplicity in this test data.
-                terrain[coord] = {height, 0.0f, type, color}; // Use WorldGen::TileCoord and WorldGen::TerrainData
+                // Set additional properties for our new world generation system
+                terrainData.elevation = height;
+                terrainData.humidity = 0.5f; // Default value
+                terrainData.temperature = 0.5f; // Default value
+                
+                // Store terrain data
+                terrain[coord] = terrainData;
             }
         }
         

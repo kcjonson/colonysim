@@ -1,8 +1,8 @@
 #version 330 core
 
-in vec2 TexCoord;
 in vec3 Normal;
 in vec3 FragPos;
+in vec3 VertexColor;
 
 out vec4 FragColor;
 
@@ -10,10 +10,20 @@ uniform vec3 lightPos;
 uniform vec3 lightColor;
 uniform vec3 viewPos;
 uniform vec3 planetColor;
+uniform int useColorAttrib = 0; // Whether to use the vertex color attribute (0=false, 1=true)
 
 void main() {
-    // Use planetColor if provided, otherwise use default ocean color
-    vec3 baseColor = planetColor.x + planetColor.y + planetColor.z > 0.0 ? planetColor : vec3(0.0, 0.3, 0.8);
+    // Select the color source based on useColorAttrib uniform
+    // If 1, use vertex color. Otherwise use planetColor or default
+    vec3 baseColor;
+    
+    if (useColorAttrib == 1) {
+        // Use the color from vertex attributes
+        baseColor = VertexColor;
+    } else {
+        // Use planetColor if provided, otherwise use default ocean color
+        baseColor = planetColor.x + planetColor.y + planetColor.z > 0.0 ? planetColor : vec3(0.0, 0.3, 0.8);
+    }
     
     // Ambient
     float ambientStrength = 0.2;
@@ -34,4 +44,4 @@ void main() {
 
     vec3 result = (ambient + diffuse + specular) * baseColor;
     FragColor = vec4(result, 1.0);
-} 
+}

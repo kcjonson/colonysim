@@ -1,5 +1,6 @@
 #pragma once
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <chrono>
 #include <functional>
 #include <memory>
@@ -8,6 +9,7 @@
 #include <unordered_map>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/noise.hpp>
 #include "../src/Screens/WorldGen/Core/TerrainGenerator.h" // Include for WorldGen::TileCoord and WorldGen::TerrainData
 
 // Utility for measuring execution time

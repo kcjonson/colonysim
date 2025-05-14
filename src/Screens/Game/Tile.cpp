@@ -15,7 +15,7 @@ const glm::vec4 WATER_COLOR = glm::vec4(0.0f, 0.0f, 0.8f, 1.0f);  // Dark blue f
 const glm::vec4 GRASS_COLOR = glm::vec4(0.0f, 0.5f, 0.0f, 1.0f);  // Green for grass
 const glm::vec4 MOUNTAIN_COLOR = glm::vec4(0.5f, 0.35f, 0.05f, 1.0f); // Brown for mountains
 
-Tile::Tile(const glm::vec2& position, float height, float resource, int type, const glm::vec4& color, bool visible)
+Tile::Tile(const glm::vec2& position, float height, float resource, WorldGen::TerrainType type, const glm::vec4& color, bool visible)
     : Layer(0.1f) // Default z-index for tiles
     , height(height)
     , resource(resource)

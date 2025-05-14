@@ -94,11 +94,11 @@ void TerrainGenerator::generateTerrain(
 
             // Smooth terrain transitions
             if (heightValue > 0.7f) {
-                data.type = 2; // Mountain
+                data.type = TerrainType::Mountain; // Mountain
                 data.color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
             } 
             else if (heightValue > 0.5f) {
-                data.type = 1; // Land
+                data.type = TerrainType::Lowland; // Land
                 float blend = (heightValue - 0.5f) / 0.2f;
                 data.color = glm::mix(
                     glm::vec4(0.0f, 0.5f, 0.0f, 1.0f),
@@ -107,7 +107,7 @@ void TerrainGenerator::generateTerrain(
                 );
             }
             else {
-                data.type = 0; // Water
+                data.type = TerrainType::Ocean; // Water
                 float blend = heightValue / 0.5f;
                 data.color = glm::mix(
                     glm::vec4(0.0f, 0.2f, 0.5f, 1.0f),
