@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <glm/glm.hpp>
+#include "../Core/TerrainTypes.h" // Include TerrainTypes.h for TerrainType and BiomeType enums
 
 namespace WorldGen {
 namespace Generators {
@@ -127,6 +128,34 @@ public:    /**
      */
     void SetTemperature(float temperature) { m_temperature = temperature; }
 
+    /**
+     * @brief Get the terrain type of this tile.
+     * 
+     * @return TerrainType The terrain type.
+     */
+    TerrainType GetTerrainType() const { return m_terrainType; }
+    
+    /**
+     * @brief Set the terrain type of this tile.
+     * 
+     * @param terrainType The terrain type.
+     */
+    void SetTerrainType(TerrainType terrainType) { m_terrainType = terrainType; }
+    
+    /**
+     * @brief Get the biome type of this tile.
+     * 
+     * @return BiomeType The biome type.
+     */
+    BiomeType GetBiomeType() const { return m_biomeType; }
+    
+    /**
+     * @brief Set the biome type of this tile.
+     * 
+     * @param biomeType The biome type.
+     */
+    void SetBiomeType(BiomeType biomeType) { m_biomeType = biomeType; }
+
 private:
     glm::vec3 m_center;                ///< Center position of the tile
     TileShape m_shape;                 ///< Shape of tile (Pentagon or Hexagon)
@@ -137,6 +166,8 @@ private:
     float m_elevation = 0.5f;          ///< Elevation of the tile (0.0-1.0)
     float m_moisture = 0.5f;           ///< Moisture level of the tile (0.0-1.0)
     float m_temperature = 0.5f;        ///< Temperature of the tile (0.0-1.0)
+    TerrainType m_terrainType = TerrainType::Lowland; ///< Type of terrain in this tile
+    BiomeType m_biomeType = BiomeType::TemperateGrassland; ///< Biome type in this tile
 };
 
 } // namespace Generators

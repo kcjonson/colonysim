@@ -1,9 +1,22 @@
-#define GLM_ENABLE_EXPERIMENTAL
-#include "World.h"
-#include "../Core/WorldGenParameters.h"
+// Standard headers
+#include <cmath>
+#include <random>
+#include <unordered_set>
+#include <algorithm>
+#include <iostream>
+#include <array>
+#include <unordered_map>
+
+// GLM headers 
+#include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtx/vector_angle.hpp>
+#include <glm/gtc/noise.hpp>
+
+// Project headers
+#include "World.h"
+#include "../Core/WorldGenParameters.h"
 #include <cmath>
 #include <random>
 #include <unordered_set>
