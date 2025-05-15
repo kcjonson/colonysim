@@ -15,14 +15,14 @@ namespace Generators {
  * and distortion factor based on the desired resolution.
  */
 class Generator {
-public:
-    /**
+public:    /**
      * @brief Create a new world using the specified parameters.
      * 
      * @param params The parameters to use for world generation.
+     * @param progressTracker Optional progress tracker to report generation progress.
      * @return std::unique_ptr<World> A unique pointer to the newly created World.
      */
-    static std::unique_ptr<World> CreateWorld(const PlanetParameters& params);
+    static std::unique_ptr<World> CreateWorld(const PlanetParameters& params, std::shared_ptr<ProgressTracker> progressTracker = nullptr);
 
     /**
      * @brief Get the appropriate subdivision level for a given resolution.

@@ -28,6 +28,8 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)    : lastCurs
     s_instances[window] = this;    // Generate a random seed
     std::random_device rd;
     seed = rd();
+      // Create a central progress tracker with a callback to update the UI
+    m_progressTracker = std::make_shared<WorldGen::ProgressTracker>();
     
     // Initialize Stars
     m_stars = std::make_unique<WorldGen::Stars>(camera, window);
@@ -56,6 +58,11 @@ bool WorldGenScreen::initialize() {
         return false;
     }
     
+    // Set up the progress tracker callback now that UI is initialized
+    m_progressTracker->SetCallback([this](float progress, const std::string& message) {
+        m_worldGenUI->updateProgress(progress, message);
+    });
+    
     // Set up OpenGL blending for transparency
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -77,29 +84,26 @@ bool WorldGenScreen::initialize() {
         glm::vec3(0.0f, 0.0f, m_cameraDistance),  // Camera position
         glm::vec3(0.0f, 0.0f, 0.0f),              // Look at origin
         glm::vec3(0.0f, 1.0f, 0.0f)               // Up vector
-    );
-    
-    // Register event handlers for UI events
-      // Generate World button event
+    );      // Register event handlers for UI events
+    // Generate World button event
     m_worldGenUI->addEventListener(WorldGen::UIEvent::GenerateWorld, [this]() {
         std::cout << "Generate World button clicked" << std::endl;
         // Switch to generating state
         m_worldGenUI->setState(WorldGen::UIState::Generating);
-        m_worldGenUI->updateProgress(0.1f, "Generating world...");
-          // Update seed from UI and create a new world
+        
+        // Update seed from UI and create a new world
         m_planetParams.seed = seed;
         
-        // Re-generate the world with the new parameters
-        // CreateWorld() will handle generating the world with the appropriate subdivision level
-        m_world = WorldGen::Generators::Generator::CreateWorld(m_planetParams);
-        m_worldRenderer->SetWorld(m_world.get());
+        // Reset the progress tracker for a new generation
+        m_progressTracker->Reset();
         
-        m_worldGenUI->updateProgress(0.5f, "Processing terrain...");
+        // Re-generate the world with the new parameters and progress tracker
+        // CreateWorld() will handle generating the world with the appropriate subdivision level
+        m_world = WorldGen::Generators::Generator::CreateWorld(m_planetParams, m_progressTracker);
+        m_worldRenderer->SetWorld(m_world.get());
         
         // Mark generation as complete
         worldGenerated = true;
-        
-        m_worldGenUI->updateProgress(1.0f, "World generation complete!");
         m_worldGenUI->setState(WorldGen::UIState::Viewing);
           // Update UI
         int width, height;
@@ -111,25 +115,22 @@ bool WorldGenScreen::initialize() {
     // Land button event
     m_worldGenUI->addEventListener(WorldGen::UIEvent::GoToLand, [this]() {
         if (!worldGenerated) {
-            // If not generated yet, go through the generation process first
-            m_worldGenUI->setState(WorldGen::UIState::Generating);
-            m_worldGenUI->updateProgress(0.1f, "Generating terrain data...");
-              // Update seed from UI and create a new world
-            m_planetParams.seed = seed;
-            
-            // Re-generate the world with the new parameters
-            // CreateWorld() will handle generating the world with the appropriate subdivision level
-            m_world = WorldGen::Generators::Generator::CreateWorld(m_planetParams);
-            m_worldRenderer->SetWorld(m_world.get());
-            
-            worldGenerated = true;
-            m_worldGenUI->updateProgress(1.0f, "World generation complete!");
+            // If world is not generated, log an error message and return early
+            std::cerr << "ERROR: World must be generated before proceeding to land view" << std::endl;
+            m_worldGenUI->setState(WorldGen::UIState::ParameterSetup);
+            return;
         }
+          // Convert the icosahedron world to terrain data
+        // Use the progress tracker directly
+        m_progressTracker->Reset();
+        m_progressTracker->AddPhase("Converting", 0.8f);
+        m_progressTracker->AddPhase("Finalizing", 0.2f);
         
-        // Convert the icosahedron world to terrain data
-        m_worldGenUI->updateProgress(0.5f, "Converting to terrain data...");
+        m_progressTracker->StartPhase("Converting");
         convertWorldToTerrainData();
-        m_worldGenUI->updateProgress(0.8f, "Finalizing...");
+        
+        m_progressTracker->CompletePhase();
+        m_progressTracker->StartPhase("Finalizing");
         
         // Transfer the terrain data to the game world
         if (screenManager->getWorld()) {
@@ -371,6 +372,14 @@ void WorldGenScreen::convertWorldToTerrainData() {
     int landTileCount = 0;
     int totalTileCount = 0;
     
+    // Report starting conversion
+    if (m_progressTracker) {
+        m_progressTracker->UpdateProgress(0.1f, "Starting terrain conversion...");
+    }
+    
+    // Track progress
+    size_t totalTiles = tiles.size();
+    
     // Project tiles onto a 2D grid based on spherical coordinates
     for (size_t i = 0; i < tiles.size(); ++i) {
         const auto& tile = tiles[i];
@@ -451,6 +460,20 @@ void WorldGenScreen::convertWorldToTerrainData() {
         
         // Store in the terrain data map
         generatedTerrainData[{x, y}] = terrainData;
+        
+        // Update progress every 1000 tiles
+        if (m_progressTracker && i % 1000 == 0) {
+            float progress = 0.1f + (static_cast<float>(i) / totalTiles) * 0.8f;
+            std::string message = "Converting tiles to terrain data (" + 
+                                 std::to_string(i) + " of " + 
+                                 std::to_string(totalTiles) + ")";
+            m_progressTracker->UpdateProgress(progress, message);
+        }
+    }
+    
+    // Signal completion
+    if (m_progressTracker) {
+        m_progressTracker->UpdateProgress(0.9f, "Analyzing terrain data...");
     }
     
     // Log tile statistics with more detailed information
@@ -486,4 +509,9 @@ void WorldGenScreen::convertWorldToTerrainData() {
     std::cout << "  Peak: " << peakCount << " tiles (" << (static_cast<float>(peakCount) / totalTileCount * 100.0f) << "%)" << std::endl;
     std::cout << "Converted " << generatedTerrainData.size() << " tiles to terrain data" << std::endl;
     std::cout << "================================================\n" << std::endl;
+    
+    // Signal final completion
+    if (m_progressTracker) {
+        m_progressTracker->UpdateProgress(1.0f, "Terrain conversion complete!");
+    }
 }

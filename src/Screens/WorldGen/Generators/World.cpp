@@ -36,23 +36,31 @@ uint64_t EdgeKey(int v1, int v2) {
     return (static_cast<uint64_t>(v1) << 32) | static_cast<uint64_t>(v2);
 }
 
-World::World()
+World::World(std::shared_ptr<ProgressTracker> progressTracker)
     : m_radius(1.0f)
     , m_pentagonCount(0)
     , m_seed(12345) // Default seed
+    , m_progressTracker(progressTracker)
 {
     CreateIcosahedron();
 }
 
-World::World(const PlanetParameters& params)
+World::World(const PlanetParameters& params, std::shared_ptr<ProgressTracker> progressTracker)
     : m_radius(params.radius)
     , m_pentagonCount(0)
     , m_seed(params.seed)
+    , m_progressTracker(progressTracker)
 {
     CreateIcosahedron();
 }
 
 void World::Generate(int subdivisionLevel, float distortionFactor) {
+    // If we have a progress tracker, use it
+    if (m_progressTracker) {
+        Generate(subdivisionLevel, distortionFactor, m_progressTracker);
+        return;
+    }
+    
     std::cout << "Generating world with subdivision level: " << subdivisionLevel 
               << ", distortion: " << distortionFactor << std::endl;
               
@@ -74,6 +82,82 @@ void World::Generate(int subdivisionLevel, float distortionFactor) {
     // Generate terrain data for the tiles
     std::cout << "Generating terrain data..." << std::endl;
     GenerateTerrainData();
+    
+    // Log completion
+    std::cout << "World generation complete. Generated " << m_tiles.size() 
+              << " tiles (" << m_pentagonCount << " pentagons)" << std::endl;
+}
+
+void World::Generate(int subdivisionLevel, float distortionFactor, std::shared_ptr<ProgressTracker> progressTracker) {
+    // Store the progress tracker
+    m_progressTracker = progressTracker;
+    
+    // Set up phases if they haven't been configured yet
+    if (m_progressTracker) {
+        // Reset the progress tracker
+        m_progressTracker->Reset();
+        
+        // Add phases with appropriate weights
+        m_progressTracker->AddPhase("Initialization", 0.05f);
+        m_progressTracker->AddPhase("Subdividing", 0.35f);
+        m_progressTracker->AddPhase("Creating Tiles", 0.15f);
+        m_progressTracker->AddPhase("Setting Up Neighbors", 0.15f);
+        m_progressTracker->AddPhase("Generating Terrain", 0.30f);
+        
+        // Start first phase
+        m_progressTracker->StartPhase("Initialization");
+    }
+    
+    std::cout << "Generating world with subdivision level: " << subdivisionLevel 
+              << ", distortion: " << distortionFactor << std::endl;
+              
+    // Create the base icosahedron
+    CreateIcosahedron();
+    
+    // Report phase completion
+    if (m_progressTracker) {
+        m_progressTracker->CompletePhase();
+        m_progressTracker->StartPhase("Subdividing");
+    }
+    
+    // Subdivide it the specified number of times
+    std::cout << "Subdividing icosahedron..." << std::endl;
+    SubdivideIcosahedron(subdivisionLevel, distortionFactor);
+    
+    // Report phase completion
+    if (m_progressTracker) {
+        m_progressTracker->CompletePhase();
+        m_progressTracker->StartPhase("Creating Tiles");
+    }
+    
+    // Convert the triangular mesh to a dual polyhedron of pentagons and hexagons
+    std::cout << "Converting to tiles..." << std::endl;
+    TrianglesToTiles();
+    
+    // Report phase completion
+    if (m_progressTracker) {
+        m_progressTracker->CompletePhase();
+        m_progressTracker->StartPhase("Setting Up Neighbors");
+    }
+    
+    // Set up neighborhood relationships between tiles
+    std::cout << "Setting up tile neighbors..." << std::endl;
+    SetupTileNeighbors();
+    
+    // Report phase completion
+    if (m_progressTracker) {
+        m_progressTracker->CompletePhase();
+        m_progressTracker->StartPhase("Generating Terrain");
+    }
+    
+    // Generate terrain data for the tiles
+    std::cout << "Generating terrain data..." << std::endl;
+    GenerateTerrainData();
+    
+    // Report phase completion
+    if (m_progressTracker) {
+        m_progressTracker->CompletePhase();
+    }
     
     // Log completion
     std::cout << "World generation complete. Generated " << m_tiles.size() 
@@ -145,10 +229,23 @@ void World::CreateIcosahedron() {
 
 void World::SubdivideIcosahedron(int level, float distortionFactor) {
     for (int i = 0; i < level; i++) {
+        // Report subdivision progress if we have a tracker
+        if (m_progressTracker) {
+            float iterationProgress = static_cast<float>(i) / level;
+            std::string message = "Subdividing icosphere (level " + std::to_string(i+1) + 
+                                 " of " + std::to_string(level) + ")";
+            m_progressTracker->UpdateProgress(iterationProgress, message);
+        }
+
         std::vector<std::array<int, 3>> newFaces;
         m_midPointCache.clear();
         
-        for (const auto& face : m_subdivisionFaces) {            // Get the three vertices of the face
+        // Count for more detailed progress reporting within each level
+        size_t faceCount = m_subdivisionFaces.size();
+        size_t facesDone = 0;
+        
+        for (const auto& face : m_subdivisionFaces) {
+            // Get the three vertices of the face
             int v1 = face[0];
             int v2 = face[1];
             int v3 = face[2];
@@ -157,7 +254,8 @@ void World::SubdivideIcosahedron(int level, float distortionFactor) {
             int a = GetMidPointIndex(v1, v2, distortionFactor);
             int b = GetMidPointIndex(v2, v3, distortionFactor);
             int c = GetMidPointIndex(v3, v1, distortionFactor);
-              // Create four new faces (subdividing the original triangle)
+              
+            // Create four new faces (subdividing the original triangle)
             std::array<int, 3> face1 = {v1, a, c};
             std::array<int, 3> face2 = {v2, b, a};
             std::array<int, 3> face3 = {v3, c, b};
@@ -166,6 +264,16 @@ void World::SubdivideIcosahedron(int level, float distortionFactor) {
             newFaces.push_back(face2);
             newFaces.push_back(face3);
             newFaces.push_back(face4);
+            
+            // Report detailed progress for large subdivision levels
+            facesDone++;
+            if (m_progressTracker && level > 3 && facesDone % 100 == 0) {
+                float subProgress = static_cast<float>(i) / level + 
+                                   (static_cast<float>(facesDone) / faceCount) / level;
+                std::string detailMsg = "Processing face " + std::to_string(facesDone) + 
+                                      " of " + std::to_string(faceCount);
+                m_progressTracker->UpdateProgress(subProgress, detailMsg);
+            }
         }
         
         // Replace the old faces with the new ones
@@ -236,7 +344,10 @@ void World::TrianglesToTiles() {
     std::vector<glm::vec3> faceCenters;
     
     // Calculate face centers for all triangular faces
-    for (size_t i = 0; i < m_subdivisionFaces.size(); i++) {
+    size_t totalFaces = m_subdivisionFaces.size();
+    size_t processedFaces = 0;
+    
+    for (size_t i = 0; i < totalFaces; i++) {
         const auto& face = m_subdivisionFaces[i];
           // Calculate the face center by averaging its vertices
         glm::vec3 center = (m_subdivisionVertices[face.at(0)] + 
@@ -252,10 +363,24 @@ void World::TrianglesToTiles() {
         vertexFaceCenters[face[0]].push_back(faceCenterIdx);
         vertexFaceCenters[face[1]].push_back(faceCenterIdx);
         vertexFaceCenters[face[2]].push_back(faceCenterIdx);
+        
+        // Report progress periodically
+        processedFaces++;
+        if (m_progressTracker && processedFaces % 500 == 0) {
+            float progress = static_cast<float>(processedFaces) / totalFaces;
+            std::string message = "Calculating face centers (" + 
+                                 std::to_string(processedFaces) + " of " + 
+                                 std::to_string(totalFaces) + ")";
+            m_progressTracker->UpdateProgress(progress, message);
+        }
     }
     
     // For each vertex, create a tile using the face centers around it
-    for (const auto& [vertexIndex, adjacentCenters] : vertexFaceCenters) {        // Identify the shape of tile (pentagon or hexagon)
+    size_t totalVertices = vertexFaceCenters.size();
+    size_t processedVertices = 0;
+    
+    for (const auto& [vertexIndex, adjacentCenters] : vertexFaceCenters) {        
+        // Identify the shape of tile (pentagon or hexagon)
         // The original 12 icosahedron vertices will be pentagons, the rest are hexagons
         bool isPentagon = vertexIndex < 12;
         Tile::TileShape shape = isPentagon ? Tile::TileShape::Pentagon : Tile::TileShape::Hexagon;
@@ -279,11 +404,25 @@ void World::TrianglesToTiles() {
         
         // Count pentagons
         if (isPentagon) m_pentagonCount++;
+        
+        // Report progress periodically
+        processedVertices++;
+        if (m_progressTracker && processedVertices % 200 == 0) {
+            float progress = static_cast<float>(processedVertices) / totalVertices;
+            std::string message = "Creating tiles (" + 
+                                 std::to_string(processedVertices) + " of " + 
+                                 std::to_string(totalVertices) + ")";
+            m_progressTracker->UpdateProgress(progress, message);
+        }
     }
     
     // Debug check
     if (m_pentagonCount != 12) {
         std::cerr << "Warning: Expected 12 pentagons but got " << m_pentagonCount << std::endl;
+    }
+    
+    if (m_progressTracker) {
+        m_progressTracker->UpdateProgress(1.0f, "Created " + std::to_string(m_tiles.size()) + " tiles");
     }
 }
 
@@ -299,6 +438,15 @@ void World::SetupTileNeighbors() {    // Build a map of vertices to tiles
             // Note: In a production system, you would need a more robust way to identify vertices
             size_t vertexHash = std::hash<glm::vec3>{}(vertex);
             vertexToTiles[vertexHash].push_back(static_cast<int>(tileIdx));
+        }
+        
+        // Report progress periodically
+        if (m_progressTracker && tileIdx % 500 == 0) {
+            float progress = static_cast<float>(tileIdx) / m_tiles.size() * 0.5f; // First half of process
+            std::string message = "Mapping tiles to vertices (" + 
+                                 std::to_string(tileIdx) + " of " + 
+                                 std::to_string(m_tiles.size()) + ")";
+            m_progressTracker->UpdateProgress(progress, message);
         }
     }
     
@@ -342,6 +490,20 @@ void World::SetupTileNeighbors() {    // Build a map of vertices to tiles
         
         // Set the neighbors
         tile.SetNeighbors(neighbors);
+        
+        // Report progress periodically
+        if (m_progressTracker && tileIdx % 500 == 0) {
+            float progress = 0.5f + static_cast<float>(tileIdx) / m_tiles.size() * 0.5f; // Second half of process
+            std::string message = "Establishing tile connections (" + 
+                                 std::to_string(tileIdx) + " of " + 
+                                 std::to_string(m_tiles.size()) + ")";
+            m_progressTracker->UpdateProgress(progress, message);
+        }
+    }
+    
+    // Report completion
+    if (m_progressTracker) {
+        m_progressTracker->UpdateProgress(1.0f, "Completed neighborhood setup");
     }
 }
 
@@ -350,7 +512,7 @@ void World::GenerateTerrainData() {
     // In a real implementation, this would be much more sophisticated
     
     // Random number generator with seed
-    static std::mt19937 rng(12345);
+    static std::mt19937 rng(static_cast<unsigned int>(m_seed & 0xFFFFFFFF));
     std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
     
     // Generate elevation data
@@ -390,10 +552,29 @@ void World::GenerateTerrainData() {
         temperature = glm::clamp(temperature, 0.0f, 1.0f);
         
         m_tiles[i].SetTemperature(temperature);
+        
+        // Report progress periodically
+        if (m_progressTracker && i % 1000 == 0) {
+            float progress = static_cast<float>(i) / m_tiles.size() * 0.7f; // First 70% is elevation generation
+            std::string message = "Generating terrain features (" + 
+                                 std::to_string(i) + " of " + 
+                                 std::to_string(m_tiles.size()) + " tiles)";
+            m_progressTracker->UpdateProgress(progress, message);
+        }
+    }
+    
+    // Report progress before smoothing starts
+    if (m_progressTracker) {
+        m_progressTracker->UpdateProgress(0.7f, "Smoothing terrain data...");
     }
     
     // Smooth the terrain properties by averaging with neighbors
     SmoothTerrainData();
+    
+    // Report completion
+    if (m_progressTracker) {
+        m_progressTracker->UpdateProgress(1.0f, "Terrain generation complete");
+    }
 }
 
 void World::SmoothTerrainData() {

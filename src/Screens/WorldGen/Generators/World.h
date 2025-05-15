@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 #include <array>
 #include "Tile.h"
+#include "../ProgressTracker.h"
 
 namespace WorldGen {
 
@@ -25,15 +26,18 @@ class World {
 public:
     /**
      * @brief Construct a new World with default parameters.
+     * 
+     * @param progressTracker Optional progress tracker to report generation progress.
      */
-    World();
+    World(std::shared_ptr<ProgressTracker> progressTracker = nullptr);
 
     /**
      * @brief Construct a new World with specific parameters.
      * 
      * @param params The parameters to use for world generation.
+     * @param progressTracker Optional progress tracker to report generation progress.
      */
-    World(const PlanetParameters& params);
+    World(const PlanetParameters& params, std::shared_ptr<ProgressTracker> progressTracker = nullptr);
 
     /**
      * @brief Generate the world geometry based on a subdivided icosahedron.
@@ -42,6 +46,15 @@ public:
      * @param distortionFactor Factor controlling the amount of vertex position distortion (0-1).
      */
     void Generate(int subdivisionLevel, float distortionFactor);
+
+    /**
+     * @brief Generate the world geometry with progress tracking.
+     * 
+     * @param subdivisionLevel Number of times to subdivide the base icosahedron.
+     * @param distortionFactor Factor controlling the amount of vertex position distortion (0-1).
+     * @param progressTracker Optional progress tracker to report generation progress.
+     */
+    void Generate(int subdivisionLevel, float distortionFactor, std::shared_ptr<ProgressTracker> progressTracker);    // No need for a separate SetProgressTracker method, constructor handles it
 
     /**
      * @brief Get all tiles in the world.
@@ -179,6 +192,7 @@ private:
     float m_radius;         ///< World radius
     size_t m_pentagonCount; ///< Count of pentagon tiles (should be 12)
     uint64_t m_seed;        ///< Seed for random distortion
+    std::shared_ptr<ProgressTracker> m_progressTracker; ///< Progress tracking
 };
 
 } // namespace Generators

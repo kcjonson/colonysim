@@ -67,6 +67,9 @@ private:
     WorldGen::PlanetParameters m_planetParams;
     float m_distortionFactor = 0.15f;
     
+    // Progress tracking for world generation
+    std::shared_ptr<WorldGen::ProgressTracker> m_progressTracker;
+    
     // Static callback handling
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
     static std::unordered_map<GLFWwindow*, WorldGenScreen*> s_instances;

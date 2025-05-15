@@ -1,18 +1,15 @@
 #include "Generator.h"
 #include <cmath>
-#include <iostream>
 
 namespace WorldGen {
 namespace Generators {
 
-std::unique_ptr<World> Generator::CreateWorld(const PlanetParameters& params) {
-    // Create a new world with the specified parameters
-    auto world = std::make_unique<World>(params);
+std::unique_ptr<World> Generator::CreateWorld(const PlanetParameters& params, std::shared_ptr<ProgressTracker> progressTracker) {
+    // Create a new world with the specified parameters and progress tracker
+    auto world = std::make_unique<World>(params, progressTracker);
     
     // Calculate appropriate subdivision level based on resolution
     int subdivisionLevel = GetSubdivisionLevel(params.resolution);
-
-    std::cout << "Calculated subdivision level: " << subdivisionLevel << std::endl;
     
     // Calculate distortion factor (can be a parameter later)
     float distortionFactor = 0.15f; // Default distortion factor
@@ -32,8 +29,6 @@ int Generator::GetSubdivisionLevel(int resolution) {
     // Number of tiles after n subdivisions ≈ 20 * 4^n
     // So n ≈ log4(resolution / 20)
     if (resolution <= 20) return 0;
-
-    std::cout << "Resolution: " << resolution << std::endl;
     
     double subdivisions = std::log(resolution / 20.0) / std::log(4.0);
     return static_cast<int>(std::ceil(subdivisions));
