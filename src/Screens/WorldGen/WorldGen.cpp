@@ -34,11 +34,10 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)    : lastCurs
     
     // Initialize WorldGenUI
     m_worldGenUI = std::make_unique<WorldGen::WorldGenUI>(camera, window);
-    
-    // Initialize planet parameters
+      // Initialize planet parameters
     m_planetParams.seed = seed;
     m_planetParams.radius = 1.0f;
-    m_planetParams.resolution = 512; // Start with a medium resolution
+    m_planetParams.resolution = WorldGen::PlanetParameters().resolution;
 }
 
 WorldGenScreen::~WorldGenScreen() {
@@ -63,11 +62,11 @@ bool WorldGenScreen::initialize() {
     
     // Set up scroll callback without overriding window user pointer
     glfwSetScrollCallback(m_window, scrollCallback);
-      // Initialize world generator and renderer
-    m_world = WorldGen::Generators::Generator::CreateWorld(m_planetParams);
+    // Initialize world object and renderer, but don't generate the world yet
+    m_world = std::make_unique<WorldGen::Generators::World>(m_planetParams);
     m_worldRenderer = std::make_unique<WorldGen::Renderers::World>();
     m_worldRenderer->SetWorld(m_world.get());
-    m_worldRenderer->SetRenderMode(WorldGen::Renderers::World::RenderMode::Wireframe); // Use Debug mode for better visibility
+    m_worldRenderer->SetRenderMode(WorldGen::Renderers::World::RenderMode::TileType); // Use Debug mode for better visibility
 
     // Initialize the projection matrix
     int windowWidth, windowHeight;
@@ -85,22 +84,19 @@ bool WorldGenScreen::initialize() {
     // Register event handlers for UI events
       // Generate World button event
     m_worldGenUI->addEventListener(WorldGen::UIEvent::GenerateWorld, [this]() {
+        std::cout << "Generate World button clicked" << std::endl;
         // Switch to generating state
         m_worldGenUI->setState(WorldGen::UIState::Generating);
         m_worldGenUI->updateProgress(0.1f, "Generating world...");
-        
-        // Update seed from UI and create a new world
+          // Update seed from UI and create a new world
         m_planetParams.seed = seed;
         
         // Re-generate the world with the new parameters
+        // CreateWorld() will handle generating the world with the appropriate subdivision level
         m_world = WorldGen::Generators::Generator::CreateWorld(m_planetParams);
         m_worldRenderer->SetWorld(m_world.get());
         
         m_worldGenUI->updateProgress(0.5f, "Processing terrain...");
-        
-        // Generate the world with subdivided icosahedron
-        int subdivisionLevel = WorldGen::Generators::Generator::GetSubdivisionLevel(m_planetParams.resolution);
-        m_world->Generate(subdivisionLevel, m_distortionFactor);
         
         // Mark generation as complete
         worldGenerated = true;
@@ -120,17 +116,13 @@ bool WorldGenScreen::initialize() {
             // If not generated yet, go through the generation process first
             m_worldGenUI->setState(WorldGen::UIState::Generating);
             m_worldGenUI->updateProgress(0.1f, "Generating terrain data...");
-            
-            // Update seed from UI and create a new world
+              // Update seed from UI and create a new world
             m_planetParams.seed = seed;
             
             // Re-generate the world with the new parameters
+            // CreateWorld() will handle generating the world with the appropriate subdivision level
             m_world = WorldGen::Generators::Generator::CreateWorld(m_planetParams);
             m_worldRenderer->SetWorld(m_world.get());
-            
-            // Generate the world with subdivided icosahedron
-            int subdivisionLevel = WorldGen::Generators::Generator::GetSubdivisionLevel(m_planetParams.resolution);
-            m_world->Generate(subdivisionLevel, m_distortionFactor);
             
             worldGenerated = true;
             m_worldGenUI->updateProgress(1.0f, "World generation complete!");

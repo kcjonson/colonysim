@@ -85,22 +85,9 @@ void World::Render(const glm::mat4& viewMatrix, const glm::mat4& projectionMatri
     // Enable depth testing to ensure proper rendering of 3D objects
     glEnable(GL_DEPTH_TEST);
 
-    // Render according to the current mode
-    switch (m_renderMode) {
-        case RenderMode::Wireframe:
-            RenderWireframe(viewMatrix, projectionMatrix);
-            break;
-        case RenderMode::Solid:
-            RenderSolid(viewMatrix, projectionMatrix);
-            break;
-        case RenderMode::TileType:
-            RenderByTileType(viewMatrix, projectionMatrix);
-            break;
-        case RenderMode::Debug:
-            RenderDebug(viewMatrix, projectionMatrix);
-            break;
-    }
-    
+
+    RenderByTileType(viewMatrix, projectionMatrix);
+
     // Re-enable face culling for other elements in the scene
     glEnable(GL_CULL_FACE);
 }
@@ -990,9 +977,6 @@ void World::RenderSolid(const glm::mat4& viewMatrix, const glm::mat4& projection
 
 void World::RenderByTileType(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix)
 {
-    // In our new implementation, the tile type coloring is done in the shader
-    // using the color attribute set in GenerateRenderingData()
-    
     if (!m_dataGenerated || !m_shaderProgram) {
         return;
     }
@@ -1015,6 +999,7 @@ void World::RenderByTileType(const glm::mat4& viewMatrix, const glm::mat4& proje
     GLint viewLoc = glGetUniformLocation(m_shaderProgram, "view");
     GLint projLoc = glGetUniformLocation(m_shaderProgram, "projection");
     GLint useColorAttribLoc = glGetUniformLocation(m_shaderProgram, "useColorAttrib");
+    GLint planetColorLoc = glGetUniformLocation(m_shaderProgram, "planetColor");
     
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(viewMatrix));
@@ -1029,49 +1014,48 @@ void World::RenderByTileType(const glm::mat4& viewMatrix, const glm::mat4& proje
     glm::vec3 cameraPos = glm::vec3(glm::inverse(viewMatrix) * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     
     // Position light to better illuminate the sphere
-    glm::vec3 lightPos = cameraPos + glm::vec3(0.0f, 5.0f, 5.0f);
+    glm::vec3 lightPos = cameraPos + glm::vec3(5.0f, 5.0f, 5.0f);
     glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
     
     glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightPos));
     glUniform3fv(lightColorLoc, 1, glm::value_ptr(lightColor));
     glUniform3fv(viewPosLoc, 1, glm::value_ptr(cameraPos));
     
+    // Calculate camera forward direction from view matrix
+    glm::mat4 cameraMatrix = glm::inverse(viewMatrix);
+    glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
+    
+    // Helper lambda: returns true if a point is on the visible hemisphere
+    auto isVisible = [&](const glm::vec3& pos) {
+        glm::vec3 normalizedPos = glm::normalize(pos);
+        // Approximation: consider positions just barely beyond the hemisphere (with a small margin)
+        return glm::dot(normalizedPos, cameraForward) < 0.05f;
+    };
+    
+    // PASS 1: Draw the solid colored tiles
     // Tell shader to use vertex colors (1 for true)
     if (useColorAttribLoc != -1) {
         glUniform1i(useColorAttribLoc, 1);
     }
     
-    // Helper lambda: returns true if a point is on the visible hemisphere
-    auto isVisible = [&](const glm::vec3& pos) {
-        // For a sphere, we can use a simpler check:
-        // If the dot product of (normalized vertex position) and (camera forward) is negative,
-        // then the vertex is on the visible hemisphere (facing the camera)
-        glm::mat4 cameraMatrix = glm::inverse(viewMatrix);
-        glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
-        glm::vec3 normalizedPos = glm::normalize(pos);
-        
-        // Approximation: consider positions just barely beyond the hemisphere (with a small margin)
-        return glm::dot(normalizedPos, cameraForward) < 0.05f;
-    };
-    
     // Draw each tile as a triangle fan
     glBindVertexArray(m_vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-      // Draw each tile individually using a triangle fan
+    
+    // Draw each tile individually using a triangle fan
     for (const auto& tileInfo : m_tileFanInfo) {
-        // Get the center vertex for visibility check - use indices array for correct lookup
+        // Get the center vertex for visibility check
         unsigned int centerVertexIdx = m_indices[tileInfo.startIndex];
         glm::vec3 center(m_vertexData[centerVertexIdx * 9], 
-                          m_vertexData[centerVertexIdx * 9 + 1], 
-                          m_vertexData[centerVertexIdx * 9 + 2]);
+                         m_vertexData[centerVertexIdx * 9 + 1], 
+                         m_vertexData[centerVertexIdx * 9 + 2]);
                           
         // Check if this tile has at least one visible vertex
         bool anyVertexVisible = isVisible(center);
         if (!anyVertexVisible) {
             // If center isn't visible, check perimeter vertices
             for (unsigned int i = 1; i < tileInfo.indexCount; ++i) {
-                // Get the actual vertex index from the indices array
                 unsigned int vertexIdx = m_indices[tileInfo.startIndex + i];
                 glm::vec3 vertex(m_vertexData[vertexIdx * 9], 
                                  m_vertexData[vertexIdx * 9 + 1], 
@@ -1085,7 +1069,6 @@ void World::RenderByTileType(const glm::mat4& viewMatrix, const glm::mat4& proje
         
         // Only draw tiles with at least one visible vertex
         if (anyVertexVisible) {
-            // Draw this tile's triangle fan
             glDrawElements(
                 GL_TRIANGLE_FAN,
                 tileInfo.indexCount, 
@@ -1095,6 +1078,145 @@ void World::RenderByTileType(const glm::mat4& viewMatrix, const glm::mat4& proje
         }
     }
     
+    // PASS 2: Draw points for tile centers
+    if (m_world) {
+        // Draw tile centers with different colors for pentagon vs hexagon
+        glPointSize(8.0f);
+        if (useColorAttribLoc != -1) {
+            glUniform1i(useColorAttribLoc, 0); // Use uniform color for points
+        }
+        
+        const auto& tiles = m_world->GetTiles();
+        std::vector<glm::vec3> pentCenters;
+        std::vector<glm::vec3> hexCenters;
+        
+        for (const auto& tile : tiles) {
+            if (tile.GetType() == Generators::Tile::TileType::Pentagon) {
+                pentCenters.push_back(tile.GetCenter());
+            } else if (tile.GetType() == Generators::Tile::TileType::Hexagon) {
+                hexCenters.push_back(tile.GetCenter());
+            }
+        }
+        
+        // Draw pentagon centers in orange
+        if (!pentCenters.empty()) {
+            if (planetColorLoc != -1) {
+                glUniform3f(planetColorLoc, 1.0f, 0.5f, 0.0f); // Orange
+            }
+            
+            std::vector<float> centerVerts;
+            for (const auto& c : pentCenters) {
+                glm::vec3 pos = glm::normalize(c) * 1.001f * m_world->GetRadius();
+                if (isVisible(pos)) {
+                    centerVerts.push_back(pos.x);
+                    centerVerts.push_back(pos.y);
+                    centerVerts.push_back(pos.z);
+                }
+            }
+            
+            if (!centerVerts.empty()) {
+                GLuint tempVBO = 0, tempVAO = 0;
+                glGenVertexArrays(1, &tempVAO);
+                glGenBuffers(1, &tempVBO);
+                glBindVertexArray(tempVAO);
+                glBindBuffer(GL_ARRAY_BUFFER, tempVBO);
+                glBufferData(GL_ARRAY_BUFFER, centerVerts.size() * sizeof(float), centerVerts.data(), GL_STATIC_DRAW);
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+                glEnableVertexAttribArray(0);
+                glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(centerVerts.size() / 3));
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
+                glBindVertexArray(0);
+                glDeleteBuffers(1, &tempVBO);
+                glDeleteVertexArrays(1, &tempVAO);
+            }
+        }
+        
+        // Draw hexagon centers in white
+        if (!hexCenters.empty()) {
+            if (planetColorLoc != -1) {
+                glUniform3f(planetColorLoc, 1.0f, 1.0f, 1.0f); // White
+            }
+            
+            std::vector<float> centerVerts;
+            for (const auto& c : hexCenters) {
+                glm::vec3 pos = glm::normalize(c) * 1.001f * m_world->GetRadius();
+                if (isVisible(pos)) {
+                    centerVerts.push_back(pos.x);
+                    centerVerts.push_back(pos.y);
+                    centerVerts.push_back(pos.z);
+                }
+            }
+            
+            if (!centerVerts.empty()) {
+                GLuint tempVBO = 0, tempVAO = 0;
+                glGenVertexArrays(1, &tempVAO);
+                glGenBuffers(1, &tempVBO);
+                glBindVertexArray(tempVAO);
+                glBindBuffer(GL_ARRAY_BUFFER, tempVBO);
+                glBufferData(GL_ARRAY_BUFFER, centerVerts.size() * sizeof(float), centerVerts.data(), GL_STATIC_DRAW);
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+                glEnableVertexAttribArray(0);
+                glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(centerVerts.size() / 3));
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
+                glBindVertexArray(0);
+                glDeleteBuffers(1, &tempVBO);
+                glDeleteVertexArrays(1, &tempVAO);
+            }
+        }
+        
+        glPointSize(1.0f);
+    }
+    
+    // PASS 3: Draw tile edges
+    // Draw wireframe edges for better tile visibility
+    if (useColorAttribLoc != -1) {
+        glUniform1i(useColorAttribLoc, 0); // Use uniform color for edges
+    }
+    if (planetColorLoc != -1) {
+        glUniform3f(planetColorLoc, 0.0f, 0.0f, 0.0f); // Black edges
+    }
+    
+    glLineWidth(1.5f);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glDepthMask(GL_FALSE); // Disable depth writing for wireframe to ensure all lines are visible
+    
+    for (const auto& tileInfo : m_tileFanInfo) {
+        // Get the center vertex
+        unsigned int centerVertexIdx = m_indices[tileInfo.startIndex];
+        glm::vec3 center(m_vertexData[centerVertexIdx * 9], 
+                         m_vertexData[centerVertexIdx * 9 + 1], 
+                         m_vertexData[centerVertexIdx * 9 + 2]);
+                          
+        // Check visibility for this tile
+        bool anyVertexVisible = isVisible(center);
+        if (!anyVertexVisible) {
+            for (unsigned int i = 1; i < tileInfo.indexCount; ++i) {
+                unsigned int vertexIdx = m_indices[tileInfo.startIndex + i];
+                glm::vec3 vertex(m_vertexData[vertexIdx * 9], 
+                                 m_vertexData[vertexIdx * 9 + 1], 
+                                 m_vertexData[vertexIdx * 9 + 2]);
+                if (isVisible(vertex)) {
+                    anyVertexVisible = true;
+                    break;
+                }
+            }
+        }
+        
+        // Only process visible tiles
+        if (anyVertexVisible) {
+            glDrawElements(
+                GL_TRIANGLE_FAN,
+                tileInfo.indexCount, 
+                GL_UNSIGNED_INT, 
+                (void*)(tileInfo.startIndex * sizeof(unsigned int))
+            );
+        }
+    }
+    
+    // Reset OpenGL state
+    glDepthMask(GL_TRUE);
+    glLineWidth(1.0f);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glBindVertexArray(0);
     
     // Re-enable face culling for other objects if necessary
