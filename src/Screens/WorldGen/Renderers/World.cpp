@@ -18,7 +18,6 @@ World::World()
     , m_vao(0)
     , m_vbo(0)
     , m_ebo(0)
-    , m_shaderProgram(0)
     , m_dataGenerated(false)
 {
 }
@@ -38,9 +37,7 @@ World::~World()
         glDeleteBuffers(1, &m_ebo);
     }
     
-    if (m_shaderProgram != 0) {
-        glDeleteProgram(m_shaderProgram);
-    }
+    // Shader object will clean itself up in its destructor
 }
 
 void World::SetWorld(const Generators::World* world)
@@ -341,114 +338,21 @@ void World::GenerateRenderingData()
     // Unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
-    
-    // Load shaders if not already loaded
-    if (m_shaderProgram == 0) {
-        m_shaderProgram = compileShaders();
+      // Load shaders if not already loaded
+    if (m_shader.getProgram() == 0) {
+        if (!m_shader.loadFromFile("Planet/PlanetVertex.glsl", "Planet/PlanetFragment.glsl")) {
+            std::cerr << "Failed to load planet shaders" << std::endl;
+        }
     }
     
     m_dataGenerated = true;
 }
 
-// Compile and link the shaders
-GLuint World::compileShaders() {
-    // Define shader paths
-    const std::string vertexPath = "shaders/Planet/PlanetVertex.glsl";
-    // Use the proper fragment shader
-    const std::string fragmentPath = "shaders/Planet/PlanetFragment.glsl";
 
-    // Read the shader source code from files
-    std::string vertexCode;
-    std::string fragmentCode;
-
-    try {
-        // Read the Vertex Shader code
-        std::ifstream vShaderFile(vertexPath);
-        if (!vShaderFile.is_open()) {
-            std::cerr << "ERROR: Could not open vertex shader file: " << vertexPath << std::endl;
-            return 0;
-        }
-        
-        std::stringstream vShaderStream;
-        vShaderStream << vShaderFile.rdbuf();
-        vShaderFile.close();
-        vertexCode = vShaderStream.str();
-
-        // Read the Fragment Shader code
-        std::ifstream fShaderFile(fragmentPath);
-        if (!fShaderFile.is_open()) {
-            std::cerr << "ERROR: Could not open fragment shader file: " << fragmentPath << std::endl;
-            return 0;
-        }
-        
-        std::stringstream fShaderStream;
-        fShaderStream << fShaderFile.rdbuf();
-        fShaderFile.close();
-        fragmentCode = fShaderStream.str();    }
-    catch (std::ifstream::failure&) {
-        std::cerr << "ERROR: Could not read shader files" << std::endl;
-        return 0;
-    }
-    
-    const char* vShaderCode = vertexCode.c_str();
-    const char* fShaderCode = fragmentCode.c_str();
-
-    // Compile shaders
-    unsigned int vertex, fragment;
-    int success;
-    char infoLog[512];
-
-    // Vertex Shader
-    vertex = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex, 1, &vShaderCode, NULL);
-    glCompileShader(vertex);
-
-    // Check for vertex shader compile errors
-    glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(vertex, 512, NULL, infoLog);
-        std::cerr << "ERROR: Vertex shader compilation failed\n" << infoLog << std::endl;
-        return 0;
-    }
-
-    // Fragment Shader
-    fragment = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment, 1, &fShaderCode, NULL);
-    glCompileShader(fragment);
-
-    // Check for fragment shader compile errors
-    glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(fragment, 512, NULL, infoLog);
-        std::cerr << "ERROR: Fragment shader compilation failed\n" << infoLog << std::endl;
-        return 0;
-    }
-
-    // Link shaders
-    GLuint program = glCreateProgram();
-    glAttachShader(program, vertex);
-    glAttachShader(program, fragment);
-    glLinkProgram(program);
-
-    // Check for linking errors
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(program, 512, NULL, infoLog);
-        std::cerr << "ERROR: Shader program linking failed\n" << infoLog << std::endl;
-        return 0;
-    }
-
-    // Delete the shaders as they're linked into our program and no longer necessary
-    glDeleteShader(vertex);
-    glDeleteShader(fragment);
-
-    std::cout << "Shaders compiled successfully!" << std::endl;
-    return program;
-}
 
 void World::RenderByTileType(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix)
 {
-    if (!m_dataGenerated || !m_shaderProgram) {
+    if (!m_dataGenerated || m_shader.getProgram() == 0) {
         return;
     }
     
@@ -459,27 +363,23 @@ void World::RenderByTileType(const glm::mat4& viewMatrix, const glm::mat4& proje
     glDisable(GL_CULL_FACE); 
     
     // Use our shader
-    glUseProgram(m_shaderProgram);
+    m_shader.use();
     
     // Set up model matrix
     float scale = m_world->GetRadius();
     glm::mat4 modelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+      // Set the shader uniforms
+    GLint useColorAttribLoc = glGetUniformLocation(m_shader.getProgram(), "useColorAttrib");
+    GLint planetColorLoc = glGetUniformLocation(m_shader.getProgram(), "planetColor");
     
-    // Set the shader uniforms
-    GLint modelLoc = glGetUniformLocation(m_shaderProgram, "model");
-    GLint viewLoc = glGetUniformLocation(m_shaderProgram, "view");
-    GLint projLoc = glGetUniformLocation(m_shaderProgram, "projection");
-    GLint useColorAttribLoc = glGetUniformLocation(m_shaderProgram, "useColorAttrib");
-    GLint planetColorLoc = glGetUniformLocation(m_shaderProgram, "planetColor");
-    
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(viewMatrix));
-    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
-    
-    // Set light parameters
-    GLint lightPosLoc = glGetUniformLocation(m_shaderProgram, "lightPos");
-    GLint lightColorLoc = glGetUniformLocation(m_shaderProgram, "lightColor");
-    GLint viewPosLoc = glGetUniformLocation(m_shaderProgram, "viewPos");
+    // Set matrix uniforms using the Shader class methods
+    m_shader.setUniform("model", modelMatrix);
+    m_shader.setUniform("view", viewMatrix);
+    m_shader.setUniform("projection", projectionMatrix);
+      // Set light parameters
+    GLint lightPosLoc = glGetUniformLocation(m_shader.getProgram(), "lightPos");
+    GLint lightColorLoc = glGetUniformLocation(m_shader.getProgram(), "lightColor");
+    GLint viewPosLoc = glGetUniformLocation(m_shader.getProgram(), "viewPos");
     
     // Use camera position from view matrix
     glm::vec3 cameraPos = glm::vec3(glm::inverse(viewMatrix) * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
@@ -548,95 +448,7 @@ void World::RenderByTileType(const glm::mat4& viewMatrix, const glm::mat4& proje
             );
         }
     }
-    
-    // PASS 2: Draw points for tile centers
-    if (m_world) {
-        // Draw tile centers with different colors for pentagon vs hexagon
-        glPointSize(8.0f);
-        if (useColorAttribLoc != -1) {
-            glUniform1i(useColorAttribLoc, 0); // Use uniform color for points
-        }
-        
-        const auto& tiles = m_world->GetTiles();
-        std::vector<glm::vec3> pentCenters;
-        std::vector<glm::vec3> hexCenters;
-        
-        for (const auto& tile : tiles) {
-            if (tile.GetType() == Generators::Tile::TileType::Pentagon) {
-                pentCenters.push_back(tile.GetCenter());
-            } else if (tile.GetType() == Generators::Tile::TileType::Hexagon) {
-                hexCenters.push_back(tile.GetCenter());
-            }
-        }
-        
-        // Draw pentagon centers in orange
-        if (!pentCenters.empty()) {
-            if (planetColorLoc != -1) {
-                glUniform3f(planetColorLoc, 1.0f, 0.5f, 0.0f); // Orange
-            }
-            
-            std::vector<float> centerVerts;
-            for (const auto& c : pentCenters) {
-                glm::vec3 pos = glm::normalize(c) * 1.001f * m_world->GetRadius();
-                if (isVisible(pos)) {
-                    centerVerts.push_back(pos.x);
-                    centerVerts.push_back(pos.y);
-                    centerVerts.push_back(pos.z);
-                }
-            }
-            
-            if (!centerVerts.empty()) {
-                GLuint tempVBO = 0, tempVAO = 0;
-                glGenVertexArrays(1, &tempVAO);
-                glGenBuffers(1, &tempVBO);
-                glBindVertexArray(tempVAO);
-                glBindBuffer(GL_ARRAY_BUFFER, tempVBO);
-                glBufferData(GL_ARRAY_BUFFER, centerVerts.size() * sizeof(float), centerVerts.data(), GL_STATIC_DRAW);
-                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-                glEnableVertexAttribArray(0);
-                glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(centerVerts.size() / 3));
-                glBindBuffer(GL_ARRAY_BUFFER, 0);
-                glBindVertexArray(0);
-                glDeleteBuffers(1, &tempVBO);
-                glDeleteVertexArrays(1, &tempVAO);
-            }
-        }
-        
-        // Draw hexagon centers in white
-        if (!hexCenters.empty()) {
-            if (planetColorLoc != -1) {
-                glUniform3f(planetColorLoc, 1.0f, 1.0f, 1.0f); // White
-            }
-            
-            std::vector<float> centerVerts;
-            for (const auto& c : hexCenters) {
-                glm::vec3 pos = glm::normalize(c) * 1.001f * m_world->GetRadius();
-                if (isVisible(pos)) {
-                    centerVerts.push_back(pos.x);
-                    centerVerts.push_back(pos.y);
-                    centerVerts.push_back(pos.z);
-                }
-            }
-            
-            if (!centerVerts.empty()) {
-                GLuint tempVBO = 0, tempVAO = 0;
-                glGenVertexArrays(1, &tempVAO);
-                glGenBuffers(1, &tempVBO);
-                glBindVertexArray(tempVAO);
-                glBindBuffer(GL_ARRAY_BUFFER, tempVBO);
-                glBufferData(GL_ARRAY_BUFFER, centerVerts.size() * sizeof(float), centerVerts.data(), GL_STATIC_DRAW);
-                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-                glEnableVertexAttribArray(0);
-                glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(centerVerts.size() / 3));
-                glBindBuffer(GL_ARRAY_BUFFER, 0);
-                glBindVertexArray(0);
-                glDeleteBuffers(1, &tempVBO);
-                glDeleteVertexArrays(1, &tempVAO);
-            }
-        }
-        
-        glPointSize(1.0f);
-    }
+
     
     // PASS 3: Draw tile edges
     // Draw wireframe edges for better tile visibility

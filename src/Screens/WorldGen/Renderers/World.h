@@ -4,6 +4,7 @@
 #include <memory>
 #include <glm/glm.hpp>
 #include "../Generators/World.h"
+#include "../../../Shader.h"
 
 namespace WorldGen {
 namespace Renderers {
@@ -64,19 +65,12 @@ private:
         unsigned int indexCount;    ///< Number of indices for this tile's triangle fan
     };
       const Generators::World* m_world;    ///< The world to render
-      // OpenGL rendering data
+    // OpenGL rendering data
     unsigned int m_vao;                  ///< Vertex array object
     unsigned int m_vbo;                  ///< Vertex buffer object
     unsigned int m_ebo;                  ///< Element buffer object
-    unsigned int m_shaderProgram;        ///< Shader program
+    Shader m_shader;                     ///< Shader object
     std::vector<TileFanInfo> m_tileFanInfo; ///< Triangle fan information for each tile
-    
-    /**
-     * @brief Compile and link the shaders.
-     * 
-     * @return The shader program ID.
-     */
-    unsigned int compileShaders();
 
     // Render data for different modes
     std::vector<float> m_vertexData;     ///< Vertex data for rendering
