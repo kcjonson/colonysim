@@ -4,9 +4,9 @@
 namespace WorldGen {
 namespace Generators {
 
-Tile::Tile(const glm::vec3& center, TileType type)
+Tile::Tile(const glm::vec3& center, TileShape shape)
     : m_center(center)
-    , m_type(type)
+    , m_shape(shape)
 {
     // Center should always be normalized
     m_center = glm::normalize(m_center);

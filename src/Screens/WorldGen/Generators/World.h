@@ -173,9 +173,8 @@ private:
     // Subdivision data structures
     std::vector<glm::vec3> m_subdivisionVertices;  ///< Vertices after subdivision
     std::vector<std::array<int, 3>> m_subdivisionFaces; ///< Faces after subdivision
-    
-    // Cache of midpoints to avoid duplicates during subdivision
-    std::unordered_map<uint64_t, int> m_midPointCache;
+      // Cache of midpoints to avoid duplicates during subdivision
+    std::unordered_map<uint64_t, size_t> m_midPointCache;
     
     float m_radius;         ///< World radius
     size_t m_pentagonCount; ///< Count of pentagon tiles (should be 12)

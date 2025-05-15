@@ -165,7 +165,7 @@ int World::GetMidPointIndex(int v1, int v2, float distortionFactor) {
     uint64_t key = EdgeKey(v1, v2);
     auto it = m_midPointCache.find(key);
     if (it != m_midPointCache.end()) {
-        return it->second;
+        return static_cast<int>(it->second);
     }
     
     // Calculate the midpoint with distortion
@@ -174,13 +174,11 @@ int World::GetMidPointIndex(int v1, int v2, float distortionFactor) {
         m_subdivisionVertices[v2], 
         distortionFactor
     );
-    
-    // Add the new vertex
+      // Add the new vertex
     int index = static_cast<int>(m_subdivisionVertices.size());
     m_subdivisionVertices.push_back(midPoint);
-    
-    // Store in the cache
-    m_midPointCache[key] = index;
+      // Store in the cache
+    m_midPointCache[key] = static_cast<size_t>(index);
     
     return index;
 }
@@ -198,9 +196,8 @@ glm::vec3 World::GetMidPoint(const glm::vec3& v1, const glm::vec3& v2, float dis
     return glm::normalize(midPoint);
 }
 
-glm::vec3 World::ApplyDistortion(const glm::vec3& point, float magnitude) {
-    // Create a random number generator with the seed
-    static std::mt19937 rng(m_seed);
+glm::vec3 World::ApplyDistortion(const glm::vec3& point, float magnitude) {    // Create a random number generator with the seed
+    static std::mt19937 rng(static_cast<unsigned int>(m_seed & 0xFFFFFFFF));
     std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
     
     // Calculate a random offset vector
@@ -221,9 +218,8 @@ void World::TrianglesToTiles() {
     // Reset tile data
     m_tiles.clear();
     m_pentagonCount = 0;
-    
-    // Create a mapping from vertices to their adjacent face centers
-    std::unordered_map<int, std::vector<int>> vertexFaceCenters;
+      // Create a mapping from vertices to their adjacent face centers
+    std::unordered_map<size_t, std::vector<int>> vertexFaceCenters;
     std::vector<glm::vec3> faceCenters;
     
     // Calculate face centers for all triangular faces
@@ -246,14 +242,12 @@ void World::TrianglesToTiles() {
     }
     
     // For each vertex, create a tile using the face centers around it
-    for (const auto& [vertexIndex, adjacentCenters] : vertexFaceCenters) {
-        // Identify the type of tile (pentagon or hexagon)
+    for (const auto& [vertexIndex, adjacentCenters] : vertexFaceCenters) {        // Identify the shape of tile (pentagon or hexagon)
         // The original 12 icosahedron vertices will be pentagons, the rest are hexagons
         bool isPentagon = vertexIndex < 12;
-        Tile::TileType type = isPentagon ? Tile::TileType::Pentagon : Tile::TileType::Hexagon;
-        
-        // Create a new tile centered at the vertex
-        Tile tile(m_subdivisionVertices[vertexIndex], type);
+        Tile::TileShape shape = isPentagon ? Tile::TileShape::Pentagon : Tile::TileShape::Hexagon;
+          // Create a new tile centered at the vertex
+        Tile tile(m_subdivisionVertices[vertexIndex], shape);
         
         // We need to order the face centers to form a proper polygon
         std::vector<glm::vec3> orderedVertices;
@@ -280,19 +274,17 @@ void World::TrianglesToTiles() {
     }
 }
 
-void World::SetupTileNeighbors() {
-    // Build a map of vertices to tiles
-    std::unordered_map<int, std::vector<int>> vertexToTiles;
+void World::SetupTileNeighbors() {    // Build a map of vertices to tiles
+    std::unordered_map<size_t, std::vector<int>> vertexToTiles;
     
     // For each tile, register it with each of its vertices
     for (size_t tileIdx = 0; tileIdx < m_tiles.size(); tileIdx++) {
         const auto& tile = m_tiles[tileIdx];
-        
-        // For each vertex in the tile
+          // For each vertex in the tile
         for (const auto& vertex : tile.GetVertices()) {
             // Hash the vertex to get a unique ID
             // Note: In a production system, you would need a more robust way to identify vertices
-            int vertexHash = std::hash<glm::vec3>{}(vertex);
+            size_t vertexHash = std::hash<glm::vec3>{}(vertex);
             vertexToTiles[vertexHash].push_back(static_cast<int>(tileIdx));
         }
     }
@@ -301,10 +293,9 @@ void World::SetupTileNeighbors() {
     for (size_t tileIdx = 0; tileIdx < m_tiles.size(); tileIdx++) {
         auto& tile = m_tiles[tileIdx];
         std::vector<int> neighbors;
-        
-        // For each vertex in the tile
+          // For each vertex in the tile
         for (const auto& vertex : tile.GetVertices()) {
-            int vertexHash = std::hash<glm::vec3>{}(vertex);
+            size_t vertexHash = std::hash<glm::vec3>{}(vertex);
             
             // All tiles that share this vertex are potential neighbors
             for (int otherTileIdx : vertexToTiles[vertexHash]) {

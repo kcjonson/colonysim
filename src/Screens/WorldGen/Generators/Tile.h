@@ -15,36 +15,31 @@ namespace Generators {
  * a pentagon or a hexagon.
  */
 class Tile {
-public:
-    /**
-     * @brief Enum representing the possible types of tiles.
+public:    /**
+     * @brief Enum representing the possible shapes of tiles.
      */
-    enum class TileType {
+    enum class TileShape {
         Pentagon,
         Hexagon
-    };
-
-    /**
+    };    /**
      * @brief Construct a new Tile.
      * 
      * @param center The center position of the tile (normalized to unit sphere).
-     * @param type The type of tile (pentagon or hexagon).
+     * @param shape The shape of tile (pentagon or hexagon).
      */
-    Tile(const glm::vec3& center, TileType type);
+    Tile(const glm::vec3& center, TileShape shape);
 
     /**
      * @brief Get the center position of the tile.
      * 
      * @return const glm::vec3& The center position (normalized to unit sphere).
      */
-    const glm::vec3& GetCenter() const { return m_center; }
-
-    /**
-     * @brief Get the type of tile.
+    const glm::vec3& GetCenter() const { return m_center; }    /**
+     * @brief Get the shape of tile.
      * 
-     * @return TileType The tile type (Pentagon or Hexagon).
+     * @return TileShape The tile shape (Pentagon or Hexagon).
      */
-    TileType GetType() const { return m_type; }
+    TileShape GetShape() const { return m_shape; }
 
     /**
      * @brief Get the indices of neighboring tiles.
@@ -134,7 +129,7 @@ public:
 
 private:
     glm::vec3 m_center;                ///< Center position of the tile
-    TileType m_type;                   ///< Type of tile (Pentagon or Hexagon)
+    TileShape m_shape;                 ///< Shape of tile (Pentagon or Hexagon)
     std::vector<int> m_neighbors;      ///< Indices of neighboring tiles
     std::vector<glm::vec3> m_vertices; ///< Positions of the tile's boundary vertices
     

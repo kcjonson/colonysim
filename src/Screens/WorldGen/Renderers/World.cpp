@@ -58,13 +58,11 @@ void World::Render(const glm::mat4& viewMatrix, const glm::mat4& projectionMatri
     }
     
     // Disable face culling for planet rendering so both sides of triangles are visible
-    glDisable(GL_CULL_FACE);
-    
-    // Enable depth testing to ensure proper rendering of 3D objects
+    glDisable(GL_CULL_FACE);    // Enable depth testing to ensure proper rendering of 3D objects
     glEnable(GL_DEPTH_TEST);
 
 
-    RenderByTileType(viewMatrix, projectionMatrix);
+    RenderTiles(viewMatrix, projectionMatrix);
 
     // Re-enable face culling for other elements in the scene
     glEnable(GL_CULL_FACE);
@@ -194,8 +192,7 @@ void World::GenerateRenderingData()
         
         // Create a unique color for this tile based on its index
         glm::vec3 tileColor = tileBaseColors[tileIdx % tileBaseColors.size()];
-        
-        if (tile.GetType() == Generators::Tile::TileType::Pentagon) {
+          if (tile.GetShape() == Generators::Tile::TileShape::Pentagon) {
             tileColor = glm::clamp(tileColor * 1.5f, glm::vec3(0.0f), glm::vec3(1.0f));
         }
         
@@ -350,7 +347,7 @@ void World::GenerateRenderingData()
 
 
 
-void World::RenderByTileType(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix)
+void World::RenderTiles(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix)
 {
     if (!m_dataGenerated || m_shader.getProgram() == 0) {
         return;
@@ -402,8 +399,7 @@ void World::RenderByTileType(const glm::mat4& viewMatrix, const glm::mat4& proje
         // Approximation: consider positions just barely beyond the hemisphere (with a small margin)
         return glm::dot(normalizedPos, cameraForward) < 0.05f;
     };
-    
-    // PASS 1: Draw the solid colored tiles
+      // PASS 1: Draw the solid colored tiles
     // Tell shader to use vertex colors (1 for true)
     if (useColorAttribLoc != -1) {
         glUniform1i(useColorAttribLoc, 1);
@@ -416,37 +412,7 @@ void World::RenderByTileType(const glm::mat4& viewMatrix, const glm::mat4& proje
     
     // Draw each tile individually using a triangle fan
     for (const auto& tileInfo : m_tileFanInfo) {
-        // Get the center vertex for visibility check
-        unsigned int centerVertexIdx = m_indices[tileInfo.startIndex];
-        glm::vec3 center(m_vertexData[centerVertexIdx * 9], 
-                         m_vertexData[centerVertexIdx * 9 + 1], 
-                         m_vertexData[centerVertexIdx * 9 + 2]);
-                          
-        // Check if this tile has at least one visible vertex
-        bool anyVertexVisible = isVisible(center);
-        if (!anyVertexVisible) {
-            // If center isn't visible, check perimeter vertices
-            for (unsigned int i = 1; i < tileInfo.indexCount; ++i) {
-                unsigned int vertexIdx = m_indices[tileInfo.startIndex + i];
-                glm::vec3 vertex(m_vertexData[vertexIdx * 9], 
-                                 m_vertexData[vertexIdx * 9 + 1], 
-                                 m_vertexData[vertexIdx * 9 + 2]);
-                if (isVisible(vertex)) {
-                    anyVertexVisible = true;
-                    break;
-                }
-            }
-        }
-        
-        // Only draw tiles with at least one visible vertex
-        if (anyVertexVisible) {
-            glDrawElements(
-                GL_TRIANGLE_FAN,
-                tileInfo.indexCount, 
-                GL_UNSIGNED_INT, 
-                (void*)(tileInfo.startIndex * sizeof(unsigned int))
-            );
-        }
+        RenderTile(tileInfo, isVisible, true);
     }
 
     
@@ -462,38 +428,8 @@ void World::RenderByTileType(const glm::mat4& viewMatrix, const glm::mat4& proje
     glLineWidth(1.5f);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDepthMask(GL_FALSE); // Disable depth writing for wireframe to ensure all lines are visible
-    
-    for (const auto& tileInfo : m_tileFanInfo) {
-        // Get the center vertex
-        unsigned int centerVertexIdx = m_indices[tileInfo.startIndex];
-        glm::vec3 center(m_vertexData[centerVertexIdx * 9], 
-                         m_vertexData[centerVertexIdx * 9 + 1], 
-                         m_vertexData[centerVertexIdx * 9 + 2]);
-                          
-        // Check visibility for this tile
-        bool anyVertexVisible = isVisible(center);
-        if (!anyVertexVisible) {
-            for (unsigned int i = 1; i < tileInfo.indexCount; ++i) {
-                unsigned int vertexIdx = m_indices[tileInfo.startIndex + i];
-                glm::vec3 vertex(m_vertexData[vertexIdx * 9], 
-                                 m_vertexData[vertexIdx * 9 + 1], 
-                                 m_vertexData[vertexIdx * 9 + 2]);
-                if (isVisible(vertex)) {
-                    anyVertexVisible = true;
-                    break;
-                }
-            }
-        }
-        
-        // Only process visible tiles
-        if (anyVertexVisible) {
-            glDrawElements(
-                GL_TRIANGLE_FAN,
-                tileInfo.indexCount, 
-                GL_UNSIGNED_INT, 
-                (void*)(tileInfo.startIndex * sizeof(unsigned int))
-            );
-        }
+      for (const auto& tileInfo : m_tileFanInfo) {
+        RenderTile(tileInfo, isVisible, false);
     }
     
     // Reset OpenGL state
@@ -501,9 +437,45 @@ void World::RenderByTileType(const glm::mat4& viewMatrix, const glm::mat4& proje
     glLineWidth(1.0f);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glBindVertexArray(0);
-    
-    // Re-enable face culling for other objects if necessary
+      // Re-enable face culling for other objects if necessary
     glEnable(GL_CULL_FACE);
+}
+
+void World::RenderTile(const TileFanInfo& tileInfo, 
+                      const std::function<bool(const glm::vec3&)>& isVisible,
+                      bool fillMode)
+{
+    // Get the center vertex for visibility check
+    unsigned int centerVertexIdx = m_indices[tileInfo.startIndex];
+    glm::vec3 center(m_vertexData[centerVertexIdx * 9], 
+                     m_vertexData[centerVertexIdx * 9 + 1], 
+                     m_vertexData[centerVertexIdx * 9 + 2]);
+                      
+    // Check if this tile has at least one visible vertex
+    bool anyVertexVisible = isVisible(center);
+    if (!anyVertexVisible) {
+        // If center isn't visible, check perimeter vertices
+        for (unsigned int i = 1; i < tileInfo.indexCount; ++i) {
+            unsigned int vertexIdx = m_indices[tileInfo.startIndex + i];
+            glm::vec3 vertex(m_vertexData[vertexIdx * 9], 
+                             m_vertexData[vertexIdx * 9 + 1], 
+                             m_vertexData[vertexIdx * 9 + 2]);
+            if (isVisible(vertex)) {
+                anyVertexVisible = true;
+                break;
+            }
+        }
+    }
+    
+    // Only draw tiles with at least one visible vertex
+    if (anyVertexVisible) {
+        glDrawElements(
+            GL_TRIANGLE_FAN,
+            tileInfo.indexCount, 
+            GL_UNSIGNED_INT, 
+            (void*)(tileInfo.startIndex * sizeof(unsigned int))
+        );
+    }
 }
 
 } // namespace Renderers

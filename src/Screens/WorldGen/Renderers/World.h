@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <functional>
 #include <glm/glm.hpp>
 #include "../Generators/World.h"
 #include "../../../Shader.h"
@@ -48,22 +49,31 @@ public:    // Visualization options are now handled internally
      */
     void ValidateTileGeometry();
 
-private:
-    /**
+private:    /**
      * @brief Generate rendering data for the world.
      */
     void GenerateRenderingData();
-
-    /**
-     * @brief Render the world colored by tile type.
-     */
-    void RenderByTileType(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
-
-    struct TileFanInfo {
+      struct TileFanInfo {
         unsigned int startIndex;    ///< Starting index in the vertex buffer
         unsigned int vertexCount;   ///< Number of vertices in this tile (center + perimeter)
         unsigned int indexCount;    ///< Number of indices for this tile's triangle fan
     };
+    
+    /**
+     * @brief Render the world tiles.
+     */
+    void RenderTiles(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
+    
+    /**
+     * @brief Render a single tile.
+     *
+     * @param tileInfo The tile information for rendering.
+     * @param isVisible Function to check if a vertex is visible.
+     * @param fillMode Whether to render in fill mode (true) or wireframe mode (false).
+     */
+    void RenderTile(const TileFanInfo& tileInfo, 
+                    const std::function<bool(const glm::vec3&)>& isVisible,
+                    bool fillMode);
       const Generators::World* m_world;    ///< The world to render
     // OpenGL rendering data
     unsigned int m_vao;                  ///< Vertex array object
