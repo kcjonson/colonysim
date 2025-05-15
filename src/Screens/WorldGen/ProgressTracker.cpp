@@ -47,7 +47,7 @@ void ProgressTracker::UpdateProgress(float progress, const std::string& message)
         m_phases[m_currentPhaseIndex].progress = std::clamp(progress, 0.0f, 1.0f);
         m_currentMessage = message;
 
-        std::cout << message << std::endl; // Debug output
+        // std::cout << message << std::endl; // Debug output
         
         if (m_callback) {
             m_callback(GetOverallProgress(), m_currentMessage);

@@ -12,6 +12,11 @@
 #include "Generators/World.h"
 #include "Generators/Generator.h"
 #include "Renderers/World.h"
+#include <thread>
+#include <mutex>
+#include <queue>
+#include <condition_variable>
+#include <atomic>
 
 class WorldGenScreen : public Screen { // Changed from GameplayScreen to Screen
 public:
@@ -73,4 +78,24 @@ private:
     // Static callback handling
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
     static std::unordered_map<GLFWwindow*, WorldGenScreen*> s_instances;
+
+    // Thread management
+    std::thread m_generationThread;
+    std::atomic<bool> m_isGenerating{false};
+    std::atomic<bool> m_shouldStopGeneration{false};
+    
+    // Replace queue with single latest update
+    struct ProgressMessage {
+        float progress;
+        std::string message;
+        bool hasUpdate = false;  // Flag to indicate if there's a new update
+    };
+    ProgressMessage m_latestProgress;
+    std::mutex m_progressMutex;
+    
+    // Thread worker method
+    void worldGenerationThreadFunc();
+    
+    // Process any pending progress messages
+    void processProgressMessages();
 };

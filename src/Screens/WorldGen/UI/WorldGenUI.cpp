@@ -20,6 +20,10 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
     sidebarLayer = std::make_shared<Rendering::Layer>(100.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
     controlsLayer = std::make_shared<Rendering::Layer>(150.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
     buttonLayer = std::make_shared<Rendering::Layer>(200.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    
+    int width, height;
+    glfwGetWindowSize(window, &width, &height);
+    windowSize = std::make_tuple(width, height);
 }
 
 WorldGenUI::~WorldGenUI() {
@@ -29,6 +33,170 @@ WorldGenUI::~WorldGenUI() {
 bool WorldGenUI::initialize() {
     // Initialize buttons
     initializeButtons();
+    
+    // Create all UI elements that will be reused across states
+    
+    
+    // Parameter labels and values
+    float labelX = 40.0f;
+    float valueX = 200.0f;
+    float startY = 150.0f;
+    float lineHeight = 30.0f;    auto sidebar = std::make_shared<Rendering::Shapes::Rectangle>(
+        glm::vec2(0.0f, 0.0f),
+        glm::vec2(sidebarWidth, static_cast<float>(std::get<1>(windowSize))),
+        Rendering::Styles::Rectangle({
+            .color = glm::vec4(0.1f, 0.1f, 0.1f, 0.9f)
+        }),
+        100.0f  // Z-index matching sidebarLayer
+    );
+    sidebarLayer->addItem(sidebar);
+
+    
+    // Width parameter
+    radiusLabel = std::make_shared<Rendering::Shapes::Text>(
+        "Size:",
+        glm::vec2(labelX, startY),
+        Rendering::Styles::Text({
+            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            .fontSize = 18.0f
+        }),
+        150.0f
+    );
+    controlsLayer->addItem(radiusLabel);
+    
+    radiusValue = std::make_shared<Rendering::Shapes::Text>(
+        "0", // Will be updated in layoutUI
+        glm::vec2(valueX, startY),
+        Rendering::Styles::Text({
+            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            .fontSize = 18.0f
+        }),
+        150.0f
+    );
+    controlsLayer->addItem(radiusValue);
+    
+    // Height parameter
+    massLabel = std::make_shared<Rendering::Shapes::Text>(
+        "Mass:",
+        glm::vec2(labelX, startY + lineHeight),
+        Rendering::Styles::Text({
+            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            .fontSize = 18.0f
+        }),
+        150.0f
+    );
+    controlsLayer->addItem(massLabel);
+    
+    massValue = std::make_shared<Rendering::Shapes::Text>(
+        "0", // Will be updated in layoutUI
+        glm::vec2(valueX, startY + lineHeight),
+        Rendering::Styles::Text({
+            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            .fontSize = 18.0f
+        }),
+        150.0f
+    );
+    controlsLayer->addItem(massValue);
+    
+    // Water level parameter
+    waterLabel = std::make_shared<Rendering::Shapes::Text>(
+        "Water Level:",
+        glm::vec2(labelX, startY + 2 * lineHeight),
+        Rendering::Styles::Text({
+            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            .fontSize = 18.0f
+        }),
+        150.0f
+    );
+    controlsLayer->addItem(waterLabel);
+    
+    waterValue = std::make_shared<Rendering::Shapes::Text>(
+        "0", // Will be updated in layoutUI
+        glm::vec2(valueX, startY + 2 * lineHeight),
+        Rendering::Styles::Text({
+            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            .fontSize = 18.0f
+        }),
+        150.0f
+    );
+    controlsLayer->addItem(waterValue);
+    
+    // Seed parameter
+    seedLabel = std::make_shared<Rendering::Shapes::Text>(
+        "Seed:",
+        glm::vec2(labelX, startY + 3 * lineHeight),
+        Rendering::Styles::Text({
+            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            .fontSize = 18.0f
+        }),
+        150.0f
+    );
+    controlsLayer->addItem(seedLabel);
+    
+    seedValue = std::make_shared<Rendering::Shapes::Text>(
+        "0", // Will be updated in layoutUI
+        glm::vec2(valueX, startY + 3 * lineHeight),
+        Rendering::Styles::Text({
+            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            .fontSize = 18.0f
+        }),
+        150.0f
+    );
+    controlsLayer->addItem(seedValue);
+    
+    // Progress bar elements
+    float progressBarWidth = sidebarWidth - 80.0f;
+    float progressBarHeight = 30.0f;
+    float progressBarY = 150.0f;
+    
+    progressBackground = std::make_shared<Rendering::Shapes::Rectangle>(
+        glm::vec2(40.0f, progressBarY),
+        glm::vec2(progressBarWidth, progressBarHeight),
+        Rendering::Styles::Rectangle({
+            .color = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f),
+            .cornerRadius = 5.0f
+        }),
+        150.0f
+    );
+    controlsLayer->addItem(progressBackground);
+    
+    progressFill = std::make_shared<Rendering::Shapes::Rectangle>(
+        glm::vec2(40.0f, progressBarY),
+        glm::vec2(0.0f, progressBarHeight), // Initially 0 width
+        Rendering::Styles::Rectangle({
+            .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
+            .cornerRadius = 5.0f
+        }),
+        151.0f
+    );
+    controlsLayer->addItem(progressFill);
+    
+    progressText = std::make_shared<Rendering::Shapes::Text>(
+        "0%",
+        glm::vec2(40.0f + progressBarWidth / 2.0f, progressBarY + progressBarHeight / 2.0f + 8.0f),
+        Rendering::Styles::Text({
+            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            .fontSize = 18.0f,
+            .horizontalAlign = Rendering::TextAlign::Center,
+            .verticalAlign = Rendering::TextAlign::Middle
+        }),
+        152.0f
+    );
+    controlsLayer->addItem(progressText);
+    
+    statusText = std::make_shared<Rendering::Shapes::Text>(
+        statusMessage,
+        glm::vec2(0.0f, 0.0f), // Will be positioned in layoutUI
+        Rendering::Styles::Text({
+            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            .fontSize = 20.0f,
+            .horizontalAlign = Rendering::TextAlign::Center,
+            .verticalAlign = Rendering::TextAlign::Middle
+        }),
+        250.0f
+    );
+    controlsLayer->addItem(statusText);
+    
     return true;
 }
 
@@ -120,6 +288,20 @@ void WorldGenUI::setState(UIState newState) {
     }
 }
 
+void WorldGenUI::setPlanetParameters(const PlanetParameters& params) {
+
+    // Update UI elements with new parameters
+
+    radiusValue->setText(std::to_string(params.radius));
+
+    massValue->setText(std::to_string(params.mass));
+
+    waterValue->setText(std::to_string(params.waterAmount));
+
+    seedValue->setText(std::to_string(params.seed));
+ 
+}
+
 void WorldGenUI::handleButtonClicks(float mouseX, float mouseY, bool isPressed, bool wasPressed) {
     // Update hover state for all buttons
     for (auto& button : buttons) {
@@ -138,54 +320,44 @@ void WorldGenUI::handleButtonClicks(float mouseX, float mouseY, bool isPressed, 
     }
 }
 
-void WorldGenUI::updateProgress(float progress, const std::string& message) {
+void WorldGenUI::setProgress(float progress, const std::string& message) {
     currentProgress = progress;
     statusMessage = message;
     
+
     // If we're updating progress, ensure we're in the Generating state
     if (state != UIState::Generating) {
         setState(UIState::Generating);
     }
     
-    // Ideally we would update UI components immediately here
-    // But for now we'll rely on the next layoutUI call
-}
-
-void WorldGenUI::layoutUI(int windowWidth, int windowHeight, int worldWidth, int worldHeight, 
-                        float waterLevel, int seed, bool worldGenerated) {
-    // Clear all layers
-    backgroundLayer->clearItems();
-    controlsLayer->clearItems();
-    buttonLayer->clearItems();
-    previewLayer->clearItems();
-    sidebarLayer->clearItems();
-    
-    // Create sidebar background
-    auto sidebar = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(0.0f, 0.0f),
-        glm::vec2(sidebarWidth, static_cast<float>(windowHeight)),
-        Rendering::Styles::Rectangle({
-            .color = glm::vec4(0.1f, 0.1f, 0.1f, 0.9f)
-        }),
-        100.0f  // Z-index matching sidebarLayer
-    );
-    sidebarLayer->addItem(sidebar);
-    
-    // Based on current state, setup appropriate UI
-    if (state == UIState::Generating) {
-        setupGeneratingUI(windowWidth, windowHeight);
-    } else if (worldGenerated && state == UIState::Viewing) {
-        setupViewingUI(windowWidth, windowHeight);
-    } else {
-        // Default to parameter setup UI
-        setupParameterUI(windowWidth, windowHeight, worldWidth, worldHeight, waterLevel, seed);
+    // Update progress bar and text immediately (not just in next update call)
+    if (progressFill && progressText) {
+        float progressBarWidth = sidebarWidth - 80.0f;
+        float progressBarHeight = 30.0f;
+        progressFill->setSize(glm::vec2(progressBarWidth * currentProgress, progressBarHeight));
+        
+        int percentage = static_cast<int>(currentProgress * 100.0f);
+        progressText->setText(std::to_string(percentage) + "%");
     }
     
-    // Button dimensions
+
+    statusText->setText(statusMessage);
+}
+
+void WorldGenUI::onResize(int windowWidth, int windowHeight) {
+
+    windowSize = std::make_tuple(windowWidth, windowHeight);
+    // Create sidebar background (this is created on demand rather than stored as a member)
+
+
+      // Button dimensions
     float buttonWidth = 220.0f;
     float buttonHeight = 50.0f;
     float buttonSpacing = 20.0f;
     float sidebarMargin = 40.0f;
+    
+    // Clear button layer for recreating buttons
+    buttonLayer->clearItems();
     
     // Place buttons in sidebar
     for (size_t i = 0; i < buttons.size(); i++) {
@@ -222,242 +394,42 @@ void WorldGenUI::layoutUI(int windowWidth, int windowHeight, int worldWidth, int
         buttonLayer->addItem(buttons[i].label);
     }
     
-    // Add status/progress text at bottom center for all states
-    auto statusText = std::make_shared<Rendering::Shapes::Text>(
-        statusMessage,
-        glm::vec2(windowWidth / 2.0f, windowHeight - 40.0f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 20.0f,
-            .horizontalAlign = Rendering::TextAlign::Center,
-            .verticalAlign = Rendering::TextAlign::Middle
-        }),
-        250.0f // Above most UI
-    );
-    controlsLayer->addItem(statusText);
+    statusText->setPosition(glm::vec2(windowWidth / 2.0f, windowHeight - 40.0f));
+
 }
 
-void WorldGenUI::setupParameterUI(int windowWidth, int windowHeight, int worldWidth, int worldHeight, 
-                                 float waterLevel, int seed) {
-    // Create title
-    auto titleText = std::make_shared<Rendering::Shapes::Text>(
-        "World Generation",
-        glm::vec2(40.0f, 70.0f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 32.0f
-        }),
-        150.0f  // Z-index matching controlsLayer
-    );
-    controlsLayer->addItem(titleText);
-    
-    // Create parameter labels and values
-    float labelX = 40.0f;
-    float valueX = 200.0f;
-    float startY = 150.0f;
-    float lineHeight = 30.0f;
-    
-    // Width parameter
-    auto widthLabel = std::make_shared<Rendering::Shapes::Text>(
-        "Width:",
-        glm::vec2(labelX, startY),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f
-        }),
-        150.0f  // Z-index matching controlsLayer
-    );
-    controlsLayer->addItem(widthLabel);
-    
-    auto widthValue = std::make_shared<Rendering::Shapes::Text>(
-        std::to_string(worldWidth),
-        glm::vec2(valueX, startY),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f
-        }),
-        150.0f  // Z-index matching controlsLayer
-    );
-    controlsLayer->addItem(widthValue);
-    
-    // Height parameter
-    auto heightLabel = std::make_shared<Rendering::Shapes::Text>(
-        "Height:",
-        glm::vec2(labelX, startY + lineHeight),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f
-        }),
-        150.0f  // Z-index matching controlsLayer
-    );
-    controlsLayer->addItem(heightLabel);
-    
-    auto heightValue = std::make_shared<Rendering::Shapes::Text>(
-        std::to_string(worldHeight),
-        glm::vec2(valueX, startY + lineHeight),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f
-        }),
-        150.0f  // Z-index matching controlsLayer
-    );
-    controlsLayer->addItem(heightValue);
-    
-    // Water level parameter
-    auto waterLabel = std::make_shared<Rendering::Shapes::Text>(
-        "Water Level:",
-        glm::vec2(labelX, startY + 2 * lineHeight),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f
-        }),
-        150.0f  // Z-index matching controlsLayer
-    );
-    controlsLayer->addItem(waterLabel);
-    
-    auto waterValue = std::make_shared<Rendering::Shapes::Text>(
-        std::to_string(waterLevel),
-        glm::vec2(valueX, startY + 2 * lineHeight),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f
-        }),
-        150.0f  // Z-index matching controlsLayer
-    );
-    controlsLayer->addItem(waterValue);
-    
-    // Seed parameter
-    auto seedLabel = std::make_shared<Rendering::Shapes::Text>(
-        "Seed:",
-        glm::vec2(labelX, startY + 3 * lineHeight),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f
-        }),
-        150.0f  // Z-index matching controlsLayer
-    );
-    controlsLayer->addItem(seedLabel);
-    
-    auto seedValue = std::make_shared<Rendering::Shapes::Text>(
-        std::to_string(seed),
-        glm::vec2(valueX, startY + 3 * lineHeight),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f
-        }),
-        150.0f  // Z-index matching controlsLayer
-    );
-    controlsLayer->addItem(seedValue);
-    // Do not add any preview area text here. The previewLayer should remain empty in this state.
+void WorldGenUI::render() {
+    // Render all layers in the correct order
+    if (backgroundLayer) backgroundLayer->render();
+    if (previewLayer) previewLayer->render();
+    if (sidebarLayer) sidebarLayer->render();
+    if (controlsLayer) controlsLayer->render();
+    if (buttonLayer) buttonLayer->render();
 }
 
-void WorldGenUI::setupGeneratingUI(int windowWidth, int windowHeight) {
-    // Create title
-    auto titleText = std::make_shared<Rendering::Shapes::Text>(
-        "Generating World...",
-        glm::vec2(40.0f, 70.0f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 32.0f
-        }),
-        150.0f  // Z-index matching controlsLayer
-    );
-    controlsLayer->addItem(titleText);
-    
-    // Progress bar background
+void WorldGenUI::update(float /*deltaTime*/) {
+    // Update progress bar and text regardless of state
+    // (visibility is managed in layoutUI)
     float progressBarWidth = sidebarWidth - 80.0f;
     float progressBarHeight = 30.0f;
-    float progressBarY = 150.0f;
     
-    auto progressBg = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(40.0f, progressBarY),
-        glm::vec2(progressBarWidth, progressBarHeight),
-        Rendering::Styles::Rectangle({
-            .color = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f),
-            .cornerRadius = 5.0f
-        }),
-        150.0f  // Z-index matching controlsLayer
-    );
-    controlsLayer->addItem(progressBg);
-    
-    // Progress bar fill
-    auto progressFill = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(40.0f, progressBarY),
-        glm::vec2(progressBarWidth * currentProgress, progressBarHeight),
-        Rendering::Styles::Rectangle({
-            .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
-            .cornerRadius = 5.0f
-        }),
-        151.0f  // Z-index slightly above background
-    );
-    controlsLayer->addItem(progressFill);
-    
-    // Progress percentage
+
+    progressFill->setSize(glm::vec2(progressBarWidth * currentProgress, progressBarHeight));
+
     int percentage = static_cast<int>(currentProgress * 100.0f);
-    auto progressText = std::make_shared<Rendering::Shapes::Text>(
-        std::to_string(percentage) + "%",
-        glm::vec2(40.0f + progressBarWidth / 2.0f, progressBarY + progressBarHeight / 2.0f + 8.0f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f,
-            .horizontalAlign = Rendering::TextAlign::Center,
-            .verticalAlign = Rendering::TextAlign::Middle
-        }),
-        152.0f  // Z-index above fill
-    );
-    controlsLayer->addItem(progressText);
-    
-    // Preview area message
-    auto generatingMsg = std::make_shared<Rendering::Shapes::Text>(
-        "Generating World...",
-        glm::vec2(sidebarWidth + 20.0f, windowHeight / 2.0f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 32.0f
-        }),
-        50.0f  // Z-index matching previewLayer
-    );
-    previewLayer->addItem(generatingMsg);
-    
-    auto pleaseWaitMsg = std::make_shared<Rendering::Shapes::Text>(
-        "Please wait while your world is being created",
-        glm::vec2(sidebarWidth + 20.0f, windowHeight / 2.0f + 50.0f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 24.0f
-        }),
-        50.0f  // Z-index matching previewLayer
-    );
-    previewLayer->addItem(pleaseWaitMsg);
+    progressText->setText(std::to_string(percentage) + "%");
+
+
+    statusText->setText(statusMessage);
+
 }
 
-void WorldGenUI::setupViewingUI(int windowWidth, int windowHeight) {
-    // Create title
-    auto titleText = std::make_shared<Rendering::Shapes::Text>(
-        "World Generation Complete!",
-        glm::vec2(40.0f, 70.0f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 32.0f
-        }),
-        150.0f  // Z-index matching controlsLayer
-    );
-    controlsLayer->addItem(titleText);
-    // No world stats or preview area message here; all status is shown in the field beneath the globe.
-}
+// The setup methods have been refactored and are no longer needed.
+// Their functionality has been moved to initialize() for creating UI elements
+// and layoutUI() for positioning and showing/hiding elements based on state.
 
 bool WorldGenUI::isPointInRect(float px, float py, float rx, float ry, float rw, float rh) {
     return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
-}
-
-std::vector<std::shared_ptr<Rendering::Layer>> WorldGenUI::getAllLayers() const {
-    return {
-        backgroundLayer,
-        previewLayer,
-        sidebarLayer,
-        controlsLayer,
-        buttonLayer
-    };
 }
 
 } // namespace WorldGen

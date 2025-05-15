@@ -13,7 +13,8 @@
 std::unordered_map<GLFWwindow*, WorldGenScreen*> WorldGenScreen::s_instances;
 
 // Update constructor definition to accept Camera* and GLFWwindow*
-WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)    : lastCursorX(0.0f)
+WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window): 
+    lastCursorX(0.0f)
     , lastCursorY(0.0f)
     , worldWidth(256)
     , worldHeight(256)
@@ -36,13 +37,24 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)    : lastCurs
     
     // Initialize WorldGenUI
     m_worldGenUI = std::make_unique<WorldGen::WorldGenUI>(camera, window);
-      // Initialize planet parameters
-    m_planetParams.seed = seed;
-    m_planetParams.radius = 1.0f;
-    m_planetParams.resolution = WorldGen::PlanetParameters().resolution;
+
+    m_planetParams = WorldGen::PlanetParameters();
+
+    //   // Initialize planet parameters
+    // m_planetParams.seed = seed;
+    // m_planetParams.radius = 1.0f;
+    // m_planetParams.resolution = WorldGen::PlanetParameters().resolution;
 }
 
 WorldGenScreen::~WorldGenScreen() {
+    // Signal thread to stop
+    m_shouldStopGeneration = true;
+    
+    // Wait for thread to finish
+    if (m_generationThread.joinable()) {
+        m_generationThread.join();
+    }
+    
     // Remove scroll callback
     if (m_window) {
         glfwSetScrollCallback(m_window, nullptr);
@@ -60,7 +72,10 @@ bool WorldGenScreen::initialize() {
     
     // Set up the progress tracker callback now that UI is initialized
     m_progressTracker->SetCallback([this](float progress, const std::string& message) {
-        m_worldGenUI->updateProgress(progress, message);
+        std::lock_guard<std::mutex> lock(m_progressMutex);
+        m_latestProgress.progress = progress;
+        m_latestProgress.message = message;
+        m_latestProgress.hasUpdate = true;
     });
     
     // Set up OpenGL blending for transparency
@@ -91,25 +106,26 @@ bool WorldGenScreen::initialize() {
         // Switch to generating state
         m_worldGenUI->setState(WorldGen::UIState::Generating);
         
-        // Update seed from UI and create a new world
+        // Update seed from UI
         m_planetParams.seed = seed;
         
-        // Reset the progress tracker for a new generation
+        // Reset the progress tracker
         m_progressTracker->Reset();
         
-        // Re-generate the world with the new parameters and progress tracker
-        // CreateWorld() will handle generating the world with the appropriate subdivision level
-        m_world = WorldGen::Generators::Generator::CreateWorld(m_planetParams, m_progressTracker);
-        m_worldRenderer->SetWorld(m_world.get());
+        // No need to set a new callback, already configured in initialize()
         
-        // Mark generation as complete
-        worldGenerated = true;
-        m_worldGenUI->setState(WorldGen::UIState::Viewing);
-          // Update UI
-        int width, height;
-        glfwGetWindowSize(m_window, &width, &height);
-        m_stars->generate(width, height);
-        m_worldGenUI->layoutUI(width, height, worldWidth, worldHeight, waterLevel, seed, worldGenerated);
+        // Stop any existing generation thread
+        if (m_isGenerating) {
+            m_shouldStopGeneration = true;
+            if (m_generationThread.joinable()) {
+                m_generationThread.join();
+            }
+            m_shouldStopGeneration = false;
+        }
+        
+        // Start a new generation thread
+        m_isGenerating = true;
+        m_generationThread = std::thread(&WorldGenScreen::worldGenerationThreadFunc, this);
     });
     
     // Land button event
@@ -175,12 +191,16 @@ bool WorldGenScreen::initialize() {
     int width, height;
     glfwGetWindowSize(m_window, &width, &height);
     m_stars->generate(width, height);
-    m_worldGenUI->layoutUI(width, height, worldWidth, worldHeight, waterLevel, seed, worldGenerated);
+    m_worldGenUI->onResize(width, height);
     
     return true;
 }
 
 void WorldGenScreen::update(float deltaTime) {
+    // Process any pending progress messages
+    processProgressMessages();
+    
+    // Rest of existing update code...
     // If world is generated, adjust camera distance based on world radius
     if (worldGenerated && m_world) {
         // Set the camera distance based on the world's radius (add a margin for better visibility)
@@ -213,6 +233,8 @@ void WorldGenScreen::update(float deltaTime) {
         0.1f,
         100.0f
     );
+
+    m_worldGenUI->update(deltaTime);
 }
 
 void WorldGenScreen::render() {
@@ -263,12 +285,7 @@ void WorldGenScreen::render() {
     }
 
     // --- Render UI layers ---
-    auto uiLayers = m_worldGenUI->getAllLayers();
-    
-    // Render all UI layers
-    for (const auto& layer : uiLayers) {
-        layer->render();
-    }
+    m_worldGenUI->render();
 }
 
 void WorldGenScreen::handleInput() {
@@ -323,7 +340,7 @@ void WorldGenScreen::handleInput() {
 
 void WorldGenScreen::onResize(int width, int height) {
     // Update UI layout
-    m_worldGenUI->layoutUI(width, height, worldWidth, worldHeight, waterLevel, seed, worldGenerated);
+    m_worldGenUI->onResize(width, height);
     
     // Update projection matrix
     m_projectionMatrix = glm::perspective(
@@ -513,5 +530,72 @@ void WorldGenScreen::convertWorldToTerrainData() {
     // Signal final completion
     if (m_progressTracker) {
         m_progressTracker->UpdateProgress(1.0f, "Terrain conversion complete!");
+    }
+}
+
+void WorldGenScreen::worldGenerationThreadFunc() {
+    try {
+        // Generate the world in this background thread
+        m_world = WorldGen::Generators::Generator::CreateWorld(m_planetParams, m_progressTracker);
+        
+        // Check if we should stop
+        if (m_shouldStopGeneration) {
+            m_isGenerating = false;
+            return;
+        }
+        
+        // Generation complete
+        worldGenerated = true;
+        
+        // Set final completion progress
+        std::lock_guard<std::mutex> lock(m_progressMutex);
+        m_latestProgress.progress = 1.0f;
+        m_latestProgress.message = "World generation complete!";
+        m_latestProgress.hasUpdate = true;
+    }
+    catch (const std::exception& e) {
+        // Handle any exceptions
+        std::lock_guard<std::mutex> lock(m_progressMutex);
+        m_latestProgress.progress = 0.0f;
+        m_latestProgress.message = std::string("Error: ") + e.what();
+        m_latestProgress.hasUpdate = true;
+    }
+    
+    m_isGenerating = false;
+}
+
+void WorldGenScreen::processProgressMessages() {
+    // Check if there's an update to process
+    bool hasUpdate = false;
+    float progress = 0.0f;
+    std::string message;
+    
+    {
+        std::lock_guard<std::mutex> lock(m_progressMutex);
+        if (m_latestProgress.hasUpdate) {
+            hasUpdate = true;
+            progress = m_latestProgress.progress;
+            message = m_latestProgress.message;
+            m_latestProgress.hasUpdate = false; // Reset the flag
+        }
+    }
+    
+    // If there's an update, process it
+    if (hasUpdate) {
+        // Update the UI directly
+        m_worldGenUI->setProgress(progress, message);
+        
+        // Special handling for completion message
+        if (progress == 1.0f && worldGenerated) {
+            // Update the world renderer now that generation is complete
+            m_worldRenderer->SetWorld(m_world.get());
+            m_worldGenUI->setState(WorldGen::UIState::Viewing);
+            
+            // Update UI and stars
+            int width, height;
+            glfwGetWindowSize(m_window, &width, &height);
+            m_stars->generate(width, height);
+            m_worldGenUI->onResize(width, height);
+        }
     }
 }
