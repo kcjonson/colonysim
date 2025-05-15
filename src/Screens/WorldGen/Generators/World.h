@@ -25,36 +25,19 @@ namespace Generators {
 class World {
 public:
     /**
-     * @brief Construct a new World with default parameters.
-     * 
-     * @param progressTracker Optional progress tracker to report generation progress.
-     */
-    World(std::shared_ptr<ProgressTracker> progressTracker = nullptr);
-
-    /**
      * @brief Construct a new World with specific parameters.
      * 
      * @param params The parameters to use for world generation.
-     * @param progressTracker Optional progress tracker to report generation progress.
+     * @param progressTracker Progress tracker to report generation progress.
      */
-    World(const PlanetParameters& params, std::shared_ptr<ProgressTracker> progressTracker = nullptr);
-
-    /**
-     * @brief Generate the world geometry based on a subdivided icosahedron.
-     * 
-     * @param subdivisionLevel Number of times to subdivide the base icosahedron.
-     * @param distortionFactor Factor controlling the amount of vertex position distortion (0-1).
-     */
-    void Generate(int subdivisionLevel, float distortionFactor);
-
-    /**
+    World(const PlanetParameters& params, std::shared_ptr<ProgressTracker> progressTracker);    /**
      * @brief Generate the world geometry with progress tracking.
      * 
      * @param subdivisionLevel Number of times to subdivide the base icosahedron.
      * @param distortionFactor Factor controlling the amount of vertex position distortion (0-1).
-     * @param progressTracker Optional progress tracker to report generation progress.
+     * @param progressTracker Progress tracker to report generation progress.
      */
-    void Generate(int subdivisionLevel, float distortionFactor, std::shared_ptr<ProgressTracker> progressTracker);    // No need for a separate SetProgressTracker method, constructor handles it
+    void Generate(int subdivisionLevel, float distortionFactor, std::shared_ptr<ProgressTracker> progressTracker);
 
     /**
      * @brief Get all tiles in the world.

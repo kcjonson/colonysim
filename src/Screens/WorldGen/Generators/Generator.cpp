@@ -13,9 +13,8 @@ std::unique_ptr<World> Generator::CreateWorld(const PlanetParameters& params, st
     
     // Calculate distortion factor (can be a parameter later)
     float distortionFactor = 0.15f; // Default distortion factor
-    
-    // Generate the world geometry
-    world->Generate(subdivisionLevel, distortionFactor);
+      // Generate the world geometry
+    world->Generate(subdivisionLevel, distortionFactor, progressTracker);
     
     return world;
 }

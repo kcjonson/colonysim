@@ -36,15 +36,6 @@ uint64_t EdgeKey(int v1, int v2) {
     return (static_cast<uint64_t>(v1) << 32) | static_cast<uint64_t>(v2);
 }
 
-World::World(std::shared_ptr<ProgressTracker> progressTracker)
-    : m_radius(1.0f)
-    , m_pentagonCount(0)
-    , m_seed(12345) // Default seed
-    , m_progressTracker(progressTracker)
-{
-    CreateIcosahedron();
-}
-
 World::World(const PlanetParameters& params, std::shared_ptr<ProgressTracker> progressTracker)
     : m_radius(params.radius)
     , m_pentagonCount(0)
@@ -54,41 +45,14 @@ World::World(const PlanetParameters& params, std::shared_ptr<ProgressTracker> pr
     CreateIcosahedron();
 }
 
-void World::Generate(int subdivisionLevel, float distortionFactor) {
-    // If we have a progress tracker, use it
-    if (m_progressTracker) {
-        Generate(subdivisionLevel, distortionFactor, m_progressTracker);
-        return;
-    }
-    
-    std::cout << "Generating world with subdivision level: " << subdivisionLevel 
-              << ", distortion: " << distortionFactor << std::endl;
-              
-    // Create the base icosahedron
-    CreateIcosahedron();
-    
-    // Subdivide it the specified number of times
-    std::cout << "Subdividing icosahedron..." << std::endl;
-    SubdivideIcosahedron(subdivisionLevel, distortionFactor);
-    
-    // Convert the triangular mesh to a dual polyhedron of pentagons and hexagons
-    std::cout << "Converting to tiles..." << std::endl;
-    TrianglesToTiles();
-    
-    // Set up neighborhood relationships between tiles
-    std::cout << "Setting up tile neighbors..." << std::endl;
-    SetupTileNeighbors();
-    
-    // Generate terrain data for the tiles
-    std::cout << "Generating terrain data..." << std::endl;
-    GenerateTerrainData();
-    
-    // Log completion
-    std::cout << "World generation complete. Generated " << m_tiles.size() 
-              << " tiles (" << m_pentagonCount << " pentagons)" << std::endl;
-}
+
 
 void World::Generate(int subdivisionLevel, float distortionFactor, std::shared_ptr<ProgressTracker> progressTracker) {
+    // Ensure we have a valid progress tracker
+    if (!progressTracker) {
+        throw std::invalid_argument("ProgressTracker is required for world generation");
+    }
+    
     // Store the progress tracker
     m_progressTracker = progressTracker;
     

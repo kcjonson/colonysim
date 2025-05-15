@@ -69,7 +69,7 @@ bool WorldGenScreen::initialize() {
     
     // Set up scroll callback without overriding window user pointer
     glfwSetScrollCallback(m_window, scrollCallback);    // Initialize world object and renderer, but don't generate the world yet
-    m_world = std::make_unique<WorldGen::Generators::World>(m_planetParams);
+    m_world = std::make_unique<WorldGen::Generators::World>(m_planetParams, m_progressTracker);
     m_worldRenderer = std::make_unique<WorldGen::Renderers::World>();
     m_worldRenderer->SetWorld(m_world.get());
 
