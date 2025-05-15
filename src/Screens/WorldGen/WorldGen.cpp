@@ -61,12 +61,10 @@ bool WorldGenScreen::initialize() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     // Set up scroll callback without overriding window user pointer
-    glfwSetScrollCallback(m_window, scrollCallback);
-    // Initialize world object and renderer, but don't generate the world yet
+    glfwSetScrollCallback(m_window, scrollCallback);    // Initialize world object and renderer, but don't generate the world yet
     m_world = std::make_unique<WorldGen::Generators::World>(m_planetParams);
     m_worldRenderer = std::make_unique<WorldGen::Renderers::World>();
     m_worldRenderer->SetWorld(m_world.get());
-    m_worldRenderer->SetRenderMode(WorldGen::Renderers::World::RenderMode::TileType); // Use Debug mode for better visibility
 
     // Initialize the projection matrix
     int windowWidth, windowHeight;

@@ -15,16 +15,7 @@ namespace Renderers {
  * including options to visualize the mesh in different ways.
  */
 class World {
-public:
-    /**
-     * @brief Enum defining different visualization modes.
-     */
-    enum class RenderMode {
-        Wireframe,      ///< Render tile edges only
-        Solid,          ///< Render tiles with solid colors
-        TileType,       ///< Color by tile type (pentagon or hexagon)
-        Debug          ///< Debug visualization
-    };
+public:    // Visualization options are now handled internally
 
     /**
      * @brief Construct a new World renderer.
@@ -41,14 +32,7 @@ public:
      * 
      * @param world Pointer to the world to render.
      */
-    void SetWorld(const Generators::World* world);
-
-    /**
-     * @brief Set the rendering mode.
-     * 
-     * @param mode The rendering mode to use.
-     */
-    void SetRenderMode(RenderMode mode);    /**
+    void SetWorld(const Generators::World* world);    /**
      * @brief Render the world.
      * 
      * @param viewMatrix The view matrix.
@@ -70,34 +54,16 @@ private:
     void GenerateRenderingData();
 
     /**
-     * @brief Render the world as a wireframe.
-     */
-    void RenderWireframe(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
-
-    /**
-     * @brief Render the world as solid tiles.
-     */
-    void RenderSolid(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
-
-    /**
      * @brief Render the world colored by tile type.
      */
     void RenderByTileType(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
 
-    /**
-     * @brief Render debug visualization.
-     */
-    void RenderDebug(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);    /**
-     * @brief Structure to hold triangle fan information for each tile
-     */
     struct TileFanInfo {
         unsigned int startIndex;    ///< Starting index in the vertex buffer
         unsigned int vertexCount;   ///< Number of vertices in this tile (center + perimeter)
         unsigned int indexCount;    ///< Number of indices for this tile's triangle fan
     };
-    
-    const Generators::World* m_world;    ///< The world to render
-    RenderMode m_renderMode;             ///< Current rendering mode
+      const Generators::World* m_world;    ///< The world to render
       // OpenGL rendering data
     unsigned int m_vao;                  ///< Vertex array object
     unsigned int m_vbo;                  ///< Vertex buffer object
