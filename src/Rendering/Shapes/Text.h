@@ -6,30 +6,75 @@
 #include <string>
 
 namespace Rendering {
-namespace Shapes {
+    namespace Shapes {
 
-class Text : public Shape {
-public:
-    Text(const std::string& text = "",
-         const glm::vec2& position = glm::vec2(0.0f),
-         const Styles::Text& style = Styles::Text({}),
-         float zIndex = 0.0f);
-    virtual ~Text() = default;
+        class Text : public Shape {
 
-    // Getters and setters
-    const std::string& getText() const { return text; }
-    void setText(const std::string& t) { text = t; markDirty(); }
+            public:
+                struct Styles {
+                    glm::vec4 color = glm::vec4(1.0f);
+                    float opacity = 1.0f;
+                    float fontSize = 1.0f; // Default font size
+                    TextAlign::Horizontal horizontalAlign = TextAlign::Horizontal::Left;
+                    TextAlign::Vertical verticalAlign = TextAlign::Vertical::Top;
+                };
 
-    const Styles::Text& getStyle() const { return style; }
-    void setStyle(const Styles::Text& s) { style = s; markDirty(); }
+                /**
+                 * Arguments struct for Text constructor
+                 */
+                struct Args {
+                    std::string text = "";
+                    glm::vec2 position = glm::vec2(0.0f);
+                    glm::vec2 size = glm::vec2(0.0f); 
+                    Styles style = Styles({});
+                    float zIndex = 0.0f;
+                };
 
-    // Implementation of the draw method
-    virtual void draw() override;
+                /**
+                 * Create a text shape using the Args struct.
+                 *
+                 * @param args A struct containing all arguments for the text.
+                 */
+                explicit Text(const Args &args);
 
-private:
-    std::string text;
-    Styles::Text style;
-};
+                virtual ~Text() = default;
 
-} // namespace Shapes
+                // Getters and setters
+                const std::string &getText() const { return text; }
+                void setText(const std::string &t) {
+                    text = t;
+                    markDirty();
+                }
+
+                const Styles &getStyle() const { return style; }
+                void setStyle(const Styles &s) {
+                    style = s;
+                    markDirty();
+                }
+
+                const glm::vec2 &getSize() const { return size; }
+                void setSize(const glm::vec2 &s) {
+                    size = s;
+                    markDirty();
+                }
+
+                const glm::vec2 &getPosition() const { return position; }
+                void setPosition(const glm::vec2 &s) {
+                    position = s;
+                    markDirty();
+                }
+                
+
+                virtual void draw() override;
+
+            private:
+                std::string text;
+                Styles style;
+                glm::vec2 position;
+                float zIndex;
+                glm::vec2 size; 
+
+        };
+
+    } // namespace Shapes
 } // namespace Rendering

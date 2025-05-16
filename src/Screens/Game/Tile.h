@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include "../../Rendering/Shapes/Shape.h"
 #include "../../Rendering/Layer.h"
+#include "../WorldGen/Core/TerrainTypes.h" // Add TerrainTypes.h include
 
 namespace Rendering {
 
@@ -14,7 +15,7 @@ public:
     Tile(const glm::vec2& position = glm::vec2(0.0f),
          float height = 0.0f,
          float resource = 0.0f,
-         int type = 0,
+         WorldGen::TerrainType type = WorldGen::TerrainType::Lowland, // Change to enum
          const glm::vec4& color = glm::vec4(0.0f, 0.5f, 0.0f, 1.0f),
          bool visible = true);
     ~Tile() override = default;
@@ -26,8 +27,8 @@ public:
     float getResource() const { return resource; }
     void setResource(float r) { resource = r; }
 
-    int getType() const { return type; }
-    void setType(int t) { type = t; }
+    WorldGen::TerrainType getType() const { return type; } // Change to enum
+    void setType(WorldGen::TerrainType t) { type = t; } // Change to enum
 
     const glm::vec4& getColor() const { return color; }
     void setColor(const glm::vec4& c) { color = c; }
@@ -51,7 +52,7 @@ public:
 protected:
     float height = 0.0f;
     float resource = 0.0f;
-    int type = 0; // 0 = empty, 1 = terrain, etc.
+    WorldGen::TerrainType type = WorldGen::TerrainType::Lowland; // Change to enum
     glm::vec4 color = glm::vec4(0.0f, 0.5f, 0.0f, 1.0f); // Default green
 };
 

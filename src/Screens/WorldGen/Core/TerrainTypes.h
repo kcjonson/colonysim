@@ -78,8 +78,13 @@ struct TileCoord {
 struct TerrainData {
     float height;
     float resource;
-    int type;
+    TerrainType type;    // Changed from int to TerrainType
     glm::vec4 color;
+    
+    // Added properties for our new world generation system
+    float elevation = 0.5f;     // Normalized elevation [0.0-1.0]
+    float humidity = 0.5f;      // Normalized humidity/moisture [0.0-1.0]
+    float temperature = 0.5f;   // Normalized temperature [0.0-1.0]
 };
 
 } // namespace WorldGen

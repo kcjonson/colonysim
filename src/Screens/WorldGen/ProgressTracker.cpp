@@ -1,5 +1,6 @@
 #include "ProgressTracker.h"
 #include <algorithm>
+#include <iostream>
 
 namespace WorldGen {
 
@@ -45,6 +46,8 @@ void ProgressTracker::UpdateProgress(float progress, const std::string& message)
     if (m_currentPhaseIndex >= 0 && m_currentPhaseIndex < m_phases.size()) {
         m_phases[m_currentPhaseIndex].progress = std::clamp(progress, 0.0f, 1.0f);
         m_currentMessage = message;
+
+        // std::cout << message << std::endl; // Debug output
         
         if (m_callback) {
             m_callback(GetOverallProgress(), m_currentMessage);

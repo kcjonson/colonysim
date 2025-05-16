@@ -51,6 +51,7 @@ struct TextStyleParams {
     float fontSize = 16.0f;  // Default font size
     TextAlign::Horizontal horizontalAlign = TextAlign::Horizontal::Left;
     TextAlign::Vertical verticalAlign = TextAlign::Vertical::Top;
+    glm::vec2 size = glm::vec2(0.0f);  // Size of the text box (width and height) - zero means auto-size
 };
 
 struct PolygonStyleParams {
@@ -92,6 +93,7 @@ public:
     float fontSize;
     TextAlign::Horizontal horizontalAlign;
     TextAlign::Vertical verticalAlign;
+    glm::vec2 size; // Size of the text box (width and height)
 };
 
 class Polygon : public Base, public Border {

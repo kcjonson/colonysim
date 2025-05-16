@@ -24,6 +24,7 @@ struct TextCommand {
     std::string text;
     glm::vec2 position;
     glm::vec4 color;
+    float size;
 };
 
 class VectorGraphics {
@@ -126,14 +127,20 @@ public:
         float borderWidth = 0.0f,
         BorderPosition borderPosition = BorderPosition::Outside
     );
-    
-    /**
+      /**
      * Draw text using the Renderer
      * @param text String to render
      * @param position Top-left position of the text
      * @param color RGBA color (0-1 range)
+     * @param size Size of the text (default: 0.3f)
+     */    void drawText(const std::string& text, const glm::vec2& position, const glm::vec4& color, float size = 0.3f);
+      /**
+     * Measure text dimensions
+     * @param text String to measure
+     * @param size Size factor for the text (default: 0.3f)
+     * @return Width and height of the text in screen units
      */
-    void drawText(const std::string& text, const glm::vec2& position, const glm::vec4& color);
+    glm::vec2 measureText(const std::string& text, float size = 0.3f) const;
 
     // Get rendering statistics
     size_t getTotalVertices() const { return vertices.size(); } // Current buffer size

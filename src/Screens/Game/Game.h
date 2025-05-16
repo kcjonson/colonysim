@@ -17,12 +17,10 @@ struct GameState;
 class GameScreen : public Screen {
 public:
     GameScreen(Camera* camera, GLFWwindow* window);
-    ~GameScreen() override;
-
-    bool initialize() override;
+    ~GameScreen() override;    bool initialize() override;
     void update(float deltaTime) override;
     void render() override;
-    void handleInput() override;
+    void handleInput(float deltaTime) override;
     void onResize(int width, int height) override;
 
 private:

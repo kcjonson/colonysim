@@ -34,6 +34,19 @@ file(GLOB_RECURSE HEADERS
 # Create executable
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
+# Add compiler-specific flags
+if(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE "/std:c++20" "/Zc:__cplusplus")
+else()
+    target_compile_options(${PROJECT_NAME} PRIVATE "-std=c++20")
+endif()
+
+# Add GLM-specific definitions
+target_compile_definitions(${PROJECT_NAME} PRIVATE 
+    GLM_FORCE_CXX17
+    GLM_ENABLE_EXPERIMENTAL
+    GLM_FORCE_PURE)
+
 # Copy shaders to build directory
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -41,12 +54,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     $<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders
 )
 
-# Copy planet shaders to build directory - updated path
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/Screens/WorldGen/Renderers/Shaders
-    $<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders/Planet
-)
+# Planet shaders removed - directory no longer exists
 
 # Copy config to build directory
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

@@ -266,34 +266,38 @@ void Examples::createPolygonExamples() {
 void Examples::createTextExamples() {
     // Basic text
     auto basicText = std::make_shared<Rendering::Shapes::Text>(
-        "Hello, World!",
-        glm::vec2(100.0f, 50.0f), // Changed Y from 0.0f to 50.0f
-        Rendering::Styles::Text({
-            .color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)  // Black
-        }),
-        26.0f  // Z-index
-    );
+        Rendering::Shapes::Text::Args{
+            .text = "Hello, World!",
+            .position = glm::vec2(100.0f, 50.0f), // Changed Y from 0.0f to 50.0f
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)  // Black
+            }),
+            .zIndex = 26.0f  // Z-index
+        }    );
     examplesLayer->addItem(basicText);
     
     // Colored text
     auto coloredText = std::make_shared<Rendering::Shapes::Text>(
-        "Colored Text",
-        glm::vec2(100.0f, 80.0f), // Changed Y from -50.0f to 80.0f
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)  // Red
-        }),
-        27.0f  // Z-index
-    );
+        Rendering::Shapes::Text::Args{
+            .text = "Colored Text",
+            .position = glm::vec2(100.0f, 80.0f), // Changed Y from -50.0f to 80.0f
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)  // Red
+            }),
+            .zIndex = 27.0f  // Z-index
+        }    );
     examplesLayer->addItem(coloredText);
     
     // Semi-transparent text
     auto transparentText = std::make_shared<Rendering::Shapes::Text>(
-        "Semi-transparent Text",
-        glm::vec2(100.0f, 110.0f), // Changed Y from -100.0f to 110.0f
-        Rendering::Styles::Text({
-            .color = glm::vec4(0.0f, 0.0f, 1.0f, 0.7f)  // Blue with 70% transparency
-        }),
-        28.0f  // Z-index
+        Rendering::Shapes::Text::Args{
+            .text = "Semi-transparent Text",
+            .position = glm::vec2(100.0f, 110.0f), // Changed Y from -100.0f to 110.0f
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(0.0f, 0.0f, 1.0f, 0.7f)  // Blue with 70% transparency
+            }),
+            .zIndex = 28.0f  // Z-index
+        }
     );
     examplesLayer->addItem(transparentText);
 }

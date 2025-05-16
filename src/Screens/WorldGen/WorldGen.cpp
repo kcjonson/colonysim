@@ -8,15 +8,13 @@
 #include "Core/TerrainGenerator.h"
 #include "VectorGraphics.h"
 #include <algorithm> // Keep algorithm include
-#include "Lithosphere/Lithosphere.h" // Updated path to Lithosphere
-#include "Renderers/PlanetData.h" // Updated path from Planet to Renderers
 
 // Initialize the static instances map
 std::unordered_map<GLFWwindow*, WorldGenScreen*> WorldGenScreen::s_instances;
 
 // Update constructor definition to accept Camera* and GLFWwindow*
-WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)
-    : lastCursorX(0.0f)
+WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window): 
+    lastCursorX(0.0f)
     , lastCursorY(0.0f)
     , worldWidth(256)
     , worldHeight(256)
@@ -25,46 +23,38 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window)
     , m_cameraDistance(5.0f)
     , m_rotationAngle(0.0f)
     , m_isDragging(false)
-    , m_platesGenerated(false) 
     , m_window(window) {
     
     // Register this instance in the static map
-    s_instances[window] = this;
-    
-    // Generate a random seed
+    s_instances[window] = this;    // Generate a random seed
     std::random_device rd;
     seed = rd();
+      // Create a central progress tracker with a callback to update the UI
+    m_progressTracker = std::make_shared<WorldGen::ProgressTracker>();
     
-    // Keep only star layer in WorldGenScreen
-    starLayer = std::make_shared<Rendering::Layer>(-100.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    // Initialize Stars
+    m_stars = std::make_unique<WorldGen::Stars>(camera, window);
     
     // Initialize WorldGenUI
     m_worldGenUI = std::make_unique<WorldGen::WorldGenUI>(camera, window);
-    
-    // Initialize plate generator and renderer
-    WorldGen::PlanetParameters params;
-    params.numTectonicPlates = 24;  // Hardcode 8 plates for now
-    m_plateGenerator = std::make_unique<WorldGen::PlateGenerator>(params, seed);
-    m_plateRenderer = std::make_unique<WorldGen::PlateRenderer>();
-    m_globeRenderer = std::make_unique<WorldGen::GlobeRenderer>();
-    
-    // Get planet mesh data after initializing GlobeRenderer
-    if (m_globeRenderer) {
-        const auto* planetData = m_globeRenderer->getPlanetData(); // Use the added getter
-        if (planetData) {
-            // Use the new method to get vertices as vec3
-            m_planetVertices = planetData->getVerticesVec3();
-            m_planetIndices = planetData->getIndices(); // Get indices as well
-            std::cout << "Loaded planet mesh: " << m_planetVertices.size() << " vertices, " << m_planetIndices.size() << " indices." << std::endl;
-        } else {
-            std::cerr << "Error: Failed to get PlanetData from GlobeRenderer." << std::endl;
-        }
-    } else {
-         std::cerr << "Error: GlobeRenderer is null after creation." << std::endl;
-    }
+
+    m_planetParams = WorldGen::PlanetParameters();
+
+    //   // Initialize planet parameters
+    // m_planetParams.seed = seed;
+    // m_planetParams.radius = 1.0f;
+    // m_planetParams.resolution = WorldGen::PlanetParameters().resolution;
 }
 
 WorldGenScreen::~WorldGenScreen() {
+    // Signal thread to stop
+    m_shouldStopGeneration = true;
+    
+    // Wait for thread to finish
+    if (m_generationThread.joinable()) {
+        m_generationThread.join();
+    }
+    
     // Remove scroll callback
     if (m_window) {
         glfwSetScrollCallback(m_window, nullptr);
@@ -74,110 +64,90 @@ WorldGenScreen::~WorldGenScreen() {
 }
 
 bool WorldGenScreen::initialize() {
-    // Initialize globe renderer
-    if (!m_globeRenderer->initialize()) {
-        std::cerr << "Failed to initialize globe renderer" << std::endl;
-        return false;
-    }
-    
-    // Initialize plate renderer
-    if (!m_plateRenderer->initialize()) {
-        std::cerr << "Failed to initialize plate renderer" << std::endl;
-        return false;
-    }
-
     // Initialize UI
     if (!m_worldGenUI->initialize()) {
         std::cerr << "Failed to initialize world gen UI" << std::endl;
         return false;
     }
     
+    // Set up the progress tracker callback now that UI is initialized
+    m_progressTracker->SetCallback([this](float progress, const std::string& message) {
+        std::lock_guard<std::mutex> lock(m_progressMutex);
+        m_latestProgress.progress = progress;
+        m_latestProgress.message = message;
+        m_latestProgress.hasUpdate = true;
+    });
+    
     // Set up OpenGL blending for transparency
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     // Set up scroll callback without overriding window user pointer
-    glfwSetScrollCallback(m_window, scrollCallback);
-    
-    // Register event handlers for UI events
-    
+    glfwSetScrollCallback(m_window, scrollCallback);    // Initialize world object and renderer, but don't generate the world yet
+    m_world = std::make_unique<WorldGen::Generators::World>(m_planetParams, m_progressTracker);
+    m_worldRenderer = std::make_unique<WorldGen::Renderers::World>();
+    m_worldRenderer->SetWorld(m_world.get());
+
+    // Initialize the projection matrix
+    int windowWidth, windowHeight;
+    glfwGetWindowSize(m_window, &windowWidth, &windowHeight);
+    m_projectionMatrix = glm::perspective(glm::radians(45.0f), static_cast<float>(windowWidth) / windowHeight, 0.1f, 100.0f);
+      // Initialize the view matrix
+    // Adjust camera distance based on world radius (if world is generated)
+    m_cameraDistance = 2.5f; // Default camera distance
+    m_viewMatrix = glm::lookAt(
+        glm::vec3(0.0f, 0.0f, m_cameraDistance),  // Camera position
+        glm::vec3(0.0f, 0.0f, 0.0f),              // Look at origin
+        glm::vec3(0.0f, 1.0f, 0.0f)               // Up vector
+    );      // Register event handlers for UI events
+
     // Generate World button event
     m_worldGenUI->addEventListener(WorldGen::UIEvent::GenerateWorld, [this]() {
+        std::cout << "Generate World button clicked" << std::endl;
         // Switch to generating state
         m_worldGenUI->setState(WorldGen::UIState::Generating);
-        m_worldGenUI->updateProgress(0.1f, "Generating tectonic plates...");
         
-        // Get Lithosphere instance from PlateGenerator
-        WorldGen::Lithosphere* lithosphere = m_plateGenerator->GetLithosphere();
-        if (!lithosphere) {
-            std::cerr << "Error: Lithosphere instance is null." << std::endl;
-            m_worldGenUI->setState(WorldGen::UIState::ParameterSetup); // Go back if error
-            return;
+        // Update seed from UI
+        m_planetParams.seed = seed;
+        
+        // Reset the progress tracker
+        m_progressTracker->Reset();
+        
+        // No need to set a new callback, already configured in initialize()
+        
+        // Stop any existing generation thread
+        if (m_isGenerating) {
+            m_shouldStopGeneration = true;
+            if (m_generationThread.joinable()) {
+                m_generationThread.join();
+            }
+            m_shouldStopGeneration = false;
         }
-
-        // Generate plates using Lithosphere (needs vertex data)
-        lithosphere->CreatePlates(m_planetVertices);
-        m_plates = lithosphere->GetPlates(); // Get the generated plates (reference)
-
-        if (!m_plates.empty()) {
-            m_worldGenUI->updateProgress(0.3f, "Detecting boundaries..."); // Adjusted progress
-
-            // Detect initial boundaries using Lithosphere (needs vertex and index data)
-            lithosphere->DetectBoundaries(m_planetVertices, m_planetIndices);
-
-            m_worldGenUI->updateProgress(0.4f, "Simulating plate movement...");
-
-            // Simulate some movement (placeholder for now, real simulation happens in Update)
-            // lithosphere->Update(0.1f, m_planetVertices, m_planetIndices); // Example: Simulate one step
-            // For now, just keep the initial state after creation & boundary detection
-
-            m_worldGenUI->updateProgress(0.7f, "Analyzing boundaries...");
-
-            // Analyze boundaries using Lithosphere (placeholder for now)
-            lithosphere->AnalyzeBoundaries(m_planetVertices);
-
-            m_platesGenerated = true;
-            std::cout << "Generated " << m_plates.size() << " plates and detected initial boundaries." << std::endl;
-
-            m_worldGenUI->updateProgress(1.0f, "World generation complete!");
-
-            // Switch to viewing state after generation is complete
-            worldGenerated = true;
-            m_worldGenUI->setState(WorldGen::UIState::Viewing);
-        } else {
-            std::cerr << "Failed to generate plates" << std::endl;
-            m_worldGenUI->setState(WorldGen::UIState::ParameterSetup);
-        }
-
-        // Update UI
-        int width, height;
-        glfwGetWindowSize(m_window, &width, &height);
-        renderStars(width, height);
-        m_worldGenUI->layoutUI(width, height, worldWidth, worldHeight, waterLevel, seed, worldGenerated);
+        
+        // Start a new generation thread
+        m_isGenerating = true;
+        m_generationThread = std::thread(&WorldGenScreen::worldGenerationThreadFunc, this);
     });
     
     // Land button event
     m_worldGenUI->addEventListener(WorldGen::UIEvent::GoToLand, [this]() {
         if (!worldGenerated) {
-            // If not generated yet, go through the generation process first
-            m_worldGenUI->setState(WorldGen::UIState::Generating);
-            m_worldGenUI->updateProgress(0.1f, "Generating terrain data...");
-            
-            // Clear previous terrain data
-            generatedTerrainData.clear();
-            
-            // Generate new terrain with the current seed
-            unsigned int hashedSeed = WorldGen::TerrainGenerator::getHashedSeed(std::to_string(seed));
-            
-            // Call the TerrainGenerator with the correct terrain data type
-            WorldGen::TerrainGenerator::generateTerrain(
-                generatedTerrainData, worldWidth / 2, hashedSeed);
-            
-            std::cout << "Generated " << generatedTerrainData.size() << " terrain tiles" << std::endl;
-            
-            worldGenerated = true;
-            m_worldGenUI->updateProgress(1.0f, "World generation complete!");
+            // If world is not generated, log an error message and return early
+            std::cerr << "ERROR: World must be generated before proceeding to land view" << std::endl;
+            m_worldGenUI->setState(WorldGen::UIState::ParameterSetup);
+            return;
         }
+          // Convert the icosahedron world to terrain data
+        // Use the progress tracker directly
+        m_progressTracker->Reset();
+        m_progressTracker->AddPhase("Converting", 0.8f);
+        m_progressTracker->AddPhase("Finalizing", 0.2f);
+        
+        m_progressTracker->StartPhase("Converting");
+        convertWorldToTerrainData();
+        
+        m_progressTracker->CompletePhase();
+        m_progressTracker->StartPhase("Finalizing");
         
         // Transfer the terrain data to the game world
         if (screenManager->getWorld()) {
@@ -218,53 +188,42 @@ bool WorldGenScreen::initialize() {
     
     // Set initial UI state
     m_worldGenUI->setState(WorldGen::UIState::ParameterSetup);
-    
-    // Set initial UI layout
+      // Set initial UI layout
     int width, height;
     glfwGetWindowSize(m_window, &width, &height);
-    renderStars(width, height);
-    m_worldGenUI->layoutUI(width, height, worldWidth, worldHeight, waterLevel, seed, worldGenerated);
+    m_stars->generate(width, height);
+    m_worldGenUI->onResize(width, height);
     
     return true;
 }
 
-void WorldGenScreen::renderStars(int width, int height) {
-    // Clear the star layer
-    starLayer->clearItems();
-    
-    // Create star background
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> disX(0.0f, static_cast<float>(width));
-    std::uniform_real_distribution<float> disY(0.0f, static_cast<float>(height));
-    std::uniform_real_distribution<float> disSize(1.0f, 3.0f);
-    std::uniform_real_distribution<float> disAlpha(0.5f, 1.0f);
-    
-    for (int i = 0; i < 200; ++i) {
-        float x = disX(gen);
-        float y = disY(gen);
-        float size = disSize(gen);
-        float alpha = disAlpha(gen);
-        
-        auto star = std::make_shared<Rendering::Shapes::Rectangle>(
-            glm::vec2(x, y),
-            glm::vec2(size, size),
-            Rendering::Styles::Rectangle({
-                .color = glm::vec4(1.0f, 1.0f, 1.0f, alpha)
-            }),
-            -100.0f  // Z-index matching starLayer
-        );
-        starLayer->addItem(star);
-    }
-}
-
 void WorldGenScreen::update(float deltaTime) {
+    // Process any pending progress messages
+    processProgressMessages();
+    
+    // Rest of existing update code...
+    // If world is generated, adjust camera distance based on world radius
+    if (worldGenerated && m_world) {
+        // Set the camera distance based on the world's radius (add a margin for better visibility)
+        float worldRadius = m_world->GetRadius();
+        m_cameraDistance = worldRadius * 2.5f;
+    }
+
     // Update camera matrices
     m_viewMatrix = glm::lookAt(
         glm::vec3(0.0f, 0.0f, m_cameraDistance),
         glm::vec3(0.0f, 0.0f, 0.0f),
         glm::vec3(0.0f, 1.0f, 0.0f)
     );
+    
+    // Update model-view matrix with current rotation
+    glm::mat4 rotationMatrix = glm::rotate(
+        glm::mat4(1.0f),
+        m_rotationAngle,
+        glm::vec3(0.0f, 1.0f, 0.0f)
+    );
+    
+    m_viewMatrix = m_viewMatrix * rotationMatrix;
     
     // Update projection matrix - use full width for proper aspect ratio
     int width, height;
@@ -275,25 +234,8 @@ void WorldGenScreen::update(float deltaTime) {
         0.1f,
         100.0f
     );
-    
-    // Update globe renderer
-    m_globeRenderer->setRotationAngle(m_rotationAngle);
-    m_globeRenderer->setCameraDistance(m_cameraDistance);
-    m_globeRenderer->resize(width, height);
 
-    // Update Lithosphere simulation if plates are generated
-    if (m_platesGenerated) {
-        WorldGen::Lithosphere* lithosphere = m_plateGenerator->GetLithosphere();
-        if (lithosphere) {
-            // Use a fixed simulation step or scale deltaTime
-            float simulationTimeStep = deltaTime * 0.5f; // Adjust speed as needed
-            lithosphere->Update(simulationTimeStep, m_planetVertices, m_planetIndices);
-            // Update the local copy of plates if needed (GetPlates returns a reference)
-            // m_plates = lithosphere->GetPlates(); // Not strictly necessary if GetPlates returns reference
-        } else {
-            std::cerr << "Error: Lithosphere instance is null during update." << std::endl;
-        }
-    }
+    m_worldGenUI->update(deltaTime);
 }
 
 void WorldGenScreen::render() {
@@ -307,59 +249,47 @@ void WorldGenScreen::render() {
     
     // Use the full window viewport for all rendering
     glViewport(0, 0, width, height);
-
-    // Calculate horizontal offset for planet in world units
-    float sidebarWidthPx = m_worldGenUI->getSidebarWidth();
-    float fovY = glm::radians(45.0f);
-    float aspect = static_cast<float>(width) / height;
-    float tanHalfFovY = tan(fovY / 2.0f);
-    float viewHeight = 2.0f * m_cameraDistance * tanHalfFovY;
-    float viewWidth = viewHeight * aspect;
-    float offsetWorldX = (sidebarWidthPx / static_cast<float>(width)) * viewWidth / 2.0f;
-    m_globeRenderer->setHorizontalOffset(offsetWorldX);
-    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(offsetWorldX, 0.0f, 0.0f));
-    modelMatrix = glm::rotate(modelMatrix, m_rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
-
+    
     // --- Render stars (background, always first, blending enabled) ---
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    starLayer->render();
-
-    // --- Render sidebar background (blending enabled, before globe) ---
-    // Only render the sidebar/background layer, not all UI layers yet
-    auto uiLayers = m_worldGenUI->getAllLayers();
-    // Find the sidebar layer (zIndex == 100.0f by convention)
-    for (const auto& layer : uiLayers) {
-        if (layer->getZIndex() == 100.0f) {
-            layer->render();
-            break;
-        }
+    m_stars->render();    // --- Render the icosahedron world if generated ---
+    if (worldGenerated && m_world && m_worldRenderer) {
+        // Enable depth testing for 3D rendering
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LESS);
+        
+        // Only render in the main area (not over sidebar)
+        float sidebarWidth = m_worldGenUI->getSidebarWidth();
+        int renderWidth = width - static_cast<int>(sidebarWidth);
+        int renderHeight = height;
+        glViewport(static_cast<int>(sidebarWidth), 0, renderWidth, renderHeight);
+        
+        // Calculate correct aspect ratio for the viewport
+        float aspectRatio = static_cast<float>(renderWidth) / renderHeight;
+        
+        // Create adjusted projection matrix for this viewport
+        glm::mat4 adjustedProjection = glm::perspective(
+            glm::radians(45.0f),  // FOV
+            aspectRatio,          // Aspect ratio
+            0.1f,                 // Near plane
+            100.0f                // Far plane
+        );
+        
+        // Render the world with adjusted projection
+        m_worldRenderer->Render(m_viewMatrix, adjustedProjection);
+        
+        // Reset viewport for UI
+        glViewport(0, 0, width, height);
+        glDisable(GL_DEPTH_TEST);
     }
 
-    // --- Render globe and plates (opaque, depth test ON, blending OFF) ---
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND);
-    m_globeRenderer->render(m_viewMatrix, m_projectionMatrix);
-    if (m_platesGenerated && !m_plates.empty()) {
-        glLineWidth(2.0f);
-        m_plateRenderer->render(m_plates, m_planetVertices, modelMatrix, m_viewMatrix, m_projectionMatrix);
-        glLineWidth(1.0f);
-    }
-
-    // --- Render remaining UI layers (controls, buttons, preview, etc) ---
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    // Render all UI layers except the sidebar (already rendered)
-    for (const auto& layer : uiLayers) {
-        if (layer->getZIndex() != 100.0f) {
-            layer->render();
-        }
-    }
+    // --- Render UI layers ---
+    m_worldGenUI->render();
 }
 
-void WorldGenScreen::handleInput() {
+void WorldGenScreen::handleInput(float deltaTime) {
     // Handle planet rotation with mouse drag
     if (glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
         double xpos, ypos;
@@ -382,40 +312,25 @@ void WorldGenScreen::handleInput() {
         m_isDragging = false;
     }
     
-    // Handle button clicks - use wasPressed pattern to detect single click events
-    static bool wasPressed = false;
-    bool isPressed = glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
-    
-    // Get cursor position
-    double xpos, ypos;
-    glfwGetCursorPos(m_window, &xpos, &ypos);
-    
-    // Check if mouse is in the UI sidebar area
-    if (xpos <= m_worldGenUI->getSidebarWidth()) {
-        // Pass mouse input to UI
-        m_worldGenUI->handleButtonClicks(
-            static_cast<float>(xpos), 
-            static_cast<float>(ypos), 
-            isPressed, 
-            wasPressed
-        );
-    }
-    
-    wasPressed = isPressed;
-    
     // Check for ESC key to go back to main menu
     if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         screenManager->switchScreen(ScreenType::MainMenu);
     }
+
+    m_worldGenUI->handleInput(deltaTime);
 }
 
 void WorldGenScreen::onResize(int width, int height) {
-    // Update viewport to use the full window
-    glViewport(0, 0, width, height);
+    // Update UI layout
+    m_worldGenUI->onResize(width, height);
     
-    // Update stars and UI layout
-    renderStars(width, height);
-    m_worldGenUI->layoutUI(width, height, worldWidth, worldHeight, waterLevel, seed, worldGenerated);
+    // Update projection matrix
+    m_projectionMatrix = glm::perspective(
+        glm::radians(45.0f),
+        static_cast<float>(width) / height,
+        0.1f,
+        100.0f
+    );
 }
 
 bool WorldGenScreen::isPointInRect(float px, float py, float rx, float ry, float rw, float rh) {
@@ -423,13 +338,246 @@ bool WorldGenScreen::isPointInRect(float px, float py, float rx, float ry, float
 }
 
 void WorldGenScreen::handleScroll(double xoffset, double yoffset) {
-    m_cameraDistance = glm::clamp(m_cameraDistance - static_cast<float>(yoffset) * 0.1f, 2.0f, 10.0f);
+    // Adjust camera distance with scroll wheel (zoom in/out)
+    m_cameraDistance -= static_cast<float>(yoffset) * 0.5f;
+    
+    // Clamp to reasonable limits
+    m_cameraDistance = std::max(1.5f, std::min(10.0f, m_cameraDistance));
 }
 
+// Static callback that routes scroll events to the right instance
 void WorldGenScreen::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
-    // Find the instance associated with this window
     auto it = s_instances.find(window);
     if (it != s_instances.end()) {
         it->second->handleScroll(xoffset, yoffset);
+    }
+}
+
+// Convert the icosahedron world to terrain data
+void WorldGenScreen::convertWorldToTerrainData() {
+    if (!m_world) {
+        std::cerr << "ERROR: World not initialized for conversion" << std::endl;
+        return;
+    }
+    
+    // Clear previous terrain data
+    generatedTerrainData.clear();
+    
+    // Get the tiles from the world
+    const auto& tiles = m_world->GetTiles();
+    
+    // Counters for terrain types
+    int waterTileCount = 0;
+    int landTileCount = 0;
+    int totalTileCount = 0;
+    
+    // Report starting conversion
+    if (m_progressTracker) {
+        m_progressTracker->UpdateProgress(0.1f, "Starting terrain conversion...");
+    }
+    
+    // Track progress
+    size_t totalTiles = tiles.size();
+    
+    // Project tiles onto a 2D grid based on spherical coordinates
+    for (size_t i = 0; i < tiles.size(); ++i) {
+        const auto& tile = tiles[i];
+        const auto& center = tile.GetCenter();
+        
+        // Convert 3D position to longitude/latitude
+        float longitude = std::atan2(center.z, center.x);
+        float latitude = std::asin(center.y / m_world->GetRadius());
+        
+        // Convert longitude/latitude to grid coordinates
+        int x = static_cast<int>((longitude / (2.0f * 3.14159f) + 0.5f) * worldWidth);
+        int y = static_cast<int>((latitude / 3.14159f + 0.5f) * worldHeight);
+        
+        // Create terrain data
+        WorldGen::TerrainData terrainData;
+        
+        // Assign terrain type based on some attributes of the tile
+        // For example, use the elevation for terrain type
+        float elevation = tile.GetElevation();
+        
+        if (elevation < waterLevel - 0.2f) {
+            terrainData.type = WorldGen::TerrainType::Ocean;
+            waterTileCount++;
+        } else if (elevation < waterLevel - 0.05f) {
+            terrainData.type = WorldGen::TerrainType::Shallow;
+            waterTileCount++;
+        } else if (elevation < waterLevel + 0.05f) {
+            terrainData.type = WorldGen::TerrainType::Beach;
+            landTileCount++;
+        } else if (elevation < waterLevel + 0.3f) {
+            terrainData.type = WorldGen::TerrainType::Lowland;
+            landTileCount++;
+        } else if (elevation < waterLevel + 0.6f) {
+            terrainData.type = WorldGen::TerrainType::Highland;
+            landTileCount++;
+        } else if (elevation < waterLevel + 0.8f) {
+            terrainData.type = WorldGen::TerrainType::Mountain;
+            landTileCount++;
+        } else {
+            terrainData.type = WorldGen::TerrainType::Peak;
+            landTileCount++;
+        }
+        
+        totalTileCount++;
+        
+        // Set extra terrain data
+        terrainData.elevation = elevation;
+        terrainData.humidity = tile.GetMoisture();
+        terrainData.temperature = tile.GetTemperature();
+        terrainData.height = elevation; // Also set the legacy height field
+        
+        // Set a color based on terrain type
+        switch (terrainData.type) {
+            case WorldGen::TerrainType::Ocean:
+                terrainData.color = glm::vec4(0.0f, 0.0f, 0.8f, 1.0f);
+                break;
+            case WorldGen::TerrainType::Shallow:
+                terrainData.color = glm::vec4(0.0f, 0.4f, 0.8f, 1.0f);
+                break;
+            case WorldGen::TerrainType::Beach:
+                terrainData.color = glm::vec4(0.9f, 0.9f, 0.7f, 1.0f);
+                break;
+            case WorldGen::TerrainType::Lowland:
+                terrainData.color = glm::vec4(0.0f, 0.6f, 0.0f, 1.0f);
+                break;
+            case WorldGen::TerrainType::Highland:
+                terrainData.color = glm::vec4(0.0f, 0.4f, 0.0f, 1.0f);
+                break;
+            case WorldGen::TerrainType::Mountain:
+                terrainData.color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+                break;
+            case WorldGen::TerrainType::Peak:
+                terrainData.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+                break;
+            default:
+                terrainData.color = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f); // Magenta for unknown
+        }
+        
+        // Store in the terrain data map
+        generatedTerrainData[{x, y}] = terrainData;
+        
+        // Update progress every 1000 tiles
+        if (m_progressTracker && i % 1000 == 0) {
+            float progress = 0.1f + (static_cast<float>(i) / totalTiles) * 0.8f;
+            std::string message = "Converting tiles to terrain data (" + 
+                                 std::to_string(i) + " of " + 
+                                 std::to_string(totalTiles) + ")";
+            m_progressTracker->UpdateProgress(progress, message);
+        }
+    }
+    
+    // Signal completion
+    if (m_progressTracker) {
+        m_progressTracker->UpdateProgress(0.9f, "Analyzing terrain data...");
+    }
+    
+    // Log tile statistics with more detailed information
+    std::cout << "\n============ WORLD GENERATION STATS ============" << std::endl;
+    std::cout << "Total tiles: " << totalTileCount << std::endl;
+    std::cout << "Water tiles: " << waterTileCount << " (" << (static_cast<float>(waterTileCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "Land tiles: " << landTileCount << " (" << (static_cast<float>(landTileCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "Water level: " << waterLevel << std::endl;
+
+    // Distribution of terrain types
+    int oceanCount = 0, shallowCount = 0, beachCount = 0, lowlandCount = 0;
+    int highlandCount = 0, mountainCount = 0, peakCount = 0;
+
+    for (const auto& [coord, data] : generatedTerrainData) {
+        switch (data.type) {
+            case WorldGen::TerrainType::Ocean: oceanCount++; break;
+            case WorldGen::TerrainType::Shallow: shallowCount++; break;
+            case WorldGen::TerrainType::Beach: beachCount++; break;
+            case WorldGen::TerrainType::Lowland: lowlandCount++; break;
+            case WorldGen::TerrainType::Highland: highlandCount++; break;
+            case WorldGen::TerrainType::Mountain: mountainCount++; break;
+            case WorldGen::TerrainType::Peak: peakCount++; break;
+        }
+    }
+
+    std::cout << "Terrain distribution:" << std::endl;
+    std::cout << "  Ocean: " << oceanCount << " tiles (" << (static_cast<float>(oceanCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "  Shallow: " << shallowCount << " tiles (" << (static_cast<float>(shallowCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "  Beach: " << beachCount << " tiles (" << (static_cast<float>(beachCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "  Lowland: " << lowlandCount << " tiles (" << (static_cast<float>(lowlandCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "  Highland: " << highlandCount << " tiles (" << (static_cast<float>(highlandCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "  Mountain: " << mountainCount << " tiles (" << (static_cast<float>(mountainCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "  Peak: " << peakCount << " tiles (" << (static_cast<float>(peakCount) / totalTileCount * 100.0f) << "%)" << std::endl;
+    std::cout << "Converted " << generatedTerrainData.size() << " tiles to terrain data" << std::endl;
+    std::cout << "================================================\n" << std::endl;
+    
+    // Signal final completion
+    if (m_progressTracker) {
+        m_progressTracker->UpdateProgress(1.0f, "Terrain conversion complete!");
+    }
+}
+
+void WorldGenScreen::worldGenerationThreadFunc() {
+    try {
+        // Generate the world in this background thread
+        m_world = WorldGen::Generators::Generator::CreateWorld(m_planetParams, m_progressTracker);
+        
+        // Check if we should stop
+        if (m_shouldStopGeneration) {
+            m_isGenerating = false;
+            return;
+        }
+        
+        // Generation complete
+        worldGenerated = true;
+        
+        // Set final completion progress
+        std::lock_guard<std::mutex> lock(m_progressMutex);
+        m_latestProgress.progress = 1.0f;
+        m_latestProgress.message = "World generation complete!";
+        m_latestProgress.hasUpdate = true;
+    }
+    catch (const std::exception& e) {
+        // Handle any exceptions
+        std::lock_guard<std::mutex> lock(m_progressMutex);
+        m_latestProgress.progress = 0.0f;
+        m_latestProgress.message = std::string("Error: ") + e.what();
+        m_latestProgress.hasUpdate = true;
+    }
+    
+    m_isGenerating = false;
+}
+
+void WorldGenScreen::processProgressMessages() {
+    // Check if there's an update to process
+    bool hasUpdate = false;
+    float progress = 0.0f;
+    std::string message;
+    
+    {
+        std::lock_guard<std::mutex> lock(m_progressMutex);
+        if (m_latestProgress.hasUpdate) {
+            hasUpdate = true;
+            progress = m_latestProgress.progress;
+            message = m_latestProgress.message;
+            m_latestProgress.hasUpdate = false; // Reset the flag
+        }
+    }
+    
+    // If there's an update, process it
+    if (hasUpdate) {
+        // Update the UI directly
+        m_worldGenUI->setProgress(progress, message);
+        
+        // Special handling for completion message
+        if (progress == 1.0f && worldGenerated) {
+            // Update the world renderer now that generation is complete
+            m_worldRenderer->SetWorld(m_world.get());
+            m_worldGenUI->setState(WorldGen::UIState::Viewing);
+            
+            // Update UI and stars
+            int width, height;
+            glfwGetWindowSize(m_window, &width, &height);
+            m_stars->generate(width, height);
+            m_worldGenUI->onResize(width, height);
+        }
     }
 }

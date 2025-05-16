@@ -6,6 +6,8 @@
 #include "Renderer.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include "ConfigManager.h"
+#include <string>
+#include <typeinfo> // Add for typeid
 
 namespace Rendering {
 
@@ -227,6 +229,39 @@ void Layer::beginBatch() {
 
 void Layer::endBatch() {
     VectorGraphics::getInstance().endBatch();
+}
+
+void Layer::update(float deltaTime) {
+    // Skip if layer is not visible
+    if (!visible) {
+        return;
+    }
+
+    // Update all children
+    for (auto& child : children) {
+        child->update(deltaTime);
+    }
+}
+void Layer::handleInput(float deltaTime) {
+    // Skip if layer is not visible
+    if (!visible) {
+        return;
+    }
+
+    // Create a copy of the children list to iterate over.
+    // This prevents iterator invalidation if a child removes itself
+    // or other children from the original 'children' list during its handleInput() call.
+    auto children_to_process = children; 
+
+    // Propagate input handling to all children from the copy
+    for (const auto& child : children_to_process) {
+        // Note: For typeid(*child).name() to return the dynamic (actual) type of the child,
+        // the Layer class must be polymorphic (e.g., have a virtual destructor).
+        // The output of .name() is compiler-dependent and might be a mangled name.
+        //std::cout << "Layer::handleInput: propagating to child (Type: " << typeid(*child).name() << ", Z: " << child->getZIndex() << ")" << std::endl;
+        
+        child->handleInput(deltaTime); // This call might modify the original 'this->children' list
+    }
 }
 
 } // namespace Rendering

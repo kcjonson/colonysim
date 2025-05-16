@@ -142,7 +142,7 @@ void GameScreen::processInput() {
     }
 }
 
-void GameScreen::handleInput() {
+void GameScreen::handleInput(float deltaTime) {
     // Use the stored window_ pointer
     if (!window_) return;
 

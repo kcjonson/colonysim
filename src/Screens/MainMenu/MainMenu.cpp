@@ -47,13 +47,15 @@ bool MainMenuScreen::initialize() {
     glfwGetWindowSize(window, &width, &height);
     
     auto titleText = std::make_shared<Rendering::Shapes::Text>(
-        "ColonySim",
-        glm::vec2((width - 150.0f) / 2.0f, height * 0.2f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 48.0f
-        }),
-        25.0f  // Z-index
+        Rendering::Shapes::Text::Args{
+            .text = "ColonySim",
+            .position = glm::vec2((width - 150.0f) / 2.0f, height * 0.2f),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 1.0f
+            }),
+            .zIndex = 25.0f
+        }
     );
     titleLayer->addItem(titleText);
     
@@ -134,15 +136,16 @@ void MainMenuScreen::layoutButtons() {
         // Create button text
         float textY = buttons[i].position.y + buttons[i].size.y / 2.0f + 8.0f; // Center text vertically
         buttons[i].label = std::make_shared<Rendering::Shapes::Text>(
-            buttons[i].text,
-            glm::vec2(buttons[i].position.x + buttons[i].size.x / 2.0f, textY),
-            Rendering::Styles::Text({
-                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 24.0f,
-                .horizontalAlign = Rendering::TextAlign::Center,
-                .verticalAlign = Rendering::TextAlign::Middle
-            }),
-            16.0f  // Z-index
+            Rendering::Shapes::Text::Args{
+                .text = buttons[i].text,
+                .position = glm::vec2(buttons[i].position.x + buttons[i].size.x / 2.0f, textY),
+                .style = Rendering::Shapes::Text::Styles({
+                    .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                    .fontSize = 1.0f,                    .horizontalAlign = Rendering::TextAlign::Center,
+                    .verticalAlign = Rendering::TextAlign::Middle
+                }),
+                .zIndex = 16.0f
+            }
         );
         buttonLayer->addItem(buttons[i].label);
     }
@@ -172,7 +175,7 @@ void MainMenuScreen::render() {
     titleLayer->render(false);
 }
 
-void MainMenuScreen::handleInput() {
+void MainMenuScreen::handleInput(float deltaTime) {
     GLFWwindow* window = screenManager->getWindow();
     
     // Get cursor position
@@ -221,15 +224,17 @@ void MainMenuScreen::onResize(int width, int height) {
     GLFWwindow* window = screenManager->getWindow(); // Still need window for size calculation
     int currentWidth, currentHeight;
     glfwGetWindowSize(window, &currentWidth, &currentHeight); // Use current size
-
+    
     auto titleText = std::make_shared<Rendering::Shapes::Text>(
-        "ColonySim",
-        glm::vec2((currentWidth - 150.0f) / 2.0f, currentHeight * 0.2f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 48.0f
-        }),
-        25.0f  // Z-index
+        Rendering::Shapes::Text::Args{
+            .text = "ColonySim",
+            .position = glm::vec2((currentWidth - 150.0f) / 2.0f, currentHeight * 0.2f),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 1.0f
+            }),
+            .zIndex = 25.0f
+        }
     );
     titleLayer->addItem(titleText);
     

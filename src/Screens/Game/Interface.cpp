@@ -66,15 +66,15 @@ void Interface::initializeUIComponents() {
         glm::vec2 textPos(
             INFO_PANEL_X + UI_PADDING,
             INFO_PANEL_Y + UI_PADDING + (lineSpacing / 2) + (i * lineSpacing)
-        );
-
-        auto text = std::make_shared<Rendering::Shapes::Text>(
-            GAME_STATE_PROPERTIES[i] + ": ...",
-            textPos,
-            Rendering::Styles::Text({
-                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)  // White text
-            }),
-            1000.5f
+        );        auto text = std::make_shared<Rendering::Shapes::Text>(
+            Rendering::Shapes::Text::Args{
+                .text = GAME_STATE_PROPERTIES[i] + ": ...",
+                .position = textPos,
+                .style = Rendering::Shapes::Text::Styles({
+                    .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)  // White text
+                }),
+                .zIndex = 1000.5f
+            }
         );
         
         propertyTexts.push_back(text);

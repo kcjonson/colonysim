@@ -42,6 +42,9 @@ public:
         shader.use();
         shader.setUniform("projection", projection);
     }
+    
+    // Calculate the dimensions of a text string with the given scale
+    glm::vec2 measureText(const std::string& text, float scale = 1.0f) const;
 
 private:
     /**
@@ -67,4 +70,5 @@ private:
     unsigned int VBO;                      // Vertex Buffer Object
     FT_Library library;                    // FreeType library instance
     FT_Face face;                          // FreeType font face
-}; 
+    float scaledAscender;                  // Stores the ascender for the base font size (e.g., 16px)
+};

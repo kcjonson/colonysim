@@ -249,7 +249,7 @@ void ScreenManager::run() {
         // Handle input for current screen
         if (currentScreen) {
             try {
-                currentScreen->handleInput();
+                currentScreen->handleInput(deltaTime);
             } catch (const std::exception& e) {
                 std::cerr << "ERROR: Exception in handleInput: " << e.what() << std::endl;
             } catch (...) {

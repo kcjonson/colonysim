@@ -38,11 +38,12 @@ public:
     // Render vector shapes
     void renderVector(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices,
                       const glm::mat4& model = glm::mat4(1.0f), float thickness = 1.0f);
-    
-    // Render text
+      // Render text
     void renderText(const std::string& text, const glm::vec2& position, float scale, const glm::vec3& color);
     
-private:
+    // Measure text dimensions
+    glm::vec2 measureText(const std::string& text, float scale = 1.0f) const;
+    private:
     // Private constructor for singleton
     Renderer();
     ~Renderer() = default;
