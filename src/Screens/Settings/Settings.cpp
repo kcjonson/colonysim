@@ -80,18 +80,19 @@ void SettingsScreen::layoutUI() {
     backgroundLayer->clearItems();
     controlsLayer->clearItems();
     buttonLayer->clearItems();
-    
-    // Create title
+      // Create title
     auto titleText = std::make_shared<Rendering::Shapes::Text>(
-        "Settings",
-        glm::vec2(width / 2.0f, 80.0f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 48.0f,
-            .horizontalAlign = Rendering::TextAlign::Center,
-            .verticalAlign = Rendering::TextAlign::Middle
-        }),
-        25.0f  // Z-index
+        Rendering::Shapes::Text::Args{
+            .text = "Settings",
+            .position = glm::vec2(width / 2.0f, 80.0f),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 48.0f,
+                .horizontalAlign = Rendering::TextAlign::Center,
+                .verticalAlign = Rendering::TextAlign::Middle
+            }),
+            .zIndex = 25.0f  // Z-index
+        }
     );
     controlsLayer->addItem(titleText);
     
@@ -116,73 +117,79 @@ void SettingsScreen::layoutUI() {
     float settingsX = panelX + 50.0f;
     float settingsY = panelY + 50.0f;
     float lineHeight = 40.0f;
-    
-    auto resolutionText = std::make_shared<Rendering::Shapes::Text>(
-        "Resolution: 1280x720",
-        glm::vec2(settingsX, settingsY),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 24.0f
-        }),
-        15.0f  // Z-index
+      auto resolutionText = std::make_shared<Rendering::Shapes::Text>(
+        Rendering::Shapes::Text::Args{
+            .text = "Resolution: 1280x720",
+            .position = glm::vec2(settingsX, settingsY),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 24.0f
+            }),
+            .zIndex = 15.0f  // Z-index
+        }
     );
     controlsLayer->addItem(resolutionText);
-    
-    auto fullscreenText = std::make_shared<Rendering::Shapes::Text>(
-        "Fullscreen: Off",
-        glm::vec2(settingsX, settingsY + lineHeight),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 24.0f
-        }),
-        15.0f  // Z-index
+      auto fullscreenText = std::make_shared<Rendering::Shapes::Text>(
+        Rendering::Shapes::Text::Args{
+            .text = "Fullscreen: Off",
+            .position = glm::vec2(settingsX, settingsY + lineHeight),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 24.0f
+            }),
+            .zIndex = 15.0f  // Z-index
+        }
     );
     controlsLayer->addItem(fullscreenText);
-    
-    auto vsyncText = std::make_shared<Rendering::Shapes::Text>(
-        "VSync: On",
-        glm::vec2(settingsX, settingsY + lineHeight * 2),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 24.0f
-        }),
-        15.0f  // Z-index
+      auto vsyncText = std::make_shared<Rendering::Shapes::Text>(
+        Rendering::Shapes::Text::Args{
+            .text = "VSync: On",
+            .position = glm::vec2(settingsX, settingsY + lineHeight * 2),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 24.0f
+            }),
+            .zIndex = 15.0f  // Z-index
+        }
     );
     controlsLayer->addItem(vsyncText);
-    
-    auto soundText = std::make_shared<Rendering::Shapes::Text>(
-        "Sound Volume: 80%",
-        glm::vec2(settingsX, settingsY + lineHeight * 3),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 24.0f
-        }),
-        15.0f  // Z-index
+      auto soundText = std::make_shared<Rendering::Shapes::Text>(
+        Rendering::Shapes::Text::Args{
+            .text = "Sound Volume: 80%",
+            .position = glm::vec2(settingsX, settingsY + lineHeight * 3),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 24.0f
+            }),
+            .zIndex = 15.0f  // Z-index
+        }
     );
     controlsLayer->addItem(soundText);
-    
-    auto musicText = std::make_shared<Rendering::Shapes::Text>(
-        "Music Volume: 50%",
-        glm::vec2(settingsX, settingsY + lineHeight * 4),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 24.0f
-        }),
-        15.0f  // Z-index
+      auto musicText = std::make_shared<Rendering::Shapes::Text>(
+        Rendering::Shapes::Text::Args{
+            .text = "Music Volume: 50%",
+            .position = glm::vec2(settingsX, settingsY + lineHeight * 4),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 24.0f
+            }),
+            .zIndex = 15.0f  // Z-index
+        }
     );
     controlsLayer->addItem(musicText);
-    
-    // Add "settings still in development" message
+      // Add "settings still in development" message
     auto devMsg = std::make_shared<Rendering::Shapes::Text>(
-        "Settings functionality is still in development",
-        glm::vec2(width / 2.0f, height - 40.0f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(0.7f, 0.7f, 0.7f, 1.0f),
-            .fontSize = 18.0f,
-            .horizontalAlign = Rendering::TextAlign::Center,
-            .verticalAlign = Rendering::TextAlign::Middle
-        }),
-        15.0f  // Z-index
+        Rendering::Shapes::Text::Args{
+            .text = "Settings functionality is still in development",
+            .position = glm::vec2(width / 2.0f, height - 40.0f),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(0.7f, 0.7f, 0.7f, 1.0f),
+                .fontSize = 18.0f,
+                .horizontalAlign = Rendering::TextAlign::Center,
+                .verticalAlign = Rendering::TextAlign::Middle
+            }),
+            .zIndex = 15.0f  // Z-index
+        }
     );
     controlsLayer->addItem(devMsg);
     
@@ -212,19 +219,19 @@ void SettingsScreen::layoutUI() {
             25.0f  // Z-index
         );
         buttonLayer->addItem(buttons[i].background);
-        
-        // Create button text
+          // Create button text
         float textY = buttons[i].position.y + buttons[i].size.y / 2.0f + 8.0f; // Center text vertically
         buttons[i].label = std::make_shared<Rendering::Shapes::Text>(
-            buttons[i].text,
-            glm::vec2(buttons[i].position.x + buttons[i].size.x / 2.0f, textY),
-            Rendering::Styles::Text({
-                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 24.0f,
-                .horizontalAlign = Rendering::TextAlign::Center,
-                .verticalAlign = Rendering::TextAlign::Middle
-            }),
-            26.0f  // Z-index
+            Rendering::Shapes::Text::Args{
+                .text = buttons[i].text,
+                .position = glm::vec2(buttons[i].position.x + buttons[i].size.x / 2.0f, textY),
+                .style = Rendering::Shapes::Text::Styles({
+                    .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                    .fontSize = 24.0f,
+                    .horizontalAlign = Rendering::TextAlign::Center,
+                    .verticalAlign = Rendering::TextAlign::Middle                }),
+                .zIndex = 26.0f  // Z-index
+            }
         );
         buttonLayer->addItem(buttons[i].label);
     }

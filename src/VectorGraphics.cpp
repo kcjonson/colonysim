@@ -259,3 +259,13 @@ void VectorGraphics::drawText(const std::string& text, const glm::vec2& position
     cmd.color = color;
     textCommands.push_back(cmd);
 }
+
+glm::vec2 VectorGraphics::measureText(const std::string& text, float scale) const {
+    // Delegate to the renderer, which will call FontRenderer's measureText
+    if (renderer) {
+        return renderer->measureText(text, scale);
+    }
+    
+    // Fallback for when renderer is not available
+    return glm::vec2(0.0f);
+}

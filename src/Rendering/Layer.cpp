@@ -53,15 +53,12 @@ void Layer::addItem(std::shared_ptr<Layer> item) {
         }
     }
     // If childrenNeedSorting was already true, it stays true.
-
-    std::cout << "Adding item: " << std::endl;
     
     children.push_back(item);
     // We no longer unconditionally set childrenNeedSorting = true here.
 }
 
 void Layer::removeItem(std::shared_ptr<Layer> item) {
-    std::cout << "Removing item: " << std::endl;
     auto it = std::find(children.begin(), children.end(), item);
     if (it == children.end()) {
         std::cerr << "Warning: Attempted to remove an item that is not present in the layer." << std::endl;
@@ -85,7 +82,6 @@ void Layer::removeItem(std::shared_ptr<Layer> item) {
 }
 
 void Layer::clearItems() {
-    std::cout << "Clearing items: " << std::endl;
     // Clear parent pointers before clearing children
     for (auto& child : children) {
         child->setParent(nullptr);

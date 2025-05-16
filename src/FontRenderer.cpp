@@ -170,4 +170,46 @@ void FontRenderer::renderText(const std::string& text, const glm::vec2& position
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_BLEND);
-} 
+}
+
+// Add this function after renderText
+
+glm::vec2 FontRenderer::measureText(const std::string& text, float scale) const {
+    float width = 0.0f;
+    float height = 0.0f;
+    
+    // Iterate through all characters to calculate total width
+    // and find maximum height
+    for (auto c = text.begin(); c != text.end(); c++) {
+        // Make sure the character exists in our map
+        auto it = characters.find(*c);
+        if (it == characters.end()) {
+            continue; // Skip characters not in the map
+        }
+        
+        const Character& ch = it->second;
+        
+        // For the last character, we add its width rather than its advance
+        if (c + 1 == text.end()) {
+            width += (ch.bearing.x + ch.size.x) * scale;
+        } else {
+            // For other characters, use advance value
+            width += (ch.advance >> 6) * scale; // Advance is in 1/64 pixels
+        }
+        
+        // Calculate height of this character from baseline
+        float charHeight = ch.size.y * scale;
+        float charTop = ch.bearing.y * scale;
+        float charBottom = charTop - charHeight;
+        
+        // Update maximum height above and below baseline
+        height = std::max(height, charTop);
+        // Account for characters that descend below the baseline (like 'g', 'j', 'p', etc.)
+        float descent = charHeight - charTop;
+        if (descent > 0) {
+            height += descent;
+        }
+    }
+    
+    return glm::vec2(width, height);
+}

@@ -57,4 +57,9 @@ void Renderer::renderText(const std::string& text, const glm::vec2& position, fl
     
     // Now render the text
     fontRenderer.renderText(text, position, scale, color);
-} 
+}
+
+glm::vec2 Renderer::measureText(const std::string& text, float scale) const {
+    // Delegate to the font renderer
+    return fontRenderer.measureText(text, scale);
+}

@@ -36,18 +36,19 @@ bool SplashScreen::initialize() {
     
     // REMOVED: Set window reference for layer
     // splashLayer->setWindow(window);
-    
-    // Create title text
+      // Create title text
     titleText = std::make_shared<Rendering::Shapes::Text>(
-        title,
-        glm::vec2(width / 2.0f, height / 2.0f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 48.0f,
-            .horizontalAlign = Rendering::TextAlign::Center,
-            .verticalAlign = Rendering::TextAlign::Middle
-        }),
-        110.0f  // Z-index
+        Rendering::Shapes::Text::Args{
+            .text = title,
+            .position = glm::vec2(width / 2.0f, height / 2.0f),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 48.0f,
+                .horizontalAlign = Rendering::TextAlign::Center,
+                .verticalAlign = Rendering::TextAlign::Middle
+            }),
+            .zIndex = 110.0f  // Z-index
+        }
     );
     splashLayer->addItem(titleText);
 

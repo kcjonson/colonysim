@@ -57,15 +57,17 @@ Button::Button(const ButtonArgs& args)
     );
     
     labelText = std::make_shared<Shapes::Text>(
-        this->label,
-        this->position,       // Will be updated to center in updateTextPosition()
-        Styles::Text({
-            .color = glm::vec4(1.0f),
-            .fontSize = 16.0f,
-            .horizontalAlign = TextAlign::Horizontal::Center,
-            .verticalAlign = TextAlign::Vertical::Middle
-        }),
-        labelTextZ
+        Shapes::Text::Args{
+            .text = this->label,
+            .position = this->position,       // Will be updated to center in updateTextPosition()
+            .style = Shapes::Text::Styles({
+                .color = glm::vec4(1.0f),
+                .fontSize = 16.0f,
+                .horizontalAlign = TextAlign::Horizontal::Center,
+                .verticalAlign = TextAlign::Vertical::Middle
+            }),
+            .zIndex = labelTextZ
+        }
     );
     
     updateTextPosition();

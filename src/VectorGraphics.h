@@ -132,8 +132,15 @@ public:
      * @param text String to render
      * @param position Top-left position of the text
      * @param color RGBA color (0-1 range)
+     */    void drawText(const std::string& text, const glm::vec2& position, const glm::vec4& color);
+    
+    /**
+     * Measure text dimensions
+     * @param text String to measure
+     * @param scale Scale factor for the text (default: 0.3f)
+     * @return Width and height of the text in screen units
      */
-    void drawText(const std::string& text, const glm::vec2& position, const glm::vec4& color);
+    glm::vec2 measureText(const std::string& text, float scale = 0.3f) const;
 
     // Get rendering statistics
     size_t getTotalVertices() const { return vertices.size(); } // Current buffer size

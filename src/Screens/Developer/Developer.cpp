@@ -79,15 +79,17 @@ void DeveloperScreen::layoutUI() {
     
     // Create title
     auto titleText = std::make_shared<Rendering::Shapes::Text>(
-        "Developer Mode",
-        glm::vec2(width / 2.0f, 80.0f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 48.0f,
-            .horizontalAlign = Rendering::TextAlign::Center,
-            .verticalAlign = Rendering::TextAlign::Middle
-        }),
-        15.0f  // Z-index
+        Rendering::Shapes::Text::Args{
+            .text = "Developer Mode",
+            .position = glm::vec2(width / 2.0f, 80.0f),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 48.0f,
+                .horizontalAlign = Rendering::TextAlign::Center,
+                .verticalAlign = Rendering::TextAlign::Middle
+            }),
+            .zIndex = 15.0f
+        }
     );
     titleLayer->addItem(titleText);
     
@@ -116,15 +118,17 @@ void DeveloperScreen::layoutUI() {
     // Create button text
     float textY = buttons[0].position.y + buttons[0].size.y / 2.0f + 8.0f; // Center text vertically
     buttons[0].label = std::make_shared<Rendering::Shapes::Text>(
-        buttons[0].text,
-        glm::vec2(buttons[0].position.x + buttons[0].size.x / 2.0f, textY),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 24.0f,
-            .horizontalAlign = Rendering::TextAlign::Center,
-            .verticalAlign = Rendering::TextAlign::Middle
-        }),
-        26.0f  // Z-index
+        Rendering::Shapes::Text::Args{
+            .text = buttons[0].text,
+            .position = glm::vec2(buttons[0].position.x + buttons[0].size.x / 2.0f, textY),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 24.0f,
+                .horizontalAlign = Rendering::TextAlign::Center,
+                .verticalAlign = Rendering::TextAlign::Middle
+            }),
+            .zIndex = 26.0f
+        }
     );
     buttonLayer->addItem(buttons[0].label);
 }

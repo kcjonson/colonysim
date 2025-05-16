@@ -22,7 +22,8 @@ Text::Text(const TextStyleParams& params)
     : Base(params.color, params.opacity)
     , fontSize(params.fontSize)
     , horizontalAlign(params.horizontalAlign)
-    , verticalAlign(params.verticalAlign) {
+    , verticalAlign(params.verticalAlign) 
+    , size(params.size) {
 }
 
 Polygon::Polygon(const PolygonStyleParams& params)

@@ -39,96 +39,107 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
         0.0f
     );
     sidebarLayer->addItem(sidebarBackground);
-
-
     radiusLabel = std::make_shared<Rendering::Shapes::Text>(
-        "Size:",
-        glm::vec2(labelX, startY),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f
-        }),
-        150.0f
+        Rendering::Shapes::Text::Args{
+            .text = "Size:",
+            .position = glm::vec2(labelX, startY),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 18.0f
+            }),
+            .zIndex = 150.0f
+        }
     );
     sidebarLayer->addItem(radiusLabel);
-    
-    radiusValue = std::make_shared<Rendering::Shapes::Text>(
-        "0", // Will be updated in layoutUI
-        glm::vec2(valueX, startY),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f
-        }),
-        150.0f
+      radiusValue = std::make_shared<Rendering::Shapes::Text>(
+        Rendering::Shapes::Text::Args{
+            .text = "0", // Will be updated in layoutUI
+            .position = glm::vec2(valueX, startY),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 18.0f
+            }),
+            .zIndex = 150.0f
+        }
     );
     sidebarLayer->addItem(radiusValue);
     
-    // Height parameter
+        // Height parameter
     massLabel = std::make_shared<Rendering::Shapes::Text>(
-        "Mass:",
-        glm::vec2(labelX, startY + lineHeight),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f
-        }),
-        150.0f
+        Rendering::Shapes::Text::Args{
+            .text = "Mass:",
+            .position = glm::vec2(labelX, startY + lineHeight),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 18.0f
+            }),
+            .zIndex = 150.0f
+        }
     );
     sidebarLayer->addItem(massLabel);
-    
-    massValue = std::make_shared<Rendering::Shapes::Text>(
-        "0", // Will be updated in layoutUI
-        glm::vec2(valueX, startY + lineHeight),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f
-        }),
-        150.0f
+      massValue = std::make_shared<Rendering::Shapes::Text>(
+        Rendering::Shapes::Text::Args{
+            .text = "0", // Will be updated in layoutUI
+            .position = glm::vec2(valueX, startY + lineHeight),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 18.0f
+            }),
+            .zIndex = 150.0f
+        }
     );
     sidebarLayer->addItem(massValue);
     
-    // Water level parameter
+        // Water level parameter
     waterLabel = std::make_shared<Rendering::Shapes::Text>(
-        "Water Level:",
-        glm::vec2(labelX, startY + 2 * lineHeight),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f
-        }),
-        150.0f
+        Rendering::Shapes::Text::Args{
+            .text = "Water Level:",
+            .position = glm::vec2(labelX, startY + 2 * lineHeight),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 18.0f
+            }),
+            .zIndex = 150.0f
+        }
     );
     sidebarLayer->addItem(waterLabel);
-    
-    waterValue = std::make_shared<Rendering::Shapes::Text>(
-        "0", // Will be updated in layoutUI
-        glm::vec2(valueX, startY + 2 * lineHeight),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f
-        }),
-        150.0f
+      waterValue = std::make_shared<Rendering::Shapes::Text>(
+        Rendering::Shapes::Text::Args{
+            .text = "0", // Will be updated in layoutUI
+            .position = glm::vec2(valueX, startY + 2 * lineHeight),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 18.0f
+            }),
+            .zIndex = 150.0f
+        }
     );
     sidebarLayer->addItem(waterValue);
     
-    // Seed parameter
+        // Seed parameter
     seedLabel = std::make_shared<Rendering::Shapes::Text>(
-        "Seed:",
-        glm::vec2(labelX, startY + 3 * lineHeight),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f
-        }),
-        150.0f
+        Rendering::Shapes::Text::Args{
+            .text = "Seed:",
+            .position = glm::vec2(labelX, startY + 3 * lineHeight),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 18.0f
+            }),
+            .zIndex = 150.0f
+        }
     );
     sidebarLayer->addItem(seedLabel);
     
     seedValue = std::make_shared<Rendering::Shapes::Text>(
-        "0", // Will be updated in layoutUI
-        glm::vec2(valueX, startY + 3 * lineHeight),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f
-        }),
-        150.0f
+        Rendering::Shapes::Text::Args{
+            .text = "0", // Will be updated in layoutUI
+            .position = glm::vec2(valueX, startY + 3 * lineHeight),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 18.0f
+            }),
+            .zIndex = 150.0f
+        }
     );
     sidebarLayer->addItem(seedValue);
     
@@ -182,30 +193,32 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
         151.0f
     );
     infoLayer->addItem(progressFill);
-    
-    progressText = std::make_shared<Rendering::Shapes::Text>(
-        "0%",
-        glm::vec2(40.0f + progressBarWidth / 2.0f, progressBarY + progressBarHeight / 2.0f + 8.0f),
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 18.0f,
-            .horizontalAlign = Rendering::TextAlign::Center,
-            .verticalAlign = Rendering::TextAlign::Middle
-        }),
-        152.0f
+      progressText = std::make_shared<Rendering::Shapes::Text>(
+        Rendering::Shapes::Text::Args{
+            .text = "0%",
+            .position = glm::vec2(40.0f + progressBarWidth / 2.0f, progressBarY + progressBarHeight / 2.0f + 8.0f),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 18.0f,
+                .horizontalAlign = Rendering::TextAlign::Center,
+                .verticalAlign = Rendering::TextAlign::Middle
+            }),
+            .zIndex = 152.0f
+        }
     );
     infoLayer->addItem(progressText);
-    
-    statusText = std::make_shared<Rendering::Shapes::Text>(
-        statusMessage,
-        glm::vec2(0.0f, 0.0f), // Will be positioned in layoutUI
-        Rendering::Styles::Text({
-            .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            .fontSize = 20.0f,
-            .horizontalAlign = Rendering::TextAlign::Center,
-            .verticalAlign = Rendering::TextAlign::Middle
-        }),
-        250.0f
+      statusText = std::make_shared<Rendering::Shapes::Text>(
+        Rendering::Shapes::Text::Args{
+            .text = statusMessage,
+            .position = glm::vec2(0.0f, 0.0f), // Will be positioned in layoutUI
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 20.0f,
+                .horizontalAlign = Rendering::TextAlign::Center,
+                .verticalAlign = Rendering::TextAlign::Middle
+            }),
+            .zIndex = 250.0f
+        }
     );
     infoLayer->addItem(statusText);
 }
