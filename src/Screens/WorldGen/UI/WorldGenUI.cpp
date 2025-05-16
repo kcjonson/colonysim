@@ -77,6 +77,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
         }
     );
     sidebarLayer->addItem(massLabel);
+    
       massValue = std::make_shared<Rendering::Shapes::Text>(
         Rendering::Shapes::Text::Args{
             .text = "0", // Will be updated in layoutUI
@@ -152,11 +153,10 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
                 .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
                 .borderColor = glm::vec4(0.0f),
                 .borderWidth = 0.0f,
-                .borderPosition = BorderPosition::Outside, // Ensure BorderPosition is defined and accessible
+                .borderPosition = BorderPosition::Outside,
                 .cornerRadius = 5.0f
             }),
-            .onClick = [this]() { // The static_cast is often not needed for lambdas assigned to std::function
-                std::cout << "Generate World button clicked" << std::endl;
+            .onClick = [this]() {
                 auto it = eventHandlers.find(UIEvent::GenerateWorld);
                 if (it != eventHandlers.end()) {
                     it->second();
@@ -165,6 +165,53 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
         }
     );
     sidebarLayer->addItem(generateWorldButton);
+
+    auto landButton = std::make_shared<Rendering::Components::Button>(
+        Rendering::Components::ButtonArgs{
+            .label = "Land on World",
+            .position = glm::vec2(40.0f, 420.0f),
+            .size = glm::vec2(220.0f, 50.0f),
+            .style = Rendering::Styles::Button({
+                .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
+                .borderColor = glm::vec4(0.0f),
+                .borderWidth = 0.0f,
+                .borderPosition = BorderPosition::Outside,
+                .cornerRadius = 5.0f
+            }),
+            .onClick = [this]() {
+                auto it = eventHandlers.find(UIEvent::GoToLand);
+                if (it != eventHandlers.end()) {
+                    it->second();
+                }
+            }
+        }
+    );
+    sidebarLayer->addItem(landButton);
+
+
+
+    auto cancelButton = std::make_shared<Rendering::Components::Button>(
+        Rendering::Components::ButtonArgs{
+            .label = "Back",
+            .position = glm::vec2(40.0f, 490.0f),
+            .size = glm::vec2(220.0f, 50.0f),
+            .style = Rendering::Styles::Button({
+                .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
+                .borderColor = glm::vec4(0.0f),
+                .borderWidth = 0.0f,
+                .borderPosition = BorderPosition::Outside,
+                .cornerRadius = 5.0f
+            }),
+            .onClick = [this]() {
+                auto it = eventHandlers.find(UIEvent::Back);
+                if (it != eventHandlers.end()) {
+                    it->second();
+                }
+            }
+        }
+    );
+    sidebarLayer->addItem(cancelButton);
+
 
 
     // Progress bar elements
@@ -193,7 +240,8 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
         151.0f
     );
     infoLayer->addItem(progressFill);
-      progressText = std::make_shared<Rendering::Shapes::Text>(
+    
+    progressText = std::make_shared<Rendering::Shapes::Text>(
         Rendering::Shapes::Text::Args{
             .text = "0%",
             .position = glm::vec2(40.0f + progressBarWidth / 2.0f, progressBarY + progressBarHeight / 2.0f + 8.0f),
@@ -206,6 +254,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
             .zIndex = 152.0f
         }
     );
+
     infoLayer->addItem(progressText);
       statusText = std::make_shared<Rendering::Shapes::Text>(
         Rendering::Shapes::Text::Args{
@@ -228,70 +277,13 @@ WorldGenUI::~WorldGenUI() {
 }
 
 bool WorldGenUI::initialize() {
-    
     std::cout << "Initializing WorldGenUI..." << std::endl;
-
-    
     return true;
 }
 
 void WorldGenUI::addEventListener(UIEvent event, UIEventCallback callback) {
     eventHandlers[event] = callback;
 }
-
-// void WorldGenUI::initializeButtons() {
-//     // Clear existing buttons
-//     buttons.clear();
-    
-//     // Generate World button
-//     createButton("Generate World", 
-//                 glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),   // Green
-//                 glm::vec4(0.3f, 0.7f, 0.4f, 1.0f),   // Lighter green
-//                 [this]() {
-//                     // Trigger the generate world event if a handler is registered
-//                     auto it = eventHandlers.find(UIEvent::GenerateWorld);
-//                     if (it != eventHandlers.end()) {
-//                         it->second();
-//                     }
-//                 });
-    
-//     // Land button (go to gameplay)
-//     createButton("Land", 
-//                 glm::vec4(0.2f, 0.5f, 0.8f, 1.0f),   // Blue
-//                 glm::vec4(0.3f, 0.6f, 0.9f, 1.0f),   // Lighter blue
-//                 [this]() {
-//                     // Trigger the go to land event if a handler is registered
-//                     auto it = eventHandlers.find(UIEvent::GoToLand);
-//                     if (it != eventHandlers.end()) {
-//                         it->second();
-//                     }
-//                 });
-    
-//     // Back button
-//     createButton("Back", 
-//                 glm::vec4(0.8f, 0.2f, 0.2f, 1.0f),   // Red
-//                 glm::vec4(0.9f, 0.3f, 0.3f, 1.0f),   // Lighter red
-//                 [this]() {
-//                     // Trigger the back event if a handler is registered
-//                     auto it = eventHandlers.find(UIEvent::Back);
-//                     if (it != eventHandlers.end()) {
-//                         it->second();
-//                     }
-//                 });
-// }
-
-// void WorldGenUI::createButton(const std::string& text, const glm::vec4& color, 
-//                              const glm::vec4& hoverColor, const std::function<void()>& callback) {
-//     MenuButton button;
-//     button.text = text;
-//     button.color = color;
-//     button.hoverColor = hoverColor;
-//     button.isHovered = false;
-//     button.callback = callback;
-    
-//     // The actual position and size will be set in layoutUI()
-//     buttons.push_back(button);
-// }
 
 void WorldGenUI::setState(UIState newState) {
     if (state != newState) {
@@ -324,39 +316,16 @@ void WorldGenUI::setState(UIState newState) {
 }
 
 void WorldGenUI::setPlanetParameters(const PlanetParameters& params) {
-
-    // Update UI elements with new parameters
-
     radiusValue->setText(std::to_string(params.radius));
     massValue->setText(std::to_string(params.mass));
     waterValue->setText(std::to_string(params.waterAmount));
     seedValue->setText(std::to_string(params.seed));
- 
 }
-
-// void WorldGenUI::handleButtonClicks(float mouseX, float mouseY, bool isPressed, bool wasPressed) {
-//     // Update hover state for all buttons
-//     for (auto& button : buttons) {
-//         button.isHovered = isPointInRect(mouseX, mouseY, 
-//             button.position.x, button.position.y, button.size.x, button.size.y);
-//     }
-    
-//     // Handle click event only when button is first pressed
-//     if (isPressed && !wasPressed) {
-//         for (const auto& button : buttons) {
-//             if (button.isHovered && button.callback) {
-//                 button.callback();
-//                 break;
-//             }
-//         }
-//     }
-// }
 
 void WorldGenUI::setProgress(float progress, const std::string& message) {
     currentProgress = progress;
     statusMessage = message;
     
-
     // If we're updating progress, ensure we're in the Generating state
     if (state != UIState::Generating) {
         setState(UIState::Generating);
@@ -377,56 +346,8 @@ void WorldGenUI::setProgress(float progress, const std::string& message) {
 }
 
 void WorldGenUI::onResize(int windowWidth, int windowHeight) {
-
     windowSize = std::make_tuple(windowWidth, windowHeight);
-    // Create sidebar background (this is created on demand rather than stored as a member)
-
-
-      // Button dimensions
-    float buttonWidth = 220.0f;
-    float buttonHeight = 50.0f;
-    float buttonSpacing = 20.0f;
-    float sidebarMargin = 40.0f;
-    
-
-    
-    // // Place buttons in sidebar
-    // for (size_t i = 0; i < buttons.size(); i++) {
-    //     buttons[i].position.x = sidebarMargin;
-    //     buttons[i].position.y = windowHeight - 150.0f - i * (buttonHeight + buttonSpacing);
-    //     buttons[i].size.x = buttonWidth;
-    //     buttons[i].size.y = buttonHeight;
-        
-    //     // Create button background
-    //     buttons[i].background = std::make_shared<Rendering::Shapes::Rectangle>(
-    //         buttons[i].position,
-    //         buttons[i].size,
-    //         Rendering::Styles::Rectangle({
-    //             .color = buttons[i].isHovered ? buttons[i].hoverColor : buttons[i].color,
-    //             .cornerRadius = 5.0f
-    //         }),
-    //         200.0f  // Z-index matching buttonLayer
-    //     );
-    //     buttonLayer->addItem(buttons[i].background);
-        
-    //     // Create button text
-    //     float textY = buttons[i].position.y + buttons[i].size.y / 2.0f + 8.0f; // Center text vertically
-    //     buttons[i].label = std::make_shared<Rendering::Shapes::Text>(
-    //         buttons[i].text,
-    //         glm::vec2(buttons[i].position.x + buttons[i].size.x / 2.0f, textY),
-    //         Rendering::Styles::Text({
-    //             .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-    //             .fontSize = 1.0f,
-    //             .horizontalAlign = Rendering::TextAlign::Center,
-    //             .verticalAlign = Rendering::TextAlign::Middle
-    //         }),
-    //         200.0f  // Z-index matching buttonLayer
-    //     );
-    //     buttonLayer->addItem(buttons[i].label);
-    // }
-    
     statusText->setPosition(glm::vec2(windowWidth / 2.0f, windowHeight - 40.0f));
-
 }
 
 void WorldGenUI::render() {
@@ -441,7 +362,6 @@ void WorldGenUI::update(float /*deltaTime*/) {
     float progressBarWidth = sidebarWidth - 80.0f;
     float progressBarHeight = 30.0f;
     
-
     progressFill->setSize(glm::vec2(progressBarWidth * currentProgress, progressBarHeight));
 
     int percentage = static_cast<int>(currentProgress * 100.0f);
@@ -456,9 +376,5 @@ void WorldGenUI::handleInput(float deltaTime) {
     sidebarLayer->handleInput(deltaTime);
     infoLayer->handleInput(deltaTime);
 }
-
-// bool WorldGenUI::isPointInRect(float px, float py, float rx, float ry, float rw, float rh) {
-//     return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
-// }
 
 }
