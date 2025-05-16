@@ -229,4 +229,28 @@ void Layer::endBatch() {
     VectorGraphics::getInstance().endBatch();
 }
 
+void Layer::update(float deltaTime) {
+    // Skip if layer is not visible
+    if (!visible) {
+        return;
+    }
+
+    // Update all children
+    for (auto& child : children) {
+        child->update(deltaTime);
+    }
+}
+
+void Layer::handleInput() {
+    // Skip if layer is not visible
+    if (!visible) {
+        return;
+    }
+
+    // Propagate input handling to all children
+    for (auto& child : children) {
+        child->handleInput();
+    }
+}
+
 } // namespace Rendering

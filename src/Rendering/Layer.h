@@ -53,10 +53,6 @@ public:
 
     // Access to children
     const std::vector<std::shared_ptr<Layer>>& getChildren() const { return children; }
-
-    // REMOVED setCamera and setWindow methods
-    // void setCamera(Camera* cam); // REMOVED
-    // void setWindow(GLFWwindow* win); // REMOVED
     
     // Get camera and window
     Camera* getCamera() const { return camera; }
@@ -73,6 +69,10 @@ public:
     // Begin/end batch needs to be propagated to ensure proper batching
     virtual void beginBatch();
     virtual void endBatch();
+    
+    // Update and input handling - propagate to children
+    virtual void update(float deltaTime);
+    virtual void handleInput();
     
     // For testing purposes - public access to sortChildren
     void testSortChildren() { sortChildren(); }

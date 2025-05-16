@@ -57,25 +57,16 @@ public:
     // Accessors
     // Used to center the world in the preview area
     float getSidebarWidth() const { return sidebarWidth; }
-    
-    // Event handling
-    bool isPointInRect(float px, float py, float rx, float ry, float rw, float rh);
-    void handleButtonClicks(float mouseX, float mouseY, bool isPressed, bool wasPressed);
 
     // Render and update methods for main game loop
     void render();
     void update(float deltaTime);
+    void handleInput();
     
     // Progress tracking (setter)
     void setProgress(float progress, const std::string& statusMessage);
 
 private:
-    // Create button internal - now private as WorldGenScreen shouldn't call this directly
-    void createButton(const std::string& text, const glm::vec4& color, 
-                      const glm::vec4& hoverColor, const std::function<void()>& callback);
-
-    void initializeButtons(); 
-    std::vector<MenuButton> buttons;
     float sidebarWidth;
     std::tuple <int, int> windowSize;
     
@@ -108,11 +99,8 @@ private:
     std::shared_ptr<Rendering::Shapes::Text> pleaseWaitMessage;
     
     // UI layers
-    std::shared_ptr<Rendering::Layer> backgroundLayer;
-    std::shared_ptr<Rendering::Layer> previewLayer;
-    std::shared_ptr<Rendering::Layer> controlsLayer;
-    std::shared_ptr<Rendering::Layer> buttonLayer;
     std::shared_ptr<Rendering::Layer> sidebarLayer;
+    std::shared_ptr<Rendering::Layer> infoLayer;
     
     // Camera and window references
     Camera* camera;

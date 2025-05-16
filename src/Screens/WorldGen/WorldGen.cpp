@@ -100,6 +100,7 @@ bool WorldGenScreen::initialize() {
         glm::vec3(0.0f, 0.0f, 0.0f),              // Look at origin
         glm::vec3(0.0f, 1.0f, 0.0f)               // Up vector
     );      // Register event handlers for UI events
+    
     // Generate World button event
     m_worldGenUI->addEventListener(WorldGen::UIEvent::GenerateWorld, [this]() {
         std::cout << "Generate World button clicked" << std::endl;
@@ -311,31 +312,12 @@ void WorldGenScreen::handleInput() {
         m_isDragging = false;
     }
     
-    // Handle button clicks - use wasPressed pattern to detect single click events
-    static bool wasPressed = false;
-    bool isPressed = glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
-    
-    // Get cursor position
-    double xpos, ypos;
-    glfwGetCursorPos(m_window, &xpos, &ypos);
-    
-    // Check if mouse is in the UI sidebar area
-    if (xpos <= m_worldGenUI->getSidebarWidth()) {
-        // Pass mouse input to UI
-        m_worldGenUI->handleButtonClicks(
-            static_cast<float>(xpos), 
-            static_cast<float>(ypos), 
-            isPressed, 
-            wasPressed
-        );
-    }
-    
-    wasPressed = isPressed;
-    
     // Check for ESC key to go back to main menu
     if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         screenManager->switchScreen(ScreenType::MainMenu);
     }
+
+    m_worldGenUI->handleInput();
 }
 
 void WorldGenScreen::onResize(int width, int height) {
