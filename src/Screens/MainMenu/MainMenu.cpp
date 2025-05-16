@@ -52,7 +52,7 @@ bool MainMenuScreen::initialize() {
             .position = glm::vec2((width - 150.0f) / 2.0f, height * 0.2f),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 48.0f
+                .fontSize = 1.0f
             }),
             .zIndex = 25.0f
         }
@@ -141,7 +141,7 @@ void MainMenuScreen::layoutButtons() {
                 .position = glm::vec2(buttons[i].position.x + buttons[i].size.x / 2.0f, textY),
                 .style = Rendering::Shapes::Text::Styles({
                     .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                    .fontSize = 24.0f,                    .horizontalAlign = Rendering::TextAlign::Center,
+                    .fontSize = 1.0f,                    .horizontalAlign = Rendering::TextAlign::Center,
                     .verticalAlign = Rendering::TextAlign::Middle
                 }),
                 .zIndex = 16.0f
@@ -231,7 +231,7 @@ void MainMenuScreen::onResize(int width, int height) {
             .position = glm::vec2((currentWidth - 150.0f) / 2.0f, currentHeight * 0.2f),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 48.0f
+                .fontSize = 1.0f
             }),
             .zIndex = 25.0f
         }

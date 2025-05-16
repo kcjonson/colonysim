@@ -60,7 +60,7 @@ namespace Rendering {
 				.size = this->size,
 				.style = Shapes::Text::Styles(
 					{.color = glm::vec4(1.0f),
-					 .fontSize = 16.0f,
+					 .fontSize = 1.0f,
 					 .horizontalAlign = TextAlign::Horizontal::Center,
 					 .verticalAlign = TextAlign::Vertical::Middle}
 				)
@@ -99,7 +99,6 @@ namespace Rendering {
 		}
 
 		void Button::draw() {
-			std::cout << "Button::draw() called" << std::endl;
 			// Draw the background rectangle
 			background->draw();
 			labelText->draw();
@@ -176,15 +175,15 @@ namespace Rendering {
 
 				// Update the background style based on state
 				switch (state) {
-				case State::Normal:
-					background->setStyle(buttonToRectangleStyle(style));
-					break;
-				case State::Hover:
-					background->setStyle(buttonToRectangleStyle(hoverStyle));
-					break;
-				case State::Pressed:
-					background->setStyle(buttonToRectangleStyle(pressedStyle));
-					break;
+					case State::Normal:
+						background->setStyle(buttonToRectangleStyle(style));
+						break;
+					case State::Hover:
+						background->setStyle(buttonToRectangleStyle(hoverStyle));
+						break;
+					case State::Pressed:
+						background->setStyle(buttonToRectangleStyle(pressedStyle));
+						break;
 				}
 			}
 		}

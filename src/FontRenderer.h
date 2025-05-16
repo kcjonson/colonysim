@@ -70,4 +70,5 @@ private:
     unsigned int VBO;                      // Vertex Buffer Object
     FT_Library library;                    // FreeType library instance
     FT_Face face;                          // FreeType font face
+    float scaledAscender;                  // Stores the ascender for the base font size (e.g., 16px)
 };

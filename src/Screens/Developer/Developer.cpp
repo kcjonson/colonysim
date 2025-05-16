@@ -84,7 +84,7 @@ void DeveloperScreen::layoutUI() {
             .position = glm::vec2(width / 2.0f, 80.0f),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 48.0f,
+                .fontSize = 1.0f,
                 .horizontalAlign = Rendering::TextAlign::Center,
                 .verticalAlign = Rendering::TextAlign::Middle
             }),
@@ -123,7 +123,7 @@ void DeveloperScreen::layoutUI() {
             .position = glm::vec2(buttons[0].position.x + buttons[0].size.x / 2.0f, textY),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 24.0f,
+                .fontSize = 1.0f,
                 .horizontalAlign = Rendering::TextAlign::Center,
                 .verticalAlign = Rendering::TextAlign::Middle
             }),

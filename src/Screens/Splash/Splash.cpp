@@ -41,7 +41,7 @@ bool SplashScreen::initialize() {
 		.text = title,
 		.position = glm::vec2(width / 2.0f, height / 2.0f),
 		.style = Rendering::Shapes::Text::Styles({.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-												  .fontSize = 48.0f,
+												  .fontSize = 1.0f,
 												  .horizontalAlign = Rendering::TextAlign::Center,
 												  .verticalAlign = Rendering::TextAlign::Middle}),
 		.zIndex = 110.0f // Z-index

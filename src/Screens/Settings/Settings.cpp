@@ -87,7 +87,7 @@ void SettingsScreen::layoutUI() {
             .position = glm::vec2(width / 2.0f, 80.0f),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 48.0f,
+                .fontSize = 1.0f,
                 .horizontalAlign = Rendering::TextAlign::Center,
                 .verticalAlign = Rendering::TextAlign::Middle
             }),
@@ -123,7 +123,7 @@ void SettingsScreen::layoutUI() {
             .position = glm::vec2(settingsX, settingsY),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 24.0f
+                .fontSize = 1.0f
             }),
             .zIndex = 15.0f  // Z-index
         }
@@ -135,7 +135,7 @@ void SettingsScreen::layoutUI() {
             .position = glm::vec2(settingsX, settingsY + lineHeight),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 24.0f
+                .fontSize = 1.0f
             }),
             .zIndex = 15.0f  // Z-index
         }
@@ -147,7 +147,7 @@ void SettingsScreen::layoutUI() {
             .position = glm::vec2(settingsX, settingsY + lineHeight * 2),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 24.0f
+                .fontSize = 1.0f
             }),
             .zIndex = 15.0f  // Z-index
         }
@@ -159,7 +159,7 @@ void SettingsScreen::layoutUI() {
             .position = glm::vec2(settingsX, settingsY + lineHeight * 3),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 24.0f
+                .fontSize = 1.0f
             }),
             .zIndex = 15.0f  // Z-index
         }
@@ -171,7 +171,7 @@ void SettingsScreen::layoutUI() {
             .position = glm::vec2(settingsX, settingsY + lineHeight * 4),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 24.0f
+                .fontSize = 1.0f
             }),
             .zIndex = 15.0f  // Z-index
         }
@@ -184,7 +184,7 @@ void SettingsScreen::layoutUI() {
             .position = glm::vec2(width / 2.0f, height - 40.0f),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(0.7f, 0.7f, 0.7f, 1.0f),
-                .fontSize = 18.0f,
+                .fontSize = 1.0f,
                 .horizontalAlign = Rendering::TextAlign::Center,
                 .verticalAlign = Rendering::TextAlign::Middle
             }),
@@ -227,7 +227,7 @@ void SettingsScreen::layoutUI() {
                 .position = glm::vec2(buttons[i].position.x + buttons[i].size.x / 2.0f, textY),
                 .style = Rendering::Shapes::Text::Styles({
                     .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                    .fontSize = 24.0f,
+                    .fontSize = 1.0f,
                     .horizontalAlign = Rendering::TextAlign::Center,
                     .verticalAlign = Rendering::TextAlign::Middle                }),
                 .zIndex = 26.0f  // Z-index

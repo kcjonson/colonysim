@@ -14,7 +14,7 @@ namespace Rendering {
                 struct Styles {
                     glm::vec4 color = glm::vec4(1.0f);
                     float opacity = 1.0f;
-                    float fontSize = 16.0f; // Default font size
+                    float fontSize = 1.0f; // Default font size
                     TextAlign::Horizontal horizontalAlign = TextAlign::Horizontal::Left;
                     TextAlign::Vertical verticalAlign = TextAlign::Vertical::Top;
                 };

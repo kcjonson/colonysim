@@ -23,7 +23,7 @@ AllowShortLambdasOnASingleLine: Inline
 SpaceAfterCStyleCast: false
 SpaceBeforeParens: ControlStatements
 AlignConsecutiveAssignments: false
-IndentCaseLabels: false
+IndentCaseLabels: true
 SpacesInParentheses: false
 BreakConstructorInitializers: BeforeColon
 ConstructorInitializerAllOnOneLineOrOnePerLine: true

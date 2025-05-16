@@ -45,7 +45,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
             .position = glm::vec2(labelX, startY),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 18.0f
+                .fontSize = 1.0f
             }),
             .zIndex = 150.0f
         }
@@ -57,7 +57,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
             .position = glm::vec2(valueX, startY),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 18.0f
+                .fontSize = 1.0f
             }),
             .zIndex = 150.0f
         }
@@ -71,7 +71,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
             .position = glm::vec2(labelX, startY + lineHeight),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 18.0f
+                .fontSize = 1.0f
             }),
             .zIndex = 150.0f
         }
@@ -83,7 +83,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
             .position = glm::vec2(valueX, startY + lineHeight),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 18.0f
+                .fontSize = 1.0f
             }),
             .zIndex = 150.0f
         }
@@ -97,7 +97,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
             .position = glm::vec2(labelX, startY + 2 * lineHeight),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 18.0f
+                .fontSize = 1.0f
             }),
             .zIndex = 150.0f
         }
@@ -109,7 +109,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
             .position = glm::vec2(valueX, startY + 2 * lineHeight),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 18.0f
+                .fontSize = 1.0f
             }),
             .zIndex = 150.0f
         }
@@ -123,7 +123,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
             .position = glm::vec2(labelX, startY + 3 * lineHeight),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 18.0f
+                .fontSize = 1.0f
             }),
             .zIndex = 150.0f
         }
@@ -136,7 +136,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
             .position = glm::vec2(valueX, startY + 3 * lineHeight),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 18.0f
+                .fontSize = 1.0f
             }),
             .zIndex = 150.0f
         }
@@ -199,7 +199,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
             .position = glm::vec2(40.0f + progressBarWidth / 2.0f, progressBarY + progressBarHeight / 2.0f + 8.0f),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 18.0f,
+                .fontSize = 1.0f,
                 .horizontalAlign = Rendering::TextAlign::Center,
                 .verticalAlign = Rendering::TextAlign::Middle
             }),
@@ -213,7 +213,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
             .position = glm::vec2(0.0f, 0.0f), // Will be positioned in layoutUI
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 20.0f,
+                .fontSize = 1.0f,
                 .horizontalAlign = Rendering::TextAlign::Center,
                 .verticalAlign = Rendering::TextAlign::Middle
             }),
@@ -416,7 +416,7 @@ void WorldGenUI::onResize(int windowWidth, int windowHeight) {
     //         glm::vec2(buttons[i].position.x + buttons[i].size.x / 2.0f, textY),
     //         Rendering::Styles::Text({
     //             .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-    //             .fontSize = 24.0f,
+    //             .fontSize = 1.0f,
     //             .horizontalAlign = Rendering::TextAlign::Center,
     //             .verticalAlign = Rendering::TextAlign::Middle
     //         }),

@@ -98,8 +98,7 @@ void VectorGraphics::render(const glm::mat4& viewMatrix, const glm::mat4& projec
             }
         #endif
     }
-    
-    // Render all text commands using the Renderer with the SAME view and projection matrices
+      // Render all text commands using the Renderer with the SAME view and projection matrices
     if (renderer != nullptr) {
         // Set the view and projection matrices on the renderer
         renderer->setView(viewMatrix);
@@ -110,7 +109,7 @@ void VectorGraphics::render(const glm::mat4& viewMatrix, const glm::mat4& projec
             glm::vec3 textColor(cmd.color.r, cmd.color.g, cmd.color.b);
             
             // Use the Renderer to render text with the same matrices as shapes
-            renderer->renderText(cmd.text, cmd.position, 0.3f, textColor);
+            renderer->renderText(cmd.text, cmd.position, cmd.size, textColor);
         }
         
         // Clear text commands after rendering - just like we clear vertices after rendering
@@ -251,19 +250,20 @@ void VectorGraphics::updateBuffers() {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
 }
 
-void VectorGraphics::drawText(const std::string& text, const glm::vec2& position, const glm::vec4& color) {
+void VectorGraphics::drawText(const std::string& text, const glm::vec2& position, const glm::vec4& color, float size) {
     // Store text rendering commands for later execution by the Renderer
     TextCommand cmd;
     cmd.text = text;
     cmd.position = position;
     cmd.color = color;
+    cmd.size = size;
     textCommands.push_back(cmd);
 }
 
-glm::vec2 VectorGraphics::measureText(const std::string& text, float scale) const {
+glm::vec2 VectorGraphics::measureText(const std::string& text, float size) const {
     // Delegate to the renderer, which will call FontRenderer's measureText
     if (renderer) {
-        return renderer->measureText(text, scale);
+        return renderer->measureText(text, size);
     }
     
     // Fallback for when renderer is not available
