@@ -9,5 +9,10 @@
     },
     "github.copilot.chat.contextDefaults": {
         "context": "REMINDER: Please ensure all PowerShell commands are PowerShell 7 compatible. Avoid using commands or syntax that only works in older PowerShell versions."
+    },
+    "C_Cpp.formatting": "clangFormat",
+    "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: LLVM, BreakBeforeBraces: Attach, IndentWidth: 4, TabWidth: 4, UseTab: Always }",
+    "[cpp]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools"
     }
 }
