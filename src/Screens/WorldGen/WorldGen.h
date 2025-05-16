@@ -22,11 +22,10 @@ class WorldGenScreen : public Screen { // Changed from GameplayScreen to Screen
 public:
     WorldGenScreen(Camera* camera, GLFWwindow* window);
     ~WorldGenScreen() override;
-    
-    bool initialize() override;
+      bool initialize() override;
     void update(float deltaTime) override;
     void render() override;
-    void handleInput() override;
+    void handleInput(float deltaTime) override;
     void onResize(int width, int height) override;
     
     // Keep isPointInRect helper method for UI detection

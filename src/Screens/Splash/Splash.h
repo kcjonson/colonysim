@@ -20,7 +20,7 @@ public:
     bool initialize() override;
     void update(float deltaTime) override;
     void render() override;
-    void handleInput() override;
+    void handleInput(float deltaTime) override;
     void onResize(int width, int height) override;
 
 private:

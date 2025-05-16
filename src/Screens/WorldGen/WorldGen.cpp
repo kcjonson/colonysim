@@ -100,7 +100,7 @@ bool WorldGenScreen::initialize() {
         glm::vec3(0.0f, 0.0f, 0.0f),              // Look at origin
         glm::vec3(0.0f, 1.0f, 0.0f)               // Up vector
     );      // Register event handlers for UI events
-    
+
     // Generate World button event
     m_worldGenUI->addEventListener(WorldGen::UIEvent::GenerateWorld, [this]() {
         std::cout << "Generate World button clicked" << std::endl;
@@ -289,7 +289,7 @@ void WorldGenScreen::render() {
     m_worldGenUI->render();
 }
 
-void WorldGenScreen::handleInput() {
+void WorldGenScreen::handleInput(float deltaTime) {
     // Handle planet rotation with mouse drag
     if (glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
         double xpos, ypos;
@@ -317,7 +317,7 @@ void WorldGenScreen::handleInput() {
         screenManager->switchScreen(ScreenType::MainMenu);
     }
 
-    m_worldGenUI->handleInput();
+    m_worldGenUI->handleInput(deltaTime);
 }
 
 void WorldGenScreen::onResize(int width, int height) {

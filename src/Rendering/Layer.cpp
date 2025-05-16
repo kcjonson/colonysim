@@ -6,6 +6,8 @@
 #include "Renderer.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include "ConfigManager.h"
+#include <string>
+#include <typeinfo> // Add for typeid
 
 namespace Rendering {
 
@@ -51,12 +53,15 @@ void Layer::addItem(std::shared_ptr<Layer> item) {
         }
     }
     // If childrenNeedSorting was already true, it stays true.
+
+    std::cout << "Adding item: " << std::endl;
     
     children.push_back(item);
     // We no longer unconditionally set childrenNeedSorting = true here.
 }
 
 void Layer::removeItem(std::shared_ptr<Layer> item) {
+    std::cout << "Removing item: " << std::endl;
     auto it = std::find(children.begin(), children.end(), item);
     if (it == children.end()) {
         std::cerr << "Warning: Attempted to remove an item that is not present in the layer." << std::endl;
@@ -80,6 +85,7 @@ void Layer::removeItem(std::shared_ptr<Layer> item) {
 }
 
 void Layer::clearItems() {
+    std::cout << "Clearing items: " << std::endl;
     // Clear parent pointers before clearing children
     for (auto& child : children) {
         child->setParent(nullptr);
@@ -240,16 +246,25 @@ void Layer::update(float deltaTime) {
         child->update(deltaTime);
     }
 }
-
-void Layer::handleInput() {
+void Layer::handleInput(float deltaTime) {
     // Skip if layer is not visible
     if (!visible) {
         return;
     }
 
-    // Propagate input handling to all children
-    for (auto& child : children) {
-        child->handleInput();
+    // Create a copy of the children list to iterate over.
+    // This prevents iterator invalidation if a child removes itself
+    // or other children from the original 'children' list during its handleInput() call.
+    auto children_to_process = children; 
+
+    // Propagate input handling to all children from the copy
+    for (const auto& child : children_to_process) {
+        // Note: For typeid(*child).name() to return the dynamic (actual) type of the child,
+        // the Layer class must be polymorphic (e.g., have a virtual destructor).
+        // The output of .name() is compiler-dependent and might be a mangled name.
+        //std::cout << "Layer::handleInput: propagating to child (Type: " << typeid(*child).name() << ", Z: " << child->getZIndex() << ")" << std::endl;
+        
+        child->handleInput(deltaTime); // This call might modify the original 'this->children' list
     }
 }
 

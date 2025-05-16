@@ -47,7 +47,7 @@ Button::Button(const ButtonArgs& args)
     // Make background be at args.zIndex and labelText slightly in front.
     // This ensures non-negative z-indices for parts if args.zIndex is 0.
     float backgroundZ = args.zIndex;
-    float labelTextZ = args.zIndex + 0.01f; // Small positive offset for text
+    float labelTextZ = args.zIndex + 1.0f; // Small positive offset for text
 
     background = std::make_shared<Shapes::Rectangle>(
         this->position,       // Position (top-left)

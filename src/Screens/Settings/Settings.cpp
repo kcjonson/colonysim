@@ -254,7 +254,7 @@ void SettingsScreen::render() {
     buttonLayer->render(false);
 }
 
-void SettingsScreen::handleInput() {
+void SettingsScreen::handleInput(float deltaTime) {
     GLFWwindow* window = screenManager->getWindow();
     
     // Get cursor position

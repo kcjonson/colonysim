@@ -172,7 +172,7 @@ void MainMenuScreen::render() {
     titleLayer->render(false);
 }
 
-void MainMenuScreen::handleInput() {
+void MainMenuScreen::handleInput(float deltaTime) {
     GLFWwindow* window = screenManager->getWindow();
     
     // Get cursor position

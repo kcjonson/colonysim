@@ -22,16 +22,8 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
     int width, height;
     glfwGetWindowSize(window, &width, &height);
     windowSize = std::make_tuple(width, height);
-}
 
-WorldGenUI::~WorldGenUI() {
-    // Nothing to destroy explicitly, smart pointers handle cleanup
-}
-
-bool WorldGenUI::initialize() {
-    
-
-    
+        
     // Parameter labels and values
     float labelX = 40.0f;
     float valueX = 200.0f;
@@ -44,7 +36,7 @@ bool WorldGenUI::initialize() {
         Rendering::Styles::Rectangle({
             .color = glm::vec4(0.1f, 0.1f, 0.1f, 0.9f)
         }),
-        100.0f  // Z-index matching sidebarLayer
+        0.0f
     );
     sidebarLayer->addItem(sidebarBackground);
 
@@ -152,8 +144,8 @@ bool WorldGenUI::initialize() {
                 .borderPosition = BorderPosition::Outside, // Ensure BorderPosition is defined and accessible
                 .cornerRadius = 5.0f
             }),
-            .zIndex = 200.0f,
             .onClick = [this]() { // The static_cast is often not needed for lambdas assigned to std::function
+                std::cout << "Generate World button clicked" << std::endl;
                 auto it = eventHandlers.find(UIEvent::GenerateWorld);
                 if (it != eventHandlers.end()) {
                     it->second();
@@ -164,7 +156,6 @@ bool WorldGenUI::initialize() {
     sidebarLayer->addItem(generateWorldButton);
 
 
-    
     // Progress bar elements
     float progressBarWidth = sidebarWidth - 80.0f;
     float progressBarHeight = 30.0f;
@@ -217,6 +208,16 @@ bool WorldGenUI::initialize() {
         250.0f
     );
     infoLayer->addItem(statusText);
+}
+
+WorldGenUI::~WorldGenUI() {
+    // Nothing to destroy explicitly, smart pointers handle cleanup
+}
+
+bool WorldGenUI::initialize() {
+    
+    std::cout << "Initializing WorldGenUI..." << std::endl;
+
     
     return true;
 }
@@ -417,8 +418,8 @@ void WorldGenUI::onResize(int windowWidth, int windowHeight) {
 
 void WorldGenUI::render() {
     // Render all layers in the correct order
-    if (infoLayer) infoLayer->render();
-    if (sidebarLayer) sidebarLayer->render();
+    sidebarLayer->render();
+    infoLayer->render();
 }
 
 void WorldGenUI::update(float /*deltaTime*/) {
@@ -438,9 +439,9 @@ void WorldGenUI::update(float /*deltaTime*/) {
 
 }
 
-void WorldGenUI::handleInput() {
-    if (sidebarLayer) sidebarLayer->handleInput();
-    if (infoLayer) sidebarLayer->handleInput();
+void WorldGenUI::handleInput(float deltaTime) {
+    sidebarLayer->handleInput(deltaTime);
+    infoLayer->handleInput(deltaTime);
 }
 
 // bool WorldGenUI::isPointInRect(float px, float py, float rx, float ry, float rw, float rh) {

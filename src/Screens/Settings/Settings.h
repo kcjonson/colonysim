@@ -14,12 +14,10 @@ class SettingsScreen : public Screen {
 public:
     // Update constructor to accept Camera* and GLFWwindow*
     SettingsScreen(Camera* camera, GLFWwindow* window);
-    ~SettingsScreen() override;
-
-    bool initialize() override;
+    ~SettingsScreen() override;    bool initialize() override;
     void update(float deltaTime) override;
     void render() override;
-    void handleInput() override;
+    void handleInput(float deltaTime) override;
     void onResize(int width, int height) override;
 
 private:

@@ -5,6 +5,7 @@
 #include <glad/glad.h>
 #include <iostream>
 #include "../../Camera.h" // Include Camera header
+#include "../../InputManager.h" // Added this line
 
 // Update constructor to accept Camera* and GLFWwindow*
 SplashScreen::SplashScreen(Camera* camera, GLFWwindow* window)
@@ -88,12 +89,15 @@ void SplashScreen::render() {
     // }
 }
 
-void SplashScreen::handleInput() {
+void SplashScreen::handleInput(float deltaTime) {
+    // TODO: Implement input handling for splash screen if any, using deltaTime if needed
+    
     // Check for any mouse click to dismiss the splash screen
     GLFWwindow* window = screenManager->getWindow();
     if (window) {
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS ||
-            glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+            glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ||
+            glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
             clicked = true;
         }
     }

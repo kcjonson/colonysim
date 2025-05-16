@@ -159,7 +159,7 @@ void DeveloperScreen::render() {
     buttonLayer->render(false);
 }
 
-void DeveloperScreen::handleInput() {
+void DeveloperScreen::handleInput(float deltaTime) {
     GLFWwindow* window = screenManager->getWindow();
     
     // Get cursor position

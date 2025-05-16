@@ -14,12 +14,10 @@ class DeveloperScreen : public Screen {
 public:
     // Update constructor to accept Camera* and GLFWwindow*
     DeveloperScreen(Camera* camera, GLFWwindow* window);
-    ~DeveloperScreen() override;
-
-    bool initialize() override;
+    ~DeveloperScreen() override;    bool initialize() override;
     void update(float deltaTime) override;
     void render() override;
-    void handleInput() override;
+    void handleInput(float deltaTime) override;
     void onResize(int width, int height) override;
 
 private:

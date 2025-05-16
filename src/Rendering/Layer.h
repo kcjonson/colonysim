@@ -4,6 +4,7 @@
 #include <memory>
 #include <algorithm>
 #include <glm/glm.hpp>
+#include <string>
 
 class VectorGraphics;
 struct GLFWwindow;
@@ -72,7 +73,7 @@ public:
     
     // Update and input handling - propagate to children
     virtual void update(float deltaTime);
-    virtual void handleInput();
+    virtual void handleInput(float deltaTime);
     
     // For testing purposes - public access to sortChildren
     void testSortChildren() { sortChildren(); }

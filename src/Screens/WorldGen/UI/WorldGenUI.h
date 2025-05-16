@@ -56,12 +56,10 @@ public:
    
     // Accessors
     // Used to center the world in the preview area
-    float getSidebarWidth() const { return sidebarWidth; }
-
-    // Render and update methods for main game loop
+    float getSidebarWidth() const { return sidebarWidth; }    // Render and update methods for main game loop
     void render();
     void update(float deltaTime);
-    void handleInput();
+    void handleInput(float deltaTime);
     
     // Progress tracking (setter)
     void setProgress(float progress, const std::string& statusMessage);
