@@ -27,23 +27,7 @@ public:
         Styles style = Styles({});
         float zIndex = 0.0f;
     };
-    
-    /**
-     * Create a rectangle with the specified position (top-left corner), size, style and z-index
-     * 
-     * @param position The top-left corner position of the rectangle
-     * @param size The width and height of the rectangle
-     * @param style The style properties of the rectangle
-     * @param zIndex The z-index for depth ordering
-     */
-    Rectangle(
-        const glm::vec2& position = glm::vec2(0.0f),
-        const glm::vec2& size = glm::vec2(1.0f),
-        const Styles& style = Styles({}),
-        float zIndex = 0.0f
-    );
-    
-    /**
+      /**
      * Create a rectangle using the Args struct.
      *
      * @param args A struct containing all arguments for the rectangle.

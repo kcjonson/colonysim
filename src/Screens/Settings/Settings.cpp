@@ -103,13 +103,15 @@ void SettingsScreen::layoutUI() {
     float panelY = 130.0f;
     
     auto panelBackground = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(panelX, panelY),
-        glm::vec2(panelWidth, panelHeight),
-        Rendering::Styles::Rectangle({
-            .color = glm::vec4(0.1f, 0.1f, 0.1f, 0.8f),
-            .cornerRadius = 10.0f
-        }),
-        5.0f  // Z-index
+        Rendering::Shapes::Rectangle::Args{
+            .position = glm::vec2(panelX, panelY),
+            .size = glm::vec2(panelWidth, panelHeight),
+            .style = Rendering::Shapes::Rectangle::Styles({
+                .color = glm::vec4(0.1f, 0.1f, 0.1f, 0.8f),
+                .cornerRadius = 10.0f
+            }),
+            .zIndex = 5.0f  // Z-index
+        }
     );
     backgroundLayer->addItem(panelBackground);
     
@@ -207,16 +209,17 @@ void SettingsScreen::layoutUI() {
         buttons[i].position.y = startY - i * (buttonHeight + buttonSpacing);
         buttons[i].size.x = buttonWidth;
         buttons[i].size.y = buttonHeight;
-        
-        // Create button background rectangle
+          // Create button background rectangle
         buttons[i].background = std::make_shared<Rendering::Shapes::Rectangle>(
-            buttons[i].position,
-            buttons[i].size,
-            Rendering::Styles::Rectangle({
-                .color = buttons[i].isHovered ? buttons[i].hoverColor : buttons[i].color,
-                .cornerRadius = 5.0f
-            }),
-            25.0f  // Z-index
+            Rendering::Shapes::Rectangle::Args{
+                .position = buttons[i].position,
+                .size = buttons[i].size,
+                .style = Rendering::Shapes::Rectangle::Styles({
+                    .color = buttons[i].isHovered ? buttons[i].hoverColor : buttons[i].color,
+                    .cornerRadius = 5.0f
+                }),
+                .zIndex = 25.0f  // Z-index
+            }
         );
         buttonLayer->addItem(buttons[i].background);
           // Create button text

@@ -102,16 +102,17 @@ void DeveloperScreen::layoutUI() {
     buttons[0].position.y = height - buttonHeight - 20.0f;
     buttons[0].size.x = buttonWidth;
     buttons[0].size.y = buttonHeight;
-    
-    // Create button background rectangle
+      // Create button background rectangle
     buttons[0].background = std::make_shared<Rendering::Shapes::Rectangle>(
-        buttons[0].position,
-        buttons[0].size,
-        Rendering::Styles::Rectangle({
-            .color = buttons[0].isHovered ? buttons[0].hoverColor : buttons[0].color,
-            .cornerRadius = 5.0f
-        }),
-        25.0f  // Z-index
+        Rendering::Shapes::Rectangle::Args{
+            .position = buttons[0].position,
+            .size = buttons[0].size,
+            .style = Rendering::Styles::Rectangle({
+                .color = buttons[0].isHovered ? buttons[0].hoverColor : buttons[0].color,
+                .cornerRadius = 5.0f
+            }),
+            .zIndex = 25.0f  // Z-index
+        }
     );
     buttonLayer->addItem(buttons[0].background);
     

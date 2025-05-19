@@ -20,15 +20,17 @@ Entity::Entity(const glm::vec2& position, const glm::vec2& size, const glm::vec4
 {
     // Create entity visual
     entityVisual = std::make_shared<Rendering::Shapes::Rectangle>(
-        position,
-        size,
-        Rendering::Styles::Rectangle({
-            .color = color,
-            .borderColor = glm::vec4(0.0f), // No border
-            .borderWidth = 0.0f,            // No border width
-            .borderPosition = ::BorderPosition::Outside
-        }),
-        50.0f
+        Rendering::Shapes::Rectangle::Args{
+            .position = position,
+            .size = size,
+            .style = Rendering::Styles::Rectangle({
+                .color = color,
+                .borderColor = glm::vec4(0.0f), // No border
+                .borderWidth = 0.0f,            // No border width
+                .borderPosition = ::BorderPosition::Outside
+            }),
+            .zIndex = 50.0f
+        }
     );
     
     entityLayer->addItem(entityVisual);

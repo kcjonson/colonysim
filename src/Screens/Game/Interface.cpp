@@ -47,15 +47,16 @@ void Interface::initializeUIComponents() {
     const float panelHeight = UI_PADDING * 2 + GAME_STATE_PROPERTIES.size() * lineSpacing;
     
     // Create info panel background using top-left coordinates
-    glm::vec2 topLeftPos(INFO_PANEL_X, INFO_PANEL_Y);
-    infoPanelBackground = std::make_shared<Rendering::Shapes::Rectangle>(
-        topLeftPos,
-        glm::vec2(INFO_PANEL_WIDTH, panelHeight),
-        Rendering::Styles::Rectangle({
-            .color = glm::vec4(0.0f, 0.0f, 0.0f, 0.6f),
-            .cornerRadius = 5.0f
-        }),
-        1000.1f
+    glm::vec2 topLeftPos(INFO_PANEL_X, INFO_PANEL_Y);    infoPanelBackground = std::make_shared<Rendering::Shapes::Rectangle>(
+        Rendering::Shapes::Rectangle::Args{
+            .position = topLeftPos,
+            .size = glm::vec2(INFO_PANEL_WIDTH, panelHeight),
+            .style = Rendering::Shapes::Rectangle::Styles({
+                .color = glm::vec4(0.0f, 0.0f, 0.0f, 0.6f),
+                .cornerRadius = 5.0f
+            }),
+            .zIndex = 1000.1f
+        }
     );
     uiLayer->addItem(infoPanelBackground);
 

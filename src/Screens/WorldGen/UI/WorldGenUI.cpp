@@ -29,14 +29,15 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
     float valueX = 200.0f;
     float startY = 150.0f;
     float lineHeight = 30.0f;
-    
-    auto sidebarBackground = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(0.0f, 0.0f),
-        glm::vec2(sidebarWidth, static_cast<float>(std::get<1>(windowSize))),
-        Rendering::Styles::Rectangle({
-            .color = glm::vec4(0.1f, 0.1f, 0.1f, 0.9f)
-        }),
-        0.0f
+      auto sidebarBackground = std::make_shared<Rendering::Shapes::Rectangle>(
+        Rendering::Shapes::Rectangle::Args{
+            .position = glm::vec2(0.0f, 0.0f),
+            .size = glm::vec2(sidebarWidth, static_cast<float>(std::get<1>(windowSize))),
+            .style = Rendering::Shapes::Rectangle::Styles({
+                .color = glm::vec4(0.1f, 0.1f, 0.1f, 0.9f)
+            }),
+            .zIndex = 0.0f
+        }
     );
     sidebarLayer->addItem(sidebarBackground);
 
@@ -220,26 +221,27 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
     // Initial positions - will be properly set in onResize
     float progressBarX = static_cast<float>(std::get<0>(windowSize)) / 2.0f - progressBarWidth / 2.0f;
     float progressBarY = static_cast<float>(std::get<1>(windowSize)) - 40.0f - progressBarYOffset;
-    
-    progressBackground = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(progressBarX, progressBarY),
-        glm::vec2(progressBarWidth, progressBarHeight),
-        Rendering::Styles::Rectangle({
-            .color = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f),
-            .cornerRadius = 5.0f
-        }),
-        150.0f
+      progressBackground = std::make_shared<Rendering::Shapes::Rectangle>(
+        Rendering::Shapes::Rectangle::Args{
+            .position = glm::vec2(progressBarX, progressBarY),
+            .size = glm::vec2(progressBarWidth, progressBarHeight),
+            .style = Rendering::Shapes::Rectangle::Styles({
+                .color = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f),
+                .cornerRadius = 5.0f
+            }),
+            .zIndex = 150.0f
+        }
     );
-    infoLayer->addItem(progressBackground);
-    
-    progressFill = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(progressBarX, progressBarY),
-        glm::vec2(0.0f, progressBarHeight), // Initially 0 width
-        Rendering::Styles::Rectangle({
-            .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
-            .cornerRadius = 5.0f
-        }),
-        151.0f
+    infoLayer->addItem(progressBackground);    progressFill = std::make_shared<Rendering::Shapes::Rectangle>(
+        Rendering::Shapes::Rectangle::Args{
+            .position = glm::vec2(progressBarX, progressBarY),
+            .size = glm::vec2(0.0f, progressBarHeight), // Initially 0 width
+            .style = Rendering::Shapes::Rectangle::Styles({
+                .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
+                .cornerRadius = 5.0f
+            }),
+            .zIndex = 151.0f
+        }
     );
     infoLayer->addItem(progressFill);
 

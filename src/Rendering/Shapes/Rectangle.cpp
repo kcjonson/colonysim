@@ -5,12 +5,6 @@
 namespace Rendering {
 namespace Shapes {
 
-Rectangle::Rectangle(const glm::vec2& position, const glm::vec2& size, const Styles& style, float zIndex)
-    : Shape(position, style, zIndex)
-    , size(size)
-    , style(style) {
-}
-
 Rectangle::Rectangle(const Args& args)
     : Shape(args.position, args.style, args.zIndex)
     , size(args.size)

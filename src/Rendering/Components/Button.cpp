@@ -52,7 +52,13 @@ namespace Rendering {
 			float backgroundZ = args.zIndex;
 			float labelTextZ = args.zIndex + 1.0f; // Small positive offset for text
 
-			background = std::make_shared<Shapes::Rectangle>(this->position, this->size, buttonToRectangleStyle(this->style));
+			background = std::make_shared<Shapes::Rectangle>(
+				Shapes::Rectangle::Args{
+					.position = this->position,
+					.size = this->size,
+					.style = buttonToRectangleStyle(this->style)
+				}
+			);
 
 			labelText = std::make_shared<Shapes::Text>(Shapes::Text::Args{
 				.text = this->label,

@@ -29,11 +29,13 @@ Tile::Tile(const glm::vec2& position, float height, float resource, WorldGen::Te
 void Tile::initializeDefaultShape() {
     // Create a 20x20 rectangle with the tile's color (top-left positioned)
     auto rect = std::make_shared<Shapes::Rectangle>(
-        glm::vec2(0, 0),  // Position will be set by updatePosition
-        glm::vec2(20, 20), // Default tile size
-        Styles::Rectangle({
-            .color = color, // Use the tile's color
-        })
+        Shapes::Rectangle::Args{
+            .position = glm::vec2(0, 0),  // Position will be set by updatePosition
+            .size = glm::vec2(20, 20), // Default tile size
+            .style = Styles::Rectangle({
+                .color = color, // Use the tile's color
+            })
+        }
     );
     
     // Add it to the tile's children

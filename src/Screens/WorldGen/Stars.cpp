@@ -33,12 +33,14 @@ void Stars::generate(int width, int height) {
         float alpha = disAlpha(gen);
         
         auto star = std::make_shared<Rendering::Shapes::Rectangle>(
-            glm::vec2(x, y),
-            glm::vec2(size, size),
-            Rendering::Styles::Rectangle({
-                .color = glm::vec4(1.0f, 1.0f, 1.0f, alpha)
-            }),
-            -100.0f  // Z-index matching starLayer
+            Rendering::Shapes::Rectangle::Args{
+                .position = glm::vec2(x, y),
+                .size = glm::vec2(size, size),
+                .style = Rendering::Shapes::Rectangle::Styles({
+                    .color = glm::vec4(1.0f, 1.0f, 1.0f, alpha)
+                }),
+                .zIndex = -100.0f  // Z-index matching starLayer
+            }
         );
         m_starLayer->addItem(star);
     }

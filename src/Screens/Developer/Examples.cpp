@@ -26,70 +26,75 @@ void Examples::render() {
     examplesLayer->render(false);
 }
 
-void Examples::createRectangleExamples() {
-    // Example of rectangle with transparency
+void Examples::createRectangleExamples() {    // Example of rectangle with transparency
     auto transRect = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(250.0f, 250.0f),  // Top-left position
-        glm::vec2(100.0f, 100.0f),
-        Rendering::Styles::Rectangle({
-            .color = glm::vec4(1.0f, 0.0f, 0.0f, 0.5f) // Red with 50% transparency
-        }),
-        10.0f  // Z-index
+        Rendering::Shapes::Rectangle::Args{
+            .position = glm::vec2(250.0f, 250.0f),  // Top-left position
+            .size = glm::vec2(100.0f, 100.0f),
+            .style = Rendering::Styles::Rectangle({
+                .color = glm::vec4(1.0f, 0.0f, 0.0f, 0.5f) // Red with 50% transparency
+            }),
+            .zIndex = 10.0f  // Z-index
+        }
     );
     examplesLayer->addItem(transRect);
-    
-    // Example of rectangle with border and corner radius
+      // Example of rectangle with border and corner radius
     auto roundedRect = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(300.0f, 300.0f),  // Top-left position
-        glm::vec2(100.0f, 100.0f),
-        Rendering::Styles::Rectangle({
-            .color = glm::vec4(0.0f, 0.0f, 1.0f, 0.3f),    // Blue with 30% transparency
-            .borderColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), // Red border
-            .borderWidth = 2.0f,                           // 2px border width
-            .borderPosition = BorderPosition::Outside,     // Border outside
-            .cornerRadius = 20.0f                          // 20px corner radius
-        }),
-        11.0f  // Z-index
+        Rendering::Shapes::Rectangle::Args{
+            .position = glm::vec2(300.0f, 300.0f),  // Top-left position
+            .size = glm::vec2(100.0f, 100.0f),
+            .style = Rendering::Styles::Rectangle({
+                .color = glm::vec4(0.0f, 0.0f, 1.0f, 0.3f),    // Blue with 30% transparency
+                .borderColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), // Red border
+                .borderWidth = 2.0f,                           // 2px border width
+                .borderPosition = BorderPosition::Outside,     // Border outside
+                .cornerRadius = 20.0f                          // 20px corner radius
+            }),
+            .zIndex = 11.0f  // Z-index
+        }
     );
     examplesLayer->addItem(roundedRect);
-    
-    // Example of rectangle with green color
+      // Example of rectangle with green color
     auto greenRect = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(200.0f, 300.0f),  // Top-left position
-        glm::vec2(100.0f, 100.0f),
-        Rendering::Styles::Rectangle({
-            .color = glm::vec4(0.0f, 1.0f, 0.0f, 0.7f)  // Green with 70% transparency
-        }),
-        12.0f  // Z-index
+        Rendering::Shapes::Rectangle::Args{
+            .position = glm::vec2(200.0f, 300.0f),  // Top-left position
+            .size = glm::vec2(100.0f, 100.0f),
+            .style = Rendering::Styles::Rectangle({
+                .color = glm::vec4(0.0f, 1.0f, 0.0f, 0.7f)  // Green with 70% transparency
+            }),
+            .zIndex = 12.0f  // Z-index
+        }
     );
     examplesLayer->addItem(greenRect);
-    
-    // Example of rectangle with yellow border
+      // Example of rectangle with yellow border
     auto borderedRect = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(340.0f, 210.0f),  // Top-left position
-        glm::vec2(120.0f, 80.0f),
-        Rendering::Styles::Rectangle({
-            .color = glm::vec4(0.0f, 0.0f, 1.0f, 0.4f),      // Blue with 40% transparency
-            .borderColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), // Yellow border
-            .borderWidth = 10.0f,                            // Thick border
-            .borderPosition = BorderPosition::Outside        // Border outside
-        }),
-        13.0f  // Z-index
+        Rendering::Shapes::Rectangle::Args{
+            .position = glm::vec2(340.0f, 210.0f),  // Top-left position
+            .size = glm::vec2(120.0f, 80.0f),
+            .style = Rendering::Styles::Rectangle({
+                .color = glm::vec4(0.0f, 0.0f, 1.0f, 0.4f),      // Blue with 40% transparency
+                .borderColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), // Yellow border
+                .borderWidth = 10.0f,                            // Thick border
+                .borderPosition = BorderPosition::Outside        // Border outside
+            }),
+            .zIndex = 13.0f  // Z-index
+        }
     );
     examplesLayer->addItem(borderedRect);
-    
-    // Example of rectangle with high corner radius (pill shape)
+      // Example of rectangle with high corner radius (pill shape)
     auto pillRect = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(370.0f, 410.0f),  // Top-left position
-        glm::vec2(160.0f, 80.0f),
-        Rendering::Styles::Rectangle({
-            .color = glm::vec4(1.0f, 0.5f, 0.0f, 0.8f),      // Orange with 80% transparency
-            .borderColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), // Black border
-            .borderWidth = 3.0f,                             // 3px border
-            .borderPosition = BorderPosition::Inside,        // Inside border
-            .cornerRadius = 40.0f                            // Very rounded corners
-        }),
-        14.0f  // Z-index
+        Rendering::Shapes::Rectangle::Args{
+            .position = glm::vec2(370.0f, 410.0f),  // Top-left position
+            .size = glm::vec2(160.0f, 80.0f),
+            .style = Rendering::Styles::Rectangle({
+                .color = glm::vec4(1.0f, 0.5f, 0.0f, 0.8f),      // Orange with 80% transparency
+                .borderColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), // Black border
+                .borderWidth = 3.0f,                             // 3px border
+                .borderPosition = BorderPosition::Inside,        // Inside border
+                .cornerRadius = 40.0f                            // Very rounded corners
+            }),
+            .zIndex = 14.0f  // Z-index
+        }
     );
     examplesLayer->addItem(pillRect);
 }
