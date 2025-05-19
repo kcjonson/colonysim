@@ -9,7 +9,7 @@
             "program": "${workspaceFolder}/build/Debug/ColonySim.exe",
             "args": [],
             "cwd": "${workspaceFolder}/build/Debug",
-            "console": "externalTerminal",
+            "console": "integratedTerminal",
             "preLaunchTask": "build-debug"
         }
     ]
