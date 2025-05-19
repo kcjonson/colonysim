@@ -10,7 +10,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/noise.hpp>
-#include "../src/Screens/WorldGen/Core/TerrainGenerator.h" // Include for WorldGen::TileCoord and WorldGen::TerrainData
+#include "../src/Screens/WorldGen/Core/TerrainTypes.h" // Include for WorldGen::TileCoord and WorldGen::TerrainData
 
 // Utility for measuring execution time
 class TimingHelper {

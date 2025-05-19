@@ -9,6 +9,7 @@
 #include <map>
 #include <algorithm>   // For std::sort
 #include <cmath>       // For std::atan2
+#include "../Core/TerrainTypes.h"
 
 namespace WorldGen {
 namespace Renderers {
@@ -167,22 +168,8 @@ void World::GenerateRenderingData()
     
     // Get the tiles
     const auto& tiles = m_world->GetTiles();
-    
-    // Define a set of distinct tile colors for better visualization
-    std::array<glm::vec3, 12> tileBaseColors = {
-        glm::vec3(1.0f, 0.0f, 0.0f),       // Red
-        glm::vec3(0.0f, 1.0f, 0.0f),       // Green
-        glm::vec3(0.0f, 0.0f, 1.0f),       // Blue
-        glm::vec3(1.0f, 1.0f, 0.0f),       // Yellow
-        glm::vec3(1.0f, 0.0f, 1.0f),       // Magenta
-        glm::vec3(0.0f, 1.0f, 1.0f),       // Cyan
-        glm::vec3(0.5f, 0.0f, 0.0f),       // Dark Red
-        glm::vec3(0.0f, 0.5f, 0.0f),       // Dark Green
-        glm::vec3(0.0f, 0.0f, 0.5f),       // Dark Blue
-        glm::vec3(0.5f, 0.5f, 0.0f),       // Dark Yellow
-        glm::vec3(0.5f, 0.0f, 0.5f),       // Dark Magenta
-        glm::vec3(0.0f, 0.5f, 0.5f)        // Dark Cyan
-    };
+      // Use the terrain colors defined in TerrainTypes.h
+    // We'll convert vec4 to vec3 as needed
     
     // NEW APPROACH:
     // 1. Put all vertices for all tiles in a single array
@@ -206,11 +193,16 @@ void World::GenerateRenderingData()
         unsigned int vertexCount = static_cast<unsigned int>(tileVertices.size() + 1);
           // Index where this tile's indices start in the indices array
         unsigned int indexOffset = static_cast<unsigned int>(m_indices.size());
+          // Get the terrain type of this tile and use its color
+        TerrainType terrainType = tile.GetTerrainType();
         
-        // Create a unique color for this tile based on its index
-        glm::vec3 tileColor = tileBaseColors[tileIdx % tileBaseColors.size()];
-          if (tile.GetShape() == Generators::Tile::TileShape::Pentagon) {
-            tileColor = glm::clamp(tileColor * 1.5f, glm::vec3(0.0f), glm::vec3(1.0f));
+        // Get color from the TerrainColors map, convert vec4 to vec3 (drop alpha)
+        const glm::vec4& colorVec4 = TerrainColors.at(terrainType);
+        glm::vec3 tileColor = glm::vec3(colorVec4.r, colorVec4.g, colorVec4.b);
+        
+        // Adjust color for pentagon tiles to make them slightly distinct
+        if (tile.GetShape() == Generators::Tile::TileShape::Pentagon) {
+            tileColor = glm::clamp(tileColor * 1.2f, glm::vec3(0.0f), glm::vec3(1.0f));
         }
         
         // Get the center position

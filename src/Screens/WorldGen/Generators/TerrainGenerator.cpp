@@ -5,6 +5,7 @@
 #include <algorithm>
 
 namespace WorldGen {
+namespace Generators {
 
 // Improved noise2D with gradient noise
 float TerrainGenerator::noise2D(float x, float y, unsigned int seed) {
@@ -124,23 +125,7 @@ void TerrainGenerator::generateTerrain(
             terrainData[{x, y}] = data; // Use TileCoord struct literal for key
         }
     }
-    
-    /* 
-    TODO: Generate a spherical world
-    - divide the sphere into a grid of hexagons
-    - generate major world features in the hexagons
-    - each hexagon will have a number of world features (e.g. it can have a mountain, river and forest)
-
-
-    TODO: generate sectors of terrain
-    - each sector should be a hexagon
-    - sectors may have a number of influence regions around their edge
-    - the influence regions will be expressed as a side (top, bottom, left, right) and a start/end distance from the edge vector start
-    - the influence points will be used to connect features between sectors (like rivers)
-
-    TODO: generate the tiles within each sector
-    - the tiles will be generated respecting the edge influence regions
-    */
 }
 
+} // namespace Generators
 } // namespace WorldGen

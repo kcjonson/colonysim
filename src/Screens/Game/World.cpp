@@ -3,7 +3,7 @@
 #include "../../Camera.h"
 #include "../../VectorGraphics.h"
 #include "Tile.h"
-#include "../WorldGen/Core/TerrainGenerator.h" // Updated path to TerrainGenerator.h
+#include "../WorldGen/Generators/TerrainGenerator.h" // Updated path to TerrainGenerator.h
 #include <iostream>
 #include <algorithm>
 #include <iomanip> // For std::setw and std::setprecision

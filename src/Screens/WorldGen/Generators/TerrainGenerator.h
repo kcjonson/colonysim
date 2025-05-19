@@ -3,9 +3,10 @@
 #include <unordered_map>
 #include <string>
 #include <functional>
-#include "TerrainTypes.h"
+#include "../Core/TerrainTypes.h"
 
 namespace WorldGen {
+namespace Generators {
 
 class TerrainGenerator {
 public:
@@ -28,4 +29,5 @@ private:
     TerrainGenerator() = default;
 };
 
+} // namespace Generators
 } // namespace WorldGen

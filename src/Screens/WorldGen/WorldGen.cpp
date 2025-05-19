@@ -5,7 +5,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <random>
-#include "Core/TerrainGenerator.h"
+#include "Generators/TerrainGenerator.h"
 #include "VectorGraphics.h"
 #include <algorithm> // Keep algorithm include
 

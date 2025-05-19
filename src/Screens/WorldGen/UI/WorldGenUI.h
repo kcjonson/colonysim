@@ -9,7 +9,7 @@
 #include "../../../Rendering/Layer.h"
 #include "../../../Rendering/Shapes/Rectangle.h"
 #include "../../../Rendering/Shapes/Text.h"
-#include "../Core/TerrainGenerator.h" // Updated path to Core directory
+#include "../Generators/TerrainGenerator.h" // Updated path to Generators directory
 #include "../../MainMenu/MainMenu.h" // Updated path to MainMenu.h
 #include "../Core/WorldGenParameters.h" // Updated path to Core directory
 
