@@ -16,6 +16,7 @@ namespace Shapes {
 class Rectangle : public Shape {
 public:
     // Alias for the Rectangle style for convenience
+    // TODO: Move inline here.
     using Styles = Rendering::Styles::Rectangle;
     
     /**

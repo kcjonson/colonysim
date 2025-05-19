@@ -12,18 +12,6 @@
 namespace Rendering {
 	namespace Components {
 
-		// New struct for Button arguments
-		struct ButtonArgs {
-			std::string label = "";
-			glm::vec2 position = glm::vec2(0.0f);
-			glm::vec2 size = glm::vec2(100.0f, 30.0f);
-			Styles::Button style = Styles::Button({});
-			Styles::Button hoverStyle = Styles::Button({});
-			Styles::Button pressedStyle = Styles::Button({});
-			float zIndex = 0.0f;
-			std::function<void()> onClick = nullptr;
-		};
-
 		/**
 		 * A button component with a label and onClick callback
 		 *
@@ -32,25 +20,58 @@ namespace Rendering {
 		 */
 		class Button : public Layer {
 		  public:
+
+			// Alias for the button style for convenience
+			// TODO: Move inline here.
+		    using Styles = Rendering::Styles::Button;
+
+			// Button type enum to define consistent styling
+			enum class Type {
+				Primary,
+				Secondary,
+				Custom // For buttons with manually specified styles
+			};
+
+			// New struct for Button arguments
+			struct Args {
+				std::string label = "";
+				glm::vec2 position = glm::vec2(0.0f);
+				glm::vec2 size = glm::vec2(100.0f, 30.0f);
+				Type type = Type::Primary; // Default to Primary type
+				Styles style = Styles::Button({});
+				bool disabled = false;
+				Styles hoverStyle = Styles::Button({});
+				Styles pressedStyle = Styles::Button({});
+				float zIndex = 0.0f;
+				std::function<void()> onClick = nullptr;
+			};
+
+
 			// Button states for visual feedback
 			enum class State { Normal, Hover, Pressed };
 
 			/**
-			 * Create a button using the ButtonArgs struct.
+			 * Create a button using the Button::Args struct.
 			 *
 			 * @param args A struct containing all arguments for the button.
 			 */
-			explicit Button(const ButtonArgs &args);
+			explicit Button(const Args &args);
 
 			virtual ~Button() = default;
 
 			// Getters and setters
+			
+			// Button type
+			Type getType() const { return type; }
+			void setType(Type newType);
+
+			// Size
 			const glm::vec2 &getSize() const { return size; }
 			void setSize(const glm::vec2 &newSize);
 
 			// Style
-			const Styles::Button &getStyle() const { return style; }
-			void setStyle(const Styles::Button &s);
+			const Styles &getStyle() const { return style; }
+			void setStyle(const Styles &s);
 
 			// Label
 			const std::string &getLabel() const { return label; }
@@ -59,6 +80,10 @@ namespace Rendering {
 			// onClick callback
 			const std::function<void()> &getOnClick() const { return onClick; }
 			void setOnClick(const std::function<void()> &callback) { onClick = callback; }
+
+			// Disabled
+			bool isDisabled() const { return disabled; }
+			void setDisabled(bool d);
 
 			// Position
 			const glm::vec2 &getPosition() const { return position; }
@@ -83,7 +108,7 @@ namespace Rendering {
 
 			// Check if a point is within the button's bounds
 			bool containsPoint(const glm::vec2 &point) const;
-
+			bool disabled = false; // Disabled state
 			
 			// State accessors
 			State getState() const { return state; }
@@ -91,10 +116,19 @@ namespace Rendering {
 			bool isPressed() const { return state == State::Pressed; }
 
 			// Helper function to convert Button style to Rectangle style
-			Styles::Rectangle buttonToRectangleStyle(const Styles::Button &buttonStyle);
+			Styles::Rectangle buttonToRectangleStyle(const Styles &buttonStyle);
 
 			// Update the visual state of the button
 			void updateVisualState();
+
+			// Apply styles based on button type
+			void applyTypeStyles();
+
+			// Get predefined styles for a given button type
+			static Styles getDefaultStyleForType(Type type);
+			static Styles getHoverStyleForType(Type type);
+			static Styles getPressedStyleForType(Type type);
+			static Styles getDisabledStyle();
 
 			// Mark the button as dirty when properties change (similar to Shape::markDirty)
 			void markDirty() { dirty = true; }
@@ -102,9 +136,10 @@ namespace Rendering {
 			glm::vec2 position;
 			std::string label;
 			glm::vec2 size;
-			Styles::Button style;
-			Styles::Button hoverStyle;
-			Styles::Button pressedStyle;
+			Type type = Type::Primary;
+			Styles style;
+			Styles hoverStyle;
+			Styles pressedStyle;
 			std::function<void()> onClick;
 			bool dirty = true; // Dirty flag (moved from Shape)
 

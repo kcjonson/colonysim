@@ -55,15 +55,9 @@ MainMenuScreen::MainMenuScreen(Camera* camera, GLFWwindow* window) {
     backgroundLayer->addItem(menuBackground);
 
     newColonyButton = std::make_shared<Rendering::Components::Button>(
-        Rendering::Components::ButtonArgs{
+        Rendering::Components::Button::Args{
             .label = "New Colony",
-            .style = Rendering::Styles::Button({
-                .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
-                .borderColor = glm::vec4(0.0f),
-                .borderWidth = 0.0f,
-                .borderPosition = BorderPosition::Outside,
-                .cornerRadius = 5.0f
-            }),
+            .type = Rendering::Components::Button::Type::Primary,
             .onClick = [this]() {
                 std::cout << "New Colony button clicked!" << std::endl;
                 screenManager->switchScreen(ScreenType::WorldGen);
@@ -73,15 +67,10 @@ MainMenuScreen::MainMenuScreen(Camera* camera, GLFWwindow* window) {
     buttonLayer->addItem(newColonyButton);
 
     loadColonyButton = std::make_shared<Rendering::Components::Button>(
-        Rendering::Components::ButtonArgs{
+        Rendering::Components::Button::Args{
             .label = "Load Colony",
-            .style = Rendering::Styles::Button({
-                .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
-                .borderColor = glm::vec4(0.0f),
-                .borderWidth = 0.0f,
-                .borderPosition = BorderPosition::Outside,
-                .cornerRadius = 5.0f
-            }),
+            .type = Rendering::Components::Button::Type::Primary,
+            .disabled = true, // Disabled for now
             .onClick = [this]() {
                 std::cout << "Load Colony button clicked!" << std::endl;
             }
@@ -90,15 +79,9 @@ MainMenuScreen::MainMenuScreen(Camera* camera, GLFWwindow* window) {
     buttonLayer->addItem(loadColonyButton);
 
     settingsButton = std::make_shared<Rendering::Components::Button>(
-        Rendering::Components::ButtonArgs{
+        Rendering::Components::Button::Args{
             .label = "Settings",
-            .style = Rendering::Styles::Button({
-                .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
-                .borderColor = glm::vec4(0.0f),
-                .borderWidth = 0.0f,
-                .borderPosition = BorderPosition::Outside,
-                .cornerRadius = 5.0f
-            }),
+            .type = Rendering::Components::Button::Type::Primary,
             .onClick = [this]() {
                 std::cout << "Settings button clicked!" << std::endl;
                 screenManager->switchScreen(ScreenType::Settings);
@@ -109,15 +92,9 @@ MainMenuScreen::MainMenuScreen(Camera* camera, GLFWwindow* window) {
 
 
     developerButton = std::make_shared<Rendering::Components::Button>(
-        Rendering::Components::ButtonArgs{
+        Rendering::Components::Button::Args{
             .label = "Developer",
-            .style = Rendering::Styles::Button({
-                .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
-                .borderColor = glm::vec4(0.0f),
-                .borderWidth = 0.0f,
-                .borderPosition = BorderPosition::Outside,
-                .cornerRadius = 5.0f
-            }),
+            .type = Rendering::Components::Button::Type::Primary,
             .onClick = [this]() {
                 std::cout << "Developer button clicked!" << std::endl;
                 screenManager->switchScreen(ScreenType::Developer);

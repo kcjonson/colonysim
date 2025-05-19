@@ -6,43 +6,52 @@
 namespace Rendering {
 	namespace Components {
 
-		Button::Button(const ButtonArgs &args)
+		Button::Button(const Args &args)
 			: Layer(args.zIndex),
 			  position(args.position),
 			  label(args.label),
 			  size(args.size),
+			  type(args.type),
 			  style(args.style),
 			  hoverStyle(args.hoverStyle),
 			  pressedStyle(args.pressedStyle),
 			  onClick(args.onClick),
 			  dirty(true) {
 
-			// If hover style was default-initialized (e.g., color is the
-			// default sentinel), create a slightly lighter version of the
-			// normal style. This preserves the original logic where a
-			// default-constructed hoverStyle parameter triggered derivation.
-			if (this->hoverStyle.color == glm::vec4(1.0f)) {
-				Styles::Button derivedHoverStyle = this->style; // Start with the normal style
-				derivedHoverStyle.color = glm::vec4(
-					std::min(this->style.color.r + 0.1f, 1.0f),
-					std::min(this->style.color.g + 0.1f, 1.0f),
-					std::min(this->style.color.b + 0.1f, 1.0f),
-					this->style.color.a
-				);
-				this->hoverStyle = derivedHoverStyle;
-			}
 
-			// If pressed style was default-initialized, create a slightly
-			// darker version of the normal style.
-			if (this->pressedStyle.color == glm::vec4(1.0f)) {
-				Styles::Button derivedPressedStyle = this->style; // Start with the normal style
-				derivedPressedStyle.color = glm::vec4(
-					std::max(this->style.color.r - 0.1f, 0.0f),
-					std::max(this->style.color.g - 0.1f, 0.0f),
-					std::max(this->style.color.b - 0.1f, 0.0f),
-					this->style.color.a
-				);
-				this->pressedStyle = derivedPressedStyle;
+			this->disabled = args.disabled;
+			// Apply predefined styles based on type if not custom
+			if (type != Type::Custom) {
+				applyTypeStyles();
+			} else {
+				// If custom type but using default styles, apply Primary style
+				if (this->style.color == glm::vec4(0.5f, 0.5f, 0.5f, 1.0f)) {
+					this->style = getDefaultStyleForType(Type::Primary);
+				}
+
+				// If hover style was default-initialized, create a slightly lighter version of the normal style
+				if (this->hoverStyle.color == glm::vec4(1.0f)) {
+					auto derivedHoverStyle = this->style; // Start with the normal style
+					derivedHoverStyle.color = glm::vec4(
+						std::min(this->style.color.r + 0.1f, 1.0f),
+						std::min(this->style.color.g + 0.1f, 1.0f),
+						std::min(this->style.color.b + 0.1f, 1.0f),
+						this->style.color.a
+					);
+					this->hoverStyle = derivedHoverStyle;
+				}
+
+				// If pressed style was default-initialized, create a slightly darker version of the normal style
+				if (this->pressedStyle.color == glm::vec4(1.0f)) {
+					auto derivedPressedStyle = this->style; // Start with the normal style
+					derivedPressedStyle.color = glm::vec4(
+						std::max(this->style.color.r - 0.1f, 0.0f),
+						std::max(this->style.color.g - 0.1f, 0.0f),
+						std::max(this->style.color.b - 0.1f, 0.0f),
+						this->style.color.a
+					);
+					this->pressedStyle = derivedPressedStyle;
+				}
 			}
 
 			// The Button's Layer zIndex is args.zIndex.
@@ -73,6 +82,97 @@ namespace Rendering {
 			});
 		}
 
+		void Button::applyTypeStyles() {
+			style = getDefaultStyleForType(type);
+			hoverStyle = getHoverStyleForType(type);
+			pressedStyle = getPressedStyleForType(type);
+			
+			// Update rectangle style if background already exists
+			if (background) {
+				background->setStyle(buttonToRectangleStyle(style));
+			}
+			
+			markDirty();
+		}
+
+		void Button::setType(Type newType) {
+			if (type != newType) {
+				type = newType;
+				applyTypeStyles();
+				updateVisualState(); // Apply the correct style based on current state
+			}
+		}
+
+		Button::Styles Button::getDefaultStyleForType(Type type) {
+			Rendering::Styles::ButtonStyleParams params;
+			
+			switch (type) {
+				case Type::Primary:
+					// Blue primary button
+					params.color = glm::vec4(0.2f, 0.4f, 0.8f, 1.0f);
+					params.borderColor = glm::vec4(0.1f, 0.2f, 0.5f, 1.0f);
+					params.borderWidth = 1.0f;
+					params.cornerRadius = 5.0f;
+					break;
+				case Type::Secondary:
+					// Light blue secondary button
+					params.color = glm::vec4(0.5f, 0.7f, 0.9f, 1.0f);
+					params.borderColor = glm::vec4(0.4f, 0.6f, 0.8f, 1.0f);
+					params.borderWidth = 1.0f;
+					params.cornerRadius = 5.0f;
+					break;
+				case Type::Custom:
+				default:
+					// Default style (shouldn't be used with Custom type)
+					params.color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+					params.borderWidth = 0.0f;
+					params.cornerRadius = 5.0f;
+					break;
+			}
+			
+			return Button::Styles(params);
+		}
+		
+		Button::Styles Button::getHoverStyleForType(Type type) {
+			Button::Styles baseStyle = getDefaultStyleForType(type);
+			
+			// Create a slightly lighter version for hover state
+			baseStyle.color = glm::vec4(
+				std::min(baseStyle.color.r + 0.1f, 1.0f),
+				std::min(baseStyle.color.g + 0.1f, 1.0f),
+				std::min(baseStyle.color.b + 0.1f, 1.0f),
+				baseStyle.color.a
+			);
+			
+			return baseStyle;
+		}
+
+		Button::Styles Button::getPressedStyleForType(Type type) {
+			Button::Styles baseStyle = getDefaultStyleForType(type);
+			
+			// Create a slightly darker version for pressed state
+			baseStyle.color = glm::vec4(
+				std::max(baseStyle.color.r - 0.1f, 0.0f),
+				std::max(baseStyle.color.g - 0.1f, 0.0f),
+				std::max(baseStyle.color.b - 0.1f, 0.0f),
+				baseStyle.color.a
+			);
+			
+			return baseStyle;
+		}
+
+		Button::Styles Button::getDisabledStyle() {
+			Rendering::Styles::ButtonStyleParams params;
+			
+			// Grey background for disabled state
+			params.color = glm::vec4(0.6f, 0.6f, 0.6f, 1.0f);
+			params.borderColor = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+			params.borderWidth = 1.0f;
+			params.cornerRadius = 5.0f;
+			
+			return Button::Styles(params);
+		}
+
 		void Button::setSize(const glm::vec2 &newSize) {
 			size = newSize;
 			if (background) {
@@ -91,12 +191,26 @@ namespace Rendering {
 			markDirty();
 		}
 
-		void Button::setStyle(const Styles::Button &s) {
+		void Button::setStyle(const Styles &s) {
 			style = s;
+			// When manually setting style, change to custom type
+			type = Type::Custom;
 			if (background) {
 				background->setStyle(buttonToRectangleStyle(s));
 			}
 			markDirty();
+		}
+
+		void Button::setDisabled(bool d) {
+			if (disabled != d) {
+				disabled = d;
+				// Reset mouse state when changing disabled state
+				if (disabled) {
+					mouseDown = false;
+				}
+				updateVisualState();
+				markDirty();
+			}
 		}
 
 		void Button::setLabel(const std::string &text) {
@@ -118,10 +232,9 @@ namespace Rendering {
 			background->draw();
 			labelText->draw();
 		}
-
 		void Button::click() {
-			// Execute the onClick callback if it exists
-			if (onClick) {
+			// Execute the onClick callback if it exists and the button is not disabled
+			if (onClick && !disabled) {
 				onClick();
 			}
 		}
@@ -129,7 +242,6 @@ namespace Rendering {
 		bool Button::containsPoint(const glm::vec2 &point) const {
 			return point.x >= position.x && point.x <= position.x + size.x && point.y >= position.y && point.y <= position.y + size.y;
 		}
-
 		void Button::handleMouseMove(const glm::vec2 &mousePos) {
 			// Check if the mouse is over the button
 			bool wasOver = mouseOver;
@@ -140,39 +252,50 @@ namespace Rendering {
 				updateVisualState();
 			}
 		}
-
 		void Button::handleMouseButton(int button, int action) {
 			// Only handle left mouse button
 			if (button != 0) { // 0 is GLFW_MOUSE_BUTTON_LEFT
 				return;
 			}
 
-			bool wasDown = mouseDown;
-			mouseDown = (action == 1); // 1 is GLFW_PRESS
+			// If the button is disabled, don't change the mouseDown state
+			if (!disabled) {
+				bool wasDown = mouseDown;
+				mouseDown = (action == 1); // 1 is GLFW_PRESS
 
-			// If mouse is released over the button and was previously pressed,
-			// trigger click
-			if (wasDown && !mouseDown && mouseOver) {
-				click();
+				// If mouse is released over the button and was previously pressed,
+				// trigger click
+				if (wasDown && !mouseDown && mouseOver) {
+					click();
+				}
 			}
 
 			// Update visual state
 			updateVisualState();
 		}
-
 		// Helper function to convert Button style to Rectangle style
-		Styles::Rectangle Button::buttonToRectangleStyle(const Styles::Button &buttonStyle) {
-			Styles::RectangleStyleParams rectParams;
+		Rendering::Styles::Rectangle Button::buttonToRectangleStyle(const Styles &buttonStyle) {
+			Rendering::Styles::RectangleStyleParams rectParams;
 			rectParams.color = buttonStyle.color;
 			rectParams.opacity = buttonStyle.opacity;
 			rectParams.borderColor = buttonStyle.borderColor;
 			rectParams.borderWidth = buttonStyle.borderWidth;
 			rectParams.borderPosition = buttonStyle.borderPosition;
 			rectParams.cornerRadius = buttonStyle.cornerRadius;
-			return Styles::Rectangle(rectParams);
+			return Rendering::Styles::Rectangle(rectParams);
 		}
-
 		void Button::updateVisualState() {
+			// If button is disabled, apply disabled style and return
+			if (disabled) {
+				background->setStyle(buttonToRectangleStyle(getDisabledStyle()));
+				
+				// Update text color for disabled state
+				auto textStyle = labelText->getStyle();
+				textStyle.color = glm::vec4(0.4f, 0.4f, 0.4f, 1.0f); // Dark grey text
+				labelText->setStyle(textStyle);
+				return;
+			}
+
 			// Determine the new state
 			State newState;
 
@@ -200,6 +323,11 @@ namespace Rendering {
 						background->setStyle(buttonToRectangleStyle(pressedStyle));
 						break;
 				}
+				
+				// Reset text color for normal states
+				auto textStyle = labelText->getStyle();
+				textStyle.color = glm::vec4(1.0f); // White text
+				labelText->setStyle(textStyle);
 			}
 		}
 

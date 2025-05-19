@@ -148,7 +148,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
     sidebarLayer->addItem(seedValue);
     
     auto generateWorldButton = std::make_shared<Rendering::Components::Button>(
-        Rendering::Components::ButtonArgs{
+        Rendering::Components::Button::Args{
             .label = "Generate World",
             .position = glm::vec2(40.0f, 350.0f),
             .size = glm::vec2(220.0f, 50.0f),
@@ -170,7 +170,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
     sidebarLayer->addItem(generateWorldButton);
 
     auto landButton = std::make_shared<Rendering::Components::Button>(
-        Rendering::Components::ButtonArgs{
+        Rendering::Components::Button::Args{
             .label = "Land on World",
             .position = glm::vec2(40.0f, 420.0f),
             .size = glm::vec2(220.0f, 50.0f),
@@ -192,7 +192,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
     sidebarLayer->addItem(landButton);
 
     auto cancelButton = std::make_shared<Rendering::Components::Button>(
-        Rendering::Components::ButtonArgs{
+        Rendering::Components::Button::Args{
             .label = "Back",
             .position = glm::vec2(40.0f, 490.0f),
             .size = glm::vec2(220.0f, 50.0f),
