@@ -48,20 +48,31 @@ namespace Rendering {
 			const glm::vec2 &getSize() const { return size; }
 			void setSize(const glm::vec2 &newSize);
 
+			// Style
 			const Styles::Button &getStyle() const { return style; }
 			void setStyle(const Styles::Button &s);
 
+			// Label
 			const std::string &getLabel() const { return label; }
 			void setLabel(const std::string &text);
+
+			// onClick callback
 			const std::function<void()> &getOnClick() const { return onClick; }
 			void setOnClick(const std::function<void()> &callback) { onClick = callback; }
 
-			// Position getter/setter (now implemented in Button since it's not from Shape)
+			// Position
 			const glm::vec2 &getPosition() const { return position; }
 			void setPosition(const glm::vec2 &pos);
 
 			// Implementation of the render method (overriding Layer)
 			virtual void render(bool batched = false) override;
+
+			// Trigger the click event directly
+			void click(); // Input handling methods
+			void handleInput(float deltaTime = 0.0f);
+
+
+		  private:
 
 			// Implementation of the draw method (no longer overriding)
 			void draw();
@@ -73,16 +84,12 @@ namespace Rendering {
 			// Check if a point is within the button's bounds
 			bool containsPoint(const glm::vec2 &point) const;
 
-			// Trigger the click event directly
-			void click(); // Input handling methods
-			void handleInput(float deltaTime = 0.0f);
-
+			
 			// State accessors
 			State getState() const { return state; }
 			bool isHovered() const { return state == State::Hover || state == State::Pressed; }
 			bool isPressed() const { return state == State::Pressed; }
 
-		  private:
 			// Helper function to convert Button style to Rectangle style
 			Styles::Rectangle buttonToRectangleStyle(const Styles::Button &buttonStyle);
 
@@ -92,7 +99,7 @@ namespace Rendering {
 			// Mark the button as dirty when properties change (similar to Shape::markDirty)
 			void markDirty() { dirty = true; }
 
-			glm::vec2 position; // Position (moved from Shape)
+			glm::vec2 position;
 			std::string label;
 			glm::vec2 size;
 			Styles::Button style;
