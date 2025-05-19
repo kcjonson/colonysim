@@ -12,7 +12,10 @@ std::unique_ptr<World> Generator::CreateWorld(const PlanetParameters& params, st
     int subdivisionLevel = GetSubdivisionLevel(params.resolution);
     
     // Calculate distortion factor (can be a parameter later)
-    float distortionFactor = 0.15f; // Default distortion factor
+    // Should this vary with subvision level?
+    // Note: Anything over 0.15f is very distorted. Not sure what this unit really is.
+    float distortionFactor = 0.05f; 
+    
       // Generate the world geometry
     world->Generate(subdivisionLevel, distortionFactor, progressTracker);
     
