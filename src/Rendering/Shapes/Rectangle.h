@@ -15,6 +15,19 @@ namespace Shapes {
  */
 class Rectangle : public Shape {
 public:
+    // Alias for the Rectangle style for convenience
+    using Styles = Rendering::Styles::Rectangle;
+    
+    /**
+     * Arguments struct for Rectangle constructor
+     */
+    struct Args {
+        glm::vec2 position = glm::vec2(0.0f);
+        glm::vec2 size = glm::vec2(1.0f);
+        Styles style = Styles({});
+        float zIndex = 0.0f;
+    };
+    
     /**
      * Create a rectangle with the specified position (top-left corner), size, style and z-index
      * 
@@ -26,25 +39,30 @@ public:
     Rectangle(
         const glm::vec2& position = glm::vec2(0.0f),
         const glm::vec2& size = glm::vec2(1.0f),
-        const Styles::Rectangle& style = Styles::Rectangle({}),
+        const Styles& style = Styles({}),
         float zIndex = 0.0f
     );
     
-    virtual ~Rectangle() = default;
-
-    // Getters and setters
+    /**
+     * Create a rectangle using the Args struct.
+     *
+     * @param args A struct containing all arguments for the rectangle.
+     */
+    explicit Rectangle(const Args& args);
+    
+    virtual ~Rectangle() = default;    // Getters and setters
     const glm::vec2& getSize() const { return size; }
     void setSize(const glm::vec2& newSize) { size = newSize; markDirty(); }
 
-    const Styles::Rectangle& getStyle() const { return style; }
-    void setStyle(const Styles::Rectangle& s) { style = s; markDirty(); }
+    const Styles& getStyle() const { return style; }
+    void setStyle(const Styles& s) { style = s; markDirty(); }
 
     // Implementation of the draw method
     virtual void draw() override;
 
 private:
     glm::vec2 size;
-    Styles::Rectangle style;
+    Styles style;
 };
 
 } // namespace Shapes

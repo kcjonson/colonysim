@@ -39,15 +39,19 @@ MainMenuScreen::MainMenuScreen(Camera* camera, GLFWwindow* window) {
     float boxX = (width - boxWidth) / 2.0f;
     float boxY = (height - boxHeight) / 2.0f;
     
+
     menuBackground = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(boxX, boxY),
-        glm::vec2(boxWidth, boxHeight),
-        Rendering::Styles::Rectangle({
-            .color = glm::vec4(0.1f, 0.1f, 0.1f, 0.8f),
-            .cornerRadius = 10.0f
-        }),
-        5.0f  // Z-index
+        Rendering::Shapes::Rectangle::Args{
+            .position = glm::vec2(boxX, boxY),
+            .size = glm::vec2(boxWidth, boxHeight),
+            .style = Rendering::Shapes::Rectangle::Styles({
+                .color = glm::vec4(0.1f, 0.1f, 0.1f, 0.8f),
+                .cornerRadius = 10.0f
+            }),
+            .zIndex = 5.0f
+        }
     );
+
     backgroundLayer->addItem(menuBackground);
 
     newColonyButton = std::make_shared<Rendering::Components::Button>(
