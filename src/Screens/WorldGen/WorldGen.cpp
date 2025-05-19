@@ -113,8 +113,6 @@ bool WorldGenScreen::initialize() {
         // Reset the progress tracker
         m_progressTracker->Reset();
         
-        // No need to set a new callback, already configured in initialize()
-        
         // Stop any existing generation thread
         if (m_isGenerating) {
             m_shouldStopGeneration = true;
@@ -255,6 +253,7 @@ void WorldGenScreen::render() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     m_stars->render();    // --- Render the icosahedron world if generated ---
+
     if (worldGenerated && m_world && m_worldRenderer) {
         // Enable depth testing for 3D rendering
         glEnable(GL_DEPTH_TEST);
@@ -278,11 +277,17 @@ void WorldGenScreen::render() {
         );
         
         // Render the world with adjusted projection
-        m_worldRenderer->Render(m_viewMatrix, adjustedProjection);
-        
-        // Reset viewport for UI
+        m_worldRenderer->Render(m_viewMatrix, adjustedProjection);        // Fully reset OpenGL state for UI rendering
         glViewport(0, 0, width, height);
         glDisable(GL_DEPTH_TEST);
+        
+        // Make sure blending is properly set up again for UI rendering
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glBlendEquation(GL_FUNC_ADD);
+        
+        // Unbind any active shader program
+        glUseProgram(0);
     }
 
     // --- Render UI layers ---

@@ -57,15 +57,32 @@ void World::Render(const glm::mat4& viewMatrix, const glm::mat4& projectionMatri
         GenerateRenderingData();
     }
     
-    // Disable face culling for planet rendering so both sides of triangles are visible
-    glDisable(GL_CULL_FACE);    // Enable depth testing to ensure proper rendering of 3D objects
+    // Save current OpenGL state
+    GLboolean depthTestEnabled = glIsEnabled(GL_DEPTH_TEST);
+    GLboolean cullFaceEnabled = glIsEnabled(GL_CULL_FACE);
+    GLboolean blendEnabled = glIsEnabled(GL_BLEND);
+    
+    // Configure OpenGL state for planet rendering
+    glDisable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
-
 
     RenderTiles(viewMatrix, projectionMatrix);
 
-    // Re-enable face culling for other elements in the scene
-    glEnable(GL_CULL_FACE);
+    // Restore previous OpenGL state
+    if (cullFaceEnabled)
+        glEnable(GL_CULL_FACE);
+    else
+        glDisable(GL_CULL_FACE);
+        
+    if (depthTestEnabled)
+        glEnable(GL_DEPTH_TEST);
+    else
+        glDisable(GL_DEPTH_TEST);
+        
+    if (blendEnabled)
+        glEnable(GL_BLEND);
+    else
+        glDisable(GL_BLEND);
 }
 
 // Helper function to validate tile geometry before rendering
@@ -431,13 +448,24 @@ void World::RenderTiles(const glm::mat4& viewMatrix, const glm::mat4& projection
       for (const auto& tileInfo : m_tileFanInfo) {
         RenderTile(tileInfo, isVisible, false);
     }
-    
-    // Reset OpenGL state
+      // Reset OpenGL state
     glDepthMask(GL_TRUE);
     glLineWidth(1.0f);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    
+    // Unbind shader program
+    m_shader.unbind();
+    
+    // Unbind VAO and current texture
     glBindVertexArray(0);
-      // Re-enable face culling for other objects if necessary
+    glBindTexture(GL_TEXTURE_2D, 0);
+      
+    // Reset blend state to normal alpha blending
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+      
+    // Re-enable face culling for other objects
     glEnable(GL_CULL_FACE);
 }
 

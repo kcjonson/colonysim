@@ -39,6 +39,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
         0.0f
     );
     sidebarLayer->addItem(sidebarBackground);
+
     radiusLabel = std::make_shared<Rendering::Shapes::Text>(
         Rendering::Shapes::Text::Args{
             .text = "Size:",
@@ -50,6 +51,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
             .zIndex = 150.0f
         }
     );
+
     sidebarLayer->addItem(radiusLabel);
       radiusValue = std::make_shared<Rendering::Shapes::Text>(
         Rendering::Shapes::Text::Args{
@@ -188,8 +190,6 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
     );
     sidebarLayer->addItem(landButton);
 
-
-
     auto cancelButton = std::make_shared<Rendering::Components::Button>(
         Rendering::Components::ButtonArgs{
             .label = "Back",
@@ -212,15 +212,17 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
     );
     sidebarLayer->addItem(cancelButton);
 
-
-
-    // Progress bar elements
-    float progressBarWidth = sidebarWidth - 80.0f;
+    // Progress bar elements - positioned centrally below the globe
+    float progressBarWidth = 300.0f; // Fixed width for the progress bar
     float progressBarHeight = 30.0f;
-    float progressBarY = 150.0f;
+    float progressBarYOffset = 80.0f; // Distance above the status text
+    
+    // Initial positions - will be properly set in onResize
+    float progressBarX = static_cast<float>(std::get<0>(windowSize)) / 2.0f - progressBarWidth / 2.0f;
+    float progressBarY = static_cast<float>(std::get<1>(windowSize)) - 40.0f - progressBarYOffset;
     
     progressBackground = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(40.0f, progressBarY),
+        glm::vec2(progressBarX, progressBarY),
         glm::vec2(progressBarWidth, progressBarHeight),
         Rendering::Styles::Rectangle({
             .color = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f),
@@ -231,7 +233,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
     infoLayer->addItem(progressBackground);
     
     progressFill = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(40.0f, progressBarY),
+        glm::vec2(progressBarX, progressBarY),
         glm::vec2(0.0f, progressBarHeight), // Initially 0 width
         Rendering::Styles::Rectangle({
             .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
@@ -240,11 +242,12 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
         151.0f
     );
     infoLayer->addItem(progressFill);
-    
+
     progressText = std::make_shared<Rendering::Shapes::Text>(
         Rendering::Shapes::Text::Args{
             .text = "0%",
-            .position = glm::vec2(40.0f + progressBarWidth / 2.0f, progressBarY + progressBarHeight / 2.0f + 8.0f),
+            .position = glm::vec2(0.0f, 0.0f),
+            .size = glm::vec2(progressBarWidth, progressBarHeight),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
                 .fontSize = 1.0f,
@@ -254,12 +257,13 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
             .zIndex = 152.0f
         }
     );
-
     infoLayer->addItem(progressText);
-      statusText = std::make_shared<Rendering::Shapes::Text>(
+    
+    statusText = std::make_shared<Rendering::Shapes::Text>(
         Rendering::Shapes::Text::Args{
             .text = statusMessage,
-            .position = glm::vec2(0.0f, 0.0f), // Will be positioned in layoutUI
+            .position = glm::vec2(0.0f, 0.0f),
+            .size = glm::vec2(300.0f, 30.0f),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
                 .fontSize = 1.0f,
@@ -333,7 +337,7 @@ void WorldGenUI::setProgress(float progress, const std::string& message) {
     
     // Update progress bar and text immediately (not just in next update call)
     if (progressFill && progressText) {
-        float progressBarWidth = sidebarWidth - 80.0f;
+        float progressBarWidth = 300.0f;
         float progressBarHeight = 30.0f;
         progressFill->setSize(glm::vec2(progressBarWidth * currentProgress, progressBarHeight));
         
@@ -341,13 +345,17 @@ void WorldGenUI::setProgress(float progress, const std::string& message) {
         progressText->setText(std::to_string(percentage) + "%");
     }
     
-
     statusText->setText(statusMessage);
 }
 
 void WorldGenUI::onResize(int windowWidth, int windowHeight) {
     windowSize = std::make_tuple(windowWidth, windowHeight);
+
+    // TODO: Subtract sidebar width from the window width
     statusText->setPosition(glm::vec2(windowWidth / 2.0f, windowHeight - 40.0f));
+    progressBackground->setPosition(glm::vec2(windowWidth / 2.0f, windowHeight - 80.0f));
+    progressFill->setPosition(glm::vec2(windowWidth / 2.0f, windowHeight - 80.0f));
+    progressText->setPosition(glm::vec2(windowWidth / 2.0f, windowHeight - 80.0f));
 }
 
 void WorldGenUI::render() {
@@ -359,7 +367,7 @@ void WorldGenUI::render() {
 void WorldGenUI::update(float /*deltaTime*/) {
     // Update progress bar and text regardless of state
     // (visibility is managed in layoutUI)
-    float progressBarWidth = sidebarWidth - 80.0f;
+    float progressBarWidth = 300.0f;
     float progressBarHeight = 30.0f;
     
     progressFill->setSize(glm::vec2(progressBarWidth * currentProgress, progressBarHeight));
@@ -367,9 +375,7 @@ void WorldGenUI::update(float /*deltaTime*/) {
     int percentage = static_cast<int>(currentProgress * 100.0f);
     progressText->setText(std::to_string(percentage) + "%");
 
-
     statusText->setText(statusMessage);
-
 }
 
 void WorldGenUI::handleInput(float deltaTime) {
