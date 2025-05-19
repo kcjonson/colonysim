@@ -9,7 +9,11 @@
 #include "../../Rendering/Layer.h"
 #include "../../Rendering/Shapes/Rectangle.h"
 #include "../../Rendering/Shapes/Text.h"
+#include "../../Rendering/Components/Button.h"
 
+
+// DANGER: THis is used elsewhere. 
+// TODO: REMOVE ONCE FULLY MIGRATED TO BUTTON CLASS
 struct MenuButton {
     std::string text;
     glm::vec2 position;
@@ -37,16 +41,21 @@ public:
     void onResize(int width, int height) override;
 
 private:
-    void layoutButtons();
-    void createButton(const std::string& text, const std::function<void()>& callback);
-    bool isPointInRect(float px, float py, float rx, float ry, float rw, float rh);
-    
-    std::vector<MenuButton> buttons;
-    float lastCursorX;
-    float lastCursorY;
-    
+
+    int menuWidth = 300;
+    int menuPadding = 20;
+    int buttonSpacing = 10;
+
     // UI Layers
     std::shared_ptr<Rendering::Layer> backgroundLayer;
     std::shared_ptr<Rendering::Layer> buttonLayer;
     std::shared_ptr<Rendering::Layer> titleLayer;
+
+    std::shared_ptr<Rendering::Shapes::Rectangle> menuBackground;
+    std::shared_ptr<Rendering::Components::Button> newColonyButton;
+    std::shared_ptr<Rendering::Components::Button> loadColonyButton;
+    std::shared_ptr<Rendering::Components::Button> settingsButton;
+    std::shared_ptr<Rendering::Components::Button> developerButton;
+
+    void doLayout();
 };

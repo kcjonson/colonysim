@@ -76,6 +76,15 @@ namespace Rendering {
 			markDirty();
 		}
 
+		void Button::setPosition(const glm::vec2 &pos) {
+			position = pos;
+			if (background) {
+				background->setPosition(pos);
+				labelText->setPosition(pos);
+			}
+			markDirty();
+		}
+
 		void Button::setStyle(const Styles::Button &s) {
 			style = s;
 			if (background) {

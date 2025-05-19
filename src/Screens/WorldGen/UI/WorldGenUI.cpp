@@ -80,7 +80,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
     );
     sidebarLayer->addItem(massLabel);
     
-      massValue = std::make_shared<Rendering::Shapes::Text>(
+    massValue = std::make_shared<Rendering::Shapes::Text>(
         Rendering::Shapes::Text::Args{
             .text = "0", // Will be updated in layoutUI
             .position = glm::vec2(valueX, startY + lineHeight),

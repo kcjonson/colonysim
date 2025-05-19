@@ -4,44 +4,18 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include "Rendering/Components/Button.h"
+
 
 // Update constructor definition to accept Camera* and GLFWwindow*
-MainMenuScreen::MainMenuScreen(Camera* camera, GLFWwindow* window)
-    : lastCursorX(0.0f)
-    , lastCursorY(0.0f) {
+MainMenuScreen::MainMenuScreen(Camera* camera, GLFWwindow* window) {
     
     // Create layers with different z-indices and pass pointers
     backgroundLayer = std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
     buttonLayer = std::make_shared<Rendering::Layer>(10.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
     titleLayer = std::make_shared<Rendering::Layer>(20.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
-}
 
-MainMenuScreen::~MainMenuScreen() {
-}
 
-bool MainMenuScreen::initialize() {
-    // Define menu buttons
-    buttons.clear();
-    
-    // Get window reference
-    GLFWwindow* window = screenManager->getWindow();
-    
-    // Create the buttons
-    createButton("Start Game", [this]() {
-        screenManager->switchScreen(ScreenType::WorldGen);
-    });
-    
-    createButton("Settings", [this]() {
-        screenManager->switchScreen(ScreenType::Settings);
-    });
-    
-    createButton("Developer", [this]() {
-        screenManager->switchScreen(ScreenType::Developer);
-    });
-    
-    // Layout buttons
-    layoutButtons();
-    
     // Create title
     int width, height;
     glfwGetWindowSize(window, &width, &height);
@@ -65,7 +39,7 @@ bool MainMenuScreen::initialize() {
     float boxX = (width - boxWidth) / 2.0f;
     float boxY = (height - boxHeight) / 2.0f;
     
-    auto menuBox = std::make_shared<Rendering::Shapes::Rectangle>(
+    menuBackground = std::make_shared<Rendering::Shapes::Rectangle>(
         glm::vec2(boxX, boxY),
         glm::vec2(boxWidth, boxHeight),
         Rendering::Styles::Rectangle({
@@ -74,94 +48,93 @@ bool MainMenuScreen::initialize() {
         }),
         5.0f  // Z-index
     );
-    backgroundLayer->addItem(menuBox);
-    
+    backgroundLayer->addItem(menuBackground);
+
+    newColonyButton = std::make_shared<Rendering::Components::Button>(
+        Rendering::Components::ButtonArgs{
+            .label = "New Colony",
+            .style = Rendering::Styles::Button({
+                .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
+                .borderColor = glm::vec4(0.0f),
+                .borderWidth = 0.0f,
+                .borderPosition = BorderPosition::Outside,
+                .cornerRadius = 5.0f
+            }),
+            .onClick = [this]() {
+                std::cout << "New Colony button clicked!" << std::endl;
+                screenManager->switchScreen(ScreenType::WorldGen);
+            }
+        }
+    );
+    buttonLayer->addItem(newColonyButton);
+
+    loadColonyButton = std::make_shared<Rendering::Components::Button>(
+        Rendering::Components::ButtonArgs{
+            .label = "Load Colony",
+            .style = Rendering::Styles::Button({
+                .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
+                .borderColor = glm::vec4(0.0f),
+                .borderWidth = 0.0f,
+                .borderPosition = BorderPosition::Outside,
+                .cornerRadius = 5.0f
+            }),
+            .onClick = [this]() {
+                std::cout << "Load Colony button clicked!" << std::endl;
+            }
+        }
+    );
+    buttonLayer->addItem(loadColonyButton);
+
+    settingsButton = std::make_shared<Rendering::Components::Button>(
+        Rendering::Components::ButtonArgs{
+            .label = "Settings",
+            .style = Rendering::Styles::Button({
+                .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
+                .borderColor = glm::vec4(0.0f),
+                .borderWidth = 0.0f,
+                .borderPosition = BorderPosition::Outside,
+                .cornerRadius = 5.0f
+            }),
+            .onClick = [this]() {
+                std::cout << "Settings button clicked!" << std::endl;
+                screenManager->switchScreen(ScreenType::Settings);
+            }
+        }
+    );
+    buttonLayer->addItem(settingsButton);
+
+
+    developerButton = std::make_shared<Rendering::Components::Button>(
+        Rendering::Components::ButtonArgs{
+            .label = "Developer",
+            .style = Rendering::Styles::Button({
+                .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
+                .borderColor = glm::vec4(0.0f),
+                .borderWidth = 0.0f,
+                .borderPosition = BorderPosition::Outside,
+                .cornerRadius = 5.0f
+            }),
+            .onClick = [this]() {
+                std::cout << "Developer button clicked!" << std::endl;
+                screenManager->switchScreen(ScreenType::Developer);
+            }
+        }
+    );
+    buttonLayer->addItem(developerButton);
+}
+
+MainMenuScreen::~MainMenuScreen() {
+}
+
+bool MainMenuScreen::initialize() {
+    doLayout();
     return true;
 }
 
-void MainMenuScreen::createButton(const std::string& text, const std::function<void()>& callback) {
-    MenuButton button;
-    button.text = text;
-    button.color = glm::vec4(0.2f, 0.5f, 0.8f, 1.0f);     // Blue
-    button.hoverColor = glm::vec4(0.3f, 0.6f, 0.9f, 1.0f); // Lighter blue
-    button.isHovered = false;
-    button.callback = callback;
-    
-    // The actual position and size will be set in layoutButtons()
-    buttons.push_back(button);
-}
 
-void MainMenuScreen::layoutButtons() {
-    // Get window size
-    GLFWwindow* window = screenManager->getWindow();
-    int width, height;
-    glfwGetWindowSize(window, &width, &height);
-    
-    // Define menu box
-    float boxWidth = 300.0f;
-    float boxHeight = 300.0f;
-    float boxX = (width - boxWidth) / 2.0f;
-    float boxY = (height - boxHeight) / 2.0f;
-    
-    // Button dimensions
-    float buttonWidth = 220.0f;
-    float buttonHeight = 50.0f;
-    float buttonSpacing = 20.0f;
-    
-    // Place buttons in the menu box
-    float startY = boxY + (boxHeight - buttons.size() * (buttonHeight + buttonSpacing) + buttonSpacing) / 2.0f;
-    
-    // Clear button layer first
-    buttonLayer->clearItems();
-    
-    for (size_t i = 0; i < buttons.size(); i++) {
-        // Update button position and size
-        buttons[i].position.x = boxX + (boxWidth - buttonWidth) / 2.0f;
-        buttons[i].position.y = startY + i * (buttonHeight + buttonSpacing);
-        buttons[i].size.x = buttonWidth;
-        buttons[i].size.y = buttonHeight;
-        
-        // Create button background rectangle
-        buttons[i].background = std::make_shared<Rendering::Shapes::Rectangle>(
-            buttons[i].position,
-            buttons[i].size,
-            Rendering::Styles::Rectangle({
-                .color = buttons[i].isHovered ? buttons[i].hoverColor : buttons[i].color,
-                .cornerRadius = 5.0f
-            }),
-            15.0f  // Z-index
-        );
-        buttonLayer->addItem(buttons[i].background);
-        
-        // Create button text
-        float textY = buttons[i].position.y + buttons[i].size.y / 2.0f + 8.0f; // Center text vertically
-        buttons[i].label = std::make_shared<Rendering::Shapes::Text>(
-            Rendering::Shapes::Text::Args{
-                .text = buttons[i].text,
-                .position = glm::vec2(buttons[i].position.x + buttons[i].size.x / 2.0f, textY),
-                .style = Rendering::Shapes::Text::Styles({
-                    .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                    .fontSize = 1.0f,                    .horizontalAlign = Rendering::TextAlign::Center,
-                    .verticalAlign = Rendering::TextAlign::Middle
-                }),
-                .zIndex = 16.0f
-            }
-        );
-        buttonLayer->addItem(buttons[i].label);
-    }
-}
 
 void MainMenuScreen::update(float deltaTime) {
-    // Update button hover states
-    for (size_t i = 0; i < buttons.size(); i++) {
-        // Update button color based on hover state
-        if (buttons[i].background) {
-            // Create a new style with the updated color
-            Rendering::Styles::Rectangle newStyle = buttons[i].background->getStyle();
-            newStyle.color = buttons[i].isHovered ? buttons[i].hoverColor : buttons[i].color;
-            buttons[i].background->setStyle(newStyle);
-        }
-    }
+
 }
 
 void MainMenuScreen::render() {
@@ -170,95 +143,49 @@ void MainMenuScreen::render() {
     glClear(GL_COLOR_BUFFER_BIT);
     
     // Render all layers in order
-    backgroundLayer->render(false); // No camera transform
+    backgroundLayer->render(false);
     buttonLayer->render(false);
     titleLayer->render(false);
 }
 
 void MainMenuScreen::handleInput(float deltaTime) {
-    GLFWwindow* window = screenManager->getWindow();
-    
-    // Get cursor position
-    double xpos, ypos;
-    glfwGetCursorPos(window, &xpos, &ypos);
-    lastCursorX = static_cast<float>(xpos);
-    lastCursorY = static_cast<float>(ypos);
-    
-    // Check for button hover
-    for (auto& button : buttons) {
-        button.isHovered = isPointInRect(
-            lastCursorX, lastCursorY,
-            button.position.x, button.position.y,
-            button.size.x, button.size.y
-        );
-    }
-    
-    // Check for button click
-    static bool wasPressed = false;
-    bool isPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
-    
-    if (isPressed && !wasPressed) {
-        for (const auto& button : buttons) {
-            if (button.isHovered && button.callback) {
-                button.callback();
-                break;
-            }
-        }
-    }
-    
-    wasPressed = isPressed;
-    
-    // Check for ESC key to quit
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
-    }
+    buttonLayer->handleInput(deltaTime);
 }
 
-void MainMenuScreen::onResize(int width, int height) {
-    // Clear existing layers
-    backgroundLayer->clearItems();
-    buttonLayer->clearItems();
-    titleLayer->clearItems();
-    
-    // Recreate title and background (addItem will handle window/camera propagation)
+void MainMenuScreen::doLayout() {
     GLFWwindow* window = screenManager->getWindow(); // Still need window for size calculation
     int currentWidth, currentHeight;
     glfwGetWindowSize(window, &currentWidth, &currentHeight); // Use current size
-    
-    auto titleText = std::make_shared<Rendering::Shapes::Text>(
-        Rendering::Shapes::Text::Args{
-            .text = "ColonySim",
-            .position = glm::vec2((currentWidth - 150.0f) / 2.0f, currentHeight * 0.2f),
-            .style = Rendering::Shapes::Text::Styles({
-                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 1.0f
-            }),
-            .zIndex = 25.0f
-        }
-    );
-    titleLayer->addItem(titleText);
-    
-    // Recreate menu box background
-    float boxWidth = 300.0f;
-    float boxHeight = 300.0f;
-    float boxX = (currentWidth - boxWidth) / 2.0f;
-    float boxY = (currentHeight - boxHeight) / 2.0f;
-    
-    auto menuBox = std::make_shared<Rendering::Shapes::Rectangle>(
-        glm::vec2(boxX, boxY),
-        glm::vec2(boxWidth, boxHeight),
-        Rendering::Styles::Rectangle({
-            .color = glm::vec4(0.1f, 0.1f, 0.1f, 0.8f),
-            .cornerRadius = 10.0f
-        }),
-        5.0f  // Z-index
-    );
-    backgroundLayer->addItem(menuBox);
 
-    // Re-layout buttons
-    layoutButtons();
+    // TODO: Get the button height from a getter on the button
+    int buttonHeight = 50;
+    int buttonWidth = menuWidth - (menuPadding * 2);
+    int menuHeight = (buttonHeight * 4) + (menuPadding * 5); // 4 buttons + padding
+    glm::vec2 menuPosition = glm::vec2((currentWidth - menuWidth) / 2, (currentHeight - menuHeight) / 2);
+    menuBackground->setPosition(menuPosition);
+    menuBackground->setSize(glm::vec2(menuWidth, menuHeight));
+
+    // Position buttons vertically stacked in the menu
+    float currentY = menuPosition.y + menuPadding;
+    float buttonX = menuPosition.x + menuPadding;
+
+    newColonyButton->setPosition(glm::vec2(buttonX, currentY));
+    newColonyButton->setSize(glm::vec2(buttonWidth, buttonHeight));
+    currentY += buttonHeight + buttonSpacing;
+    
+    loadColonyButton->setPosition(glm::vec2(buttonX, currentY));
+    loadColonyButton->setSize(glm::vec2(buttonWidth, buttonHeight));
+    currentY += buttonHeight + buttonSpacing;
+    
+    settingsButton->setPosition(glm::vec2(buttonX, currentY));
+    settingsButton->setSize(glm::vec2(buttonWidth, buttonHeight));
+    currentY += buttonHeight + buttonSpacing;
+    
+    developerButton->setPosition(glm::vec2(buttonX, currentY));
+    developerButton->setSize(glm::vec2(buttonWidth, buttonHeight));
 }
 
-bool MainMenuScreen::isPointInRect(float px, float py, float rx, float ry, float rw, float rh) {
-    return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
+void MainMenuScreen::onResize(int width, int height) {
+    doLayout();
 }
+
