@@ -86,6 +86,12 @@ private:
     std::shared_ptr<Rendering::Shapes::Text> waterValue;
     std::shared_ptr<Rendering::Shapes::Text> seedLabel;
     std::shared_ptr<Rendering::Shapes::Text> seedValue;
+
+    // Buttons
+    std::shared_ptr<Rendering::Components::Button> generateButton;
+    std::shared_ptr<Rendering::Components::Button> landButton;
+    std::shared_ptr<Rendering::Components::Button> cancelButton;
+
     
     // Progress UI elements
     std::shared_ptr<Rendering::Shapes::Rectangle> progressBackground;

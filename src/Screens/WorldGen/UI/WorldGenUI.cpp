@@ -147,18 +147,12 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
     );
     sidebarLayer->addItem(seedValue);
     
-    auto generateWorldButton = std::make_shared<Rendering::Components::Button>(
+    generateButton = std::make_shared<Rendering::Components::Button>(
         Rendering::Components::Button::Args{
             .label = "Generate World",
             .position = glm::vec2(40.0f, 350.0f),
             .size = glm::vec2(220.0f, 50.0f),
-            .style = Rendering::Styles::Button({
-                .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
-                .borderColor = glm::vec4(0.0f),
-                .borderWidth = 0.0f,
-                .borderPosition = BorderPosition::Outside,
-                .cornerRadius = 5.0f
-            }),
+            .type = Rendering::Components::Button::Type::Primary,
             .onClick = [this]() {
                 auto it = eventHandlers.find(UIEvent::GenerateWorld);
                 if (it != eventHandlers.end()) {
@@ -167,20 +161,15 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
             }
         }
     );
-    sidebarLayer->addItem(generateWorldButton);
+    sidebarLayer->addItem(generateButton);
 
-    auto landButton = std::make_shared<Rendering::Components::Button>(
+    landButton = std::make_shared<Rendering::Components::Button>(
         Rendering::Components::Button::Args{
             .label = "Land on World",
             .position = glm::vec2(40.0f, 420.0f),
             .size = glm::vec2(220.0f, 50.0f),
-            .style = Rendering::Styles::Button({
-                .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
-                .borderColor = glm::vec4(0.0f),
-                .borderWidth = 0.0f,
-                .borderPosition = BorderPosition::Outside,
-                .cornerRadius = 5.0f
-            }),
+            .type = Rendering::Components::Button::Type::Primary,
+            .disabled = true,
             .onClick = [this]() {
                 auto it = eventHandlers.find(UIEvent::GoToLand);
                 if (it != eventHandlers.end()) {
@@ -191,18 +180,12 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
     );
     sidebarLayer->addItem(landButton);
 
-    auto cancelButton = std::make_shared<Rendering::Components::Button>(
+    cancelButton = std::make_shared<Rendering::Components::Button>(
         Rendering::Components::Button::Args{
             .label = "Back",
             .position = glm::vec2(40.0f, 490.0f),
             .size = glm::vec2(220.0f, 50.0f),
-            .style = Rendering::Styles::Button({
-                .color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f),
-                .borderColor = glm::vec4(0.0f),
-                .borderWidth = 0.0f,
-                .borderPosition = BorderPosition::Outside,
-                .cornerRadius = 5.0f
-            }),
+            .type = Rendering::Components::Button::Type::Secondary,
             .onClick = [this]() {
                 auto it = eventHandlers.find(UIEvent::Back);
                 if (it != eventHandlers.end()) {
@@ -232,7 +215,8 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
             .zIndex = 150.0f
         }
     );
-    infoLayer->addItem(progressBackground);    progressFill = std::make_shared<Rendering::Shapes::Rectangle>(
+    infoLayer->addItem(progressBackground);
+    progressFill = std::make_shared<Rendering::Shapes::Rectangle>(
         Rendering::Shapes::Rectangle::Args{
             .position = glm::vec2(progressBarX, progressBarY),
             .size = glm::vec2(0.0f, progressBarHeight), // Initially 0 width
@@ -305,14 +289,22 @@ void WorldGenUI::setState(UIState newState) {
                 break;
             case UIState::Generating:
                 std::cout << "Generating";
+                generateButton->setDisabled(true);
+                landButton->setDisabled(true);
                 break;
             case UIState::Viewing:
+                generateButton->setDisabled(false);
+                landButton->setDisabled(false);
                 std::cout << "Viewing";
                 break;
             case UIState::Saving:
+                generateButton->setDisabled(true);
+                landButton->setDisabled(true);
                 std::cout << "Saving";
                 break;
             case UIState::Loading:
+                generateButton->setDisabled(true);
+                landButton->setDisabled(true);
                 std::cout << "Loading";
                 break;
         }

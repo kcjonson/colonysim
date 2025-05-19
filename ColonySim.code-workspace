@@ -89,7 +89,8 @@
 			"xstring": "cpp",
 			"xtree": "cpp",
 			"cstdarg": "cpp",
-			"set": "cpp"
+			"set": "cpp",
+			"stack": "cpp"
 		}
 	}
 }
