@@ -16,10 +16,10 @@ void Examples::initialize() {
     
     // Create examples for different shapes
     createRectangleExamples();
-    createCircleExamples();
-    createLineExamples();
+    createCircleExamples();    createLineExamples();
     createPolygonExamples();
     createTextExamples();
+    createTextInputExamples();
 }
 
 void Examples::render() {
@@ -273,31 +273,33 @@ void Examples::createTextExamples() {
     auto basicText = std::make_shared<Rendering::Shapes::Text>(
         Rendering::Shapes::Text::Args{
             .text = "Hello, World!",
-            .position = glm::vec2(100.0f, 50.0f), // Changed Y from 0.0f to 50.0f
+            .position = glm::vec2(100.0f, 50.0f), 
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)  // Black
             }),
             .zIndex = 26.0f  // Z-index
-        }    );
+        }
+    );
     examplesLayer->addItem(basicText);
     
     // Colored text
     auto coloredText = std::make_shared<Rendering::Shapes::Text>(
         Rendering::Shapes::Text::Args{
             .text = "Colored Text",
-            .position = glm::vec2(100.0f, 80.0f), // Changed Y from -50.0f to 80.0f
+            .position = glm::vec2(100.0f, 80.0f),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)  // Red
             }),
             .zIndex = 27.0f  // Z-index
-        }    );
+        }
+    );
     examplesLayer->addItem(coloredText);
     
     // Semi-transparent text
     auto transparentText = std::make_shared<Rendering::Shapes::Text>(
         Rendering::Shapes::Text::Args{
             .text = "Semi-transparent Text",
-            .position = glm::vec2(100.0f, 110.0f), // Changed Y from -100.0f to 110.0f
+            .position = glm::vec2(100.0f, 110.0f),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(0.0f, 0.0f, 1.0f, 0.7f)  // Blue with 70% transparency
             }),
@@ -305,4 +307,82 @@ void Examples::createTextExamples() {
         }
     );
     examplesLayer->addItem(transparentText);
+}
+
+void Examples::createTextInputExamples() {
+    // Label for the text input section
+    auto textInputLabel = std::make_shared<Rendering::Shapes::Text>(
+        Rendering::Shapes::Text::Args{
+            .text = "Text Input Examples:",
+            .position = glm::vec2(500.0f, 50.0f),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),  // Black
+                .fontSize = 1.2f  // Slightly larger font
+            }),
+            .zIndex = 29.0f
+        }
+    );
+    examplesLayer->addItem(textInputLabel);
+    
+    // Basic text input example
+    auto basicTextInput = std::make_shared<Rendering::Components::Form::Text>(
+        Rendering::Components::Form::Text::Args{
+            .label = "Basic Input:",
+            .placeholder = "Type here...",
+            .position = glm::vec2(500.0f, 80.0f),
+            .size = glm::vec2(200.0f, 30.0f),
+            .zIndex = 30.0f
+        }
+    );
+    examplesLayer->addItem(basicTextInput);
+    
+    // Styled text input example
+    Rendering::Components::Form::Text::StyleParams customStyleParams;
+    customStyleParams.color = glm::vec4(0.9f, 0.95f, 1.0f, 1.0f);  // Light blue background
+    customStyleParams.borderColor = glm::vec4(0.4f, 0.6f, 0.9f, 1.0f);  // Blue border
+    customStyleParams.focusColor = glm::vec4(0.85f, 0.9f, 1.0f, 1.0f);  // Lighter blue when focused
+    customStyleParams.focusBorderColor = glm::vec4(0.2f, 0.4f, 0.8f, 1.0f);  // Darker blue border when focused
+    customStyleParams.textColor = glm::vec4(0.1f, 0.1f, 0.5f, 1.0f);  // Dark blue text
+    customStyleParams.placeholderColor = glm::vec4(0.5f, 0.6f, 0.7f, 1.0f);  // Gray-blue placeholder
+    
+    auto customStyledTextInput = std::make_shared<Rendering::Components::Form::Text>(
+        Rendering::Components::Form::Text::Args{
+            .label = "Styled Input:",
+            .placeholder = "Custom styled input...",
+            .position = glm::vec2(500.0f, 150.0f),
+            .size = glm::vec2(250.0f, 35.0f),
+            .style = Rendering::Components::Form::Text::Styles(customStyleParams),
+            .zIndex = 31.0f,
+            .onChange = [](const std::string& value) {
+                // In a real application, you might do something with the value
+                // For this example, we're just demonstrating the callback
+            }
+        }
+    );
+    examplesLayer->addItem(customStyledTextInput);
+    
+    // Prefilled text input
+    auto prefilledTextInput = std::make_shared<Rendering::Components::Form::Text>(
+        Rendering::Components::Form::Text::Args{
+            .label = "Prefilled Input:",
+            .value = "Initial value",
+            .position = glm::vec2(500.0f, 220.0f),
+            .size = glm::vec2(200.0f, 30.0f),
+            .zIndex = 32.0f
+        }
+    );
+    examplesLayer->addItem(prefilledTextInput);
+    
+    // Disabled text input
+    auto disabledTextInput = std::make_shared<Rendering::Components::Form::Text>(
+        Rendering::Components::Form::Text::Args{
+            .label = "Disabled Input:",
+            .value = "Cannot edit this",
+            .position = glm::vec2(500.0f, 290.0f),
+            .size = glm::vec2(200.0f, 30.0f),
+            .disabled = true,
+            .zIndex = 33.0f
+        }
+    );
+    examplesLayer->addItem(disabledTextInput);
 }

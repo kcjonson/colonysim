@@ -7,6 +7,7 @@
 #include "Rendering/Shapes/Line.h"
 #include "Rendering/Shapes/Polygon.h"
 #include "Rendering/Shapes/Text.h"
+#include "Rendering/Components/Form/Text.h" // Include the Form Text component
 #include "VectorGraphics.h"
 #include <glm/glm.hpp>
 #include "Camera.h" // Add missing include
@@ -24,13 +25,13 @@ public:
     // Render the examples
     void render();
     
-private:
-    // Create examples for different shapes
+private:    // Create examples for different shapes
     void createRectangleExamples();
     void createCircleExamples();
     void createLineExamples();
     void createPolygonExamples();
     void createTextExamples();
+    void createTextInputExamples();
     
     // Layer to hold all the example shapes
     std::shared_ptr<Rendering::Layer> examplesLayer;
