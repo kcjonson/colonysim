@@ -15,15 +15,24 @@ DeveloperScreen::DeveloperScreen(Camera* camera, GLFWwindow* window)
     backgroundLayer = std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
     buttonLayer = std::make_shared<Rendering::Layer>(20.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
     titleLayer = std::make_shared<Rendering::Layer>(10.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    
+    // Create back button using the new Button component
+    backButton = std::make_shared<Rendering::Components::Button>(
+        Rendering::Components::Button::Args{
+            .label = "Back to Menu",
+            .type = Rendering::Components::Button::Type::Primary,
+            .onClick = [this]() {
+                screenManager->switchScreen(ScreenType::MainMenu);
+            }
+        }
+    );
+    buttonLayer->addItem(backButton);
 }
 
 DeveloperScreen::~DeveloperScreen() {
 }
 
 bool DeveloperScreen::initialize() {
-    // Define buttons
-    buttons.clear();
-    
     // Get window reference (camera not needed for ScreenSpace layers here)
     GLFWwindow* window = screenManager->getWindow();
     // REMOVED: backgroundLayer->setWindow(window);
@@ -43,18 +52,6 @@ bool DeveloperScreen::initialize() {
         // screenManager->getExamples()->setWindow(window); // This needs to be removed/refactored in Examples.cpp
     }
     
-    // Back button
-    MenuButton backButton;
-    backButton.text = "Back to Menu";
-    backButton.color = glm::vec4(0.8f, 0.2f, 0.2f, 1.0f);  // Red
-    backButton.hoverColor = glm::vec4(0.9f, 0.3f, 0.3f, 1.0f);
-    backButton.isHovered = false;
-    backButton.callback = [this]() {
-        screenManager->switchScreen(ScreenType::MainMenu);
-    };
-    
-    buttons.push_back(backButton);
-    
     // Layout UI elements
     layoutUI();
     
@@ -67,15 +64,11 @@ void DeveloperScreen::layoutUI() {
     int width, height;
     glfwGetWindowSize(window, &width, &height);
     
-    // REMOVED: Set window reference for all layers - should be set at construction or via addItem
-    // backgroundLayer->setWindow(window);
-    // buttonLayer->setWindow(window);
-    // titleLayer->setWindow(window);
-    
     // Clear all layers
     backgroundLayer->clearItems();
-    buttonLayer->clearItems();
     titleLayer->clearItems();
+    
+    // We don't need to clear buttonLayer as we're managing the buttons directly
     
     // Create title
     auto titleText = std::make_shared<Rendering::Shapes::Text>(
@@ -98,53 +91,13 @@ void DeveloperScreen::layoutUI() {
     float buttonHeight = 50.0f;
     
     // Position the back button at the bottom right
-    buttons[0].position.x = width - buttonWidth - 20.0f;
-    buttons[0].position.y = height - buttonHeight - 20.0f;
-    buttons[0].size.x = buttonWidth;
-    buttons[0].size.y = buttonHeight;
-      // Create button background rectangle
-    buttons[0].background = std::make_shared<Rendering::Shapes::Rectangle>(
-        Rendering::Shapes::Rectangle::Args{
-            .position = buttons[0].position,
-            .size = buttons[0].size,
-            .style = Rendering::Styles::Rectangle({
-                .color = buttons[0].isHovered ? buttons[0].hoverColor : buttons[0].color,
-                .cornerRadius = 5.0f
-            }),
-            .zIndex = 25.0f  // Z-index
-        }
-    );
-    buttonLayer->addItem(buttons[0].background);
-    
-    // Create button text
-    float textY = buttons[0].position.y + buttons[0].size.y / 2.0f + 8.0f; // Center text vertically
-    buttons[0].label = std::make_shared<Rendering::Shapes::Text>(
-        Rendering::Shapes::Text::Args{
-            .text = buttons[0].text,
-            .position = glm::vec2(buttons[0].position.x + buttons[0].size.x / 2.0f, textY),
-            .style = Rendering::Shapes::Text::Styles({
-                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 1.0f,
-                .horizontalAlign = Rendering::TextAlign::Center,
-                .verticalAlign = Rendering::TextAlign::Middle
-            }),
-            .zIndex = 26.0f
-        }
-    );
-    buttonLayer->addItem(buttons[0].label);
+    backButton->setPosition(glm::vec2(width - buttonWidth - 20.0f, height - buttonHeight - 20.0f));
+    backButton->setSize(glm::vec2(buttonWidth, buttonHeight));
 }
 
 void DeveloperScreen::update(float deltaTime) {
-    // Update button hover states
-    for (size_t i = 0; i < buttons.size(); i++) {
-        // Update button color based on hover state
-        if (buttons[i].background) {
-            // Create a new style with the updated color
-            Rendering::Styles::Rectangle newStyle = buttons[i].background->getStyle();
-            newStyle.color = buttons[i].isHovered ? buttons[i].hoverColor : buttons[i].color;
-            buttons[i].background->setStyle(newStyle);
-        }
-    }
+    // No need to update button hover states manually anymore
+    // The Button component handles that internally
 }
 
 void DeveloperScreen::render() {
@@ -167,35 +120,14 @@ void DeveloperScreen::render() {
 void DeveloperScreen::handleInput(float deltaTime) {
     GLFWwindow* window = screenManager->getWindow();
     
-    // Get cursor position
+    // Get cursor position for any custom input handling
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
     lastCursorX = static_cast<float>(xpos);
     lastCursorY = static_cast<float>(ypos);
     
-    // Check for button hover
-    for (auto& button : buttons) {
-        button.isHovered = isPointInRect(
-            lastCursorX, lastCursorY,
-            button.position.x, button.position.y,
-            button.size.x, button.size.y
-        );
-    }
-    
-    // Check for button click
-    static bool wasPressed = false;
-    bool isPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
-    
-    if (isPressed && !wasPressed) {
-        for (const auto& button : buttons) {
-            if (button.isHovered && button.callback) {
-                button.callback();
-                break;
-            }
-        }
-    }
-    
-    wasPressed = isPressed;
+    // Let the button layer handle input for buttons
+    buttonLayer->handleInput(deltaTime);
     
     // Check for ESC key to go back to main menu
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {

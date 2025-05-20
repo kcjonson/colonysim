@@ -1,14 +1,12 @@
 #pragma once
 
 #include "../Screen.h"
-#include <vector>
-#include <string>
 #include <memory>
 #include <glm/glm.hpp>
 #include "../../Rendering/Layer.h"
 #include "../../Rendering/Shapes/Rectangle.h"
 #include "../../Rendering/Shapes/Text.h"
-#include "../MainMenu/MainMenu.h" // For MenuButton structure
+#include "../../Rendering/Components/Button.h"
 
 class DeveloperScreen : public Screen {
 public:
@@ -24,7 +22,8 @@ private:
     void layoutUI();
     bool isPointInRect(float px, float py, float rx, float ry, float rw, float rh);
     
-    std::vector<MenuButton> buttons;
+    // Back button
+    std::shared_ptr<Rendering::Components::Button> backButton;
     float lastCursorX;
     float lastCursorY;
     

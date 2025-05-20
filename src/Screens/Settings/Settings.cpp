@@ -19,45 +19,46 @@ SettingsScreen::SettingsScreen(Camera* camera, GLFWwindow* window)
     backgroundLayer = std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
     controlsLayer = std::make_shared<Rendering::Layer>(10.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
     buttonLayer = std::make_shared<Rendering::Layer>(20.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    
+    // Back button using new Button component
+    backButton = std::make_shared<Rendering::Components::Button>(
+        Rendering::Components::Button::Args{
+            .label = "Back",
+            .type = Rendering::Components::Button::Type::Primary,
+            .onClick = [this]() {
+                screenManager->switchScreen(ScreenType::MainMenu);
+            }
+        }
+    );
+    buttonLayer->addItem(backButton);
+    
+    // Save Settings button using new Button component
+    saveButton = std::make_shared<Rendering::Components::Button>(
+        Rendering::Components::Button::Args{
+            .label = "Save Settings",
+            .type = Rendering::Components::Button::Type::Primary,
+            .onClick = [this]() {
+                // In the future, we would save actual settings here
+                // For now, just provide visual feedback
+                std::cout << "Settings would be saved here" << std::endl;
+            }
+        }
+    );
+    buttonLayer->addItem(saveButton);
 }
 
 SettingsScreen::~SettingsScreen() {
 }
 
 bool SettingsScreen::initialize() {
-    // Define buttons
-    buttons.clear();
+    // REMOVED: Define buttons
+    // buttons.clear();
     
     // REMOVED: Set window reference for all layers
     // GLFWwindow* window = screenManager->getWindow();
     // backgroundLayer->setWindow(window);
     // controlsLayer->setWindow(window);
     // buttonLayer->setWindow(window);
-    
-    // Back button
-    MenuButton backButton;
-    backButton.text = "Back";
-    backButton.color = glm::vec4(0.8f, 0.2f, 0.2f, 1.0f);  // Red
-    backButton.hoverColor = glm::vec4(0.9f, 0.3f, 0.3f, 1.0f);
-    backButton.isHovered = false;
-    backButton.callback = [this]() {
-        screenManager->switchScreen(ScreenType::MainMenu);
-    };
-    
-    // Save Settings button
-    MenuButton saveButton;
-    saveButton.text = "Save Settings";
-    saveButton.color = glm::vec4(0.2f, 0.6f, 0.3f, 1.0f);  // Green
-    saveButton.hoverColor = glm::vec4(0.3f, 0.7f, 0.4f, 1.0f);
-    saveButton.isHovered = false;
-    saveButton.callback = [this]() {  // Fixed: using saveButton.callback instead of backButton.callback
-        // In the future, we would save actual settings here
-        // For now, just provide visual feedback
-        std::cout << "Settings would be saved here" << std::endl;
-    };
-    
-    buttons.push_back(saveButton);
-    buttons.push_back(backButton);
     
     // Layout UI elements (addItem calls will propagate pointers)
     layoutUI();
@@ -194,8 +195,7 @@ void SettingsScreen::layoutUI() {
         }
     );
     controlsLayer->addItem(devMsg);
-    
-    // Button dimensions
+      // Button dimensions
     float buttonWidth = 220.0f;
     float buttonHeight = 50.0f;
     float buttonSpacing = 20.0f;
@@ -204,53 +204,18 @@ void SettingsScreen::layoutUI() {
     float startY = height - 100.0f;
     float startX = (width - buttonWidth) / 2.0f;
     
-    for (size_t i = 0; i < buttons.size(); i++) {
-        buttons[i].position.x = startX;
-        buttons[i].position.y = startY - i * (buttonHeight + buttonSpacing);
-        buttons[i].size.x = buttonWidth;
-        buttons[i].size.y = buttonHeight;
-          // Create button background rectangle
-        buttons[i].background = std::make_shared<Rendering::Shapes::Rectangle>(
-            Rendering::Shapes::Rectangle::Args{
-                .position = buttons[i].position,
-                .size = buttons[i].size,
-                .style = Rendering::Shapes::Rectangle::Styles({
-                    .color = buttons[i].isHovered ? buttons[i].hoverColor : buttons[i].color,
-                    .cornerRadius = 5.0f
-                }),
-                .zIndex = 25.0f  // Z-index
-            }
-        );
-        buttonLayer->addItem(buttons[i].background);
-          // Create button text
-        float textY = buttons[i].position.y + buttons[i].size.y / 2.0f + 8.0f; // Center text vertically
-        buttons[i].label = std::make_shared<Rendering::Shapes::Text>(
-            Rendering::Shapes::Text::Args{
-                .text = buttons[i].text,
-                .position = glm::vec2(buttons[i].position.x + buttons[i].size.x / 2.0f, textY),
-                .style = Rendering::Shapes::Text::Styles({
-                    .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                    .fontSize = 1.0f,
-                    .horizontalAlign = Rendering::TextAlign::Center,
-                    .verticalAlign = Rendering::TextAlign::Middle                }),
-                .zIndex = 26.0f  // Z-index
-            }
-        );
-        buttonLayer->addItem(buttons[i].label);
-    }
+    // Position the save button
+    saveButton->setPosition(glm::vec2(startX, startY - 0 * (buttonHeight + buttonSpacing)));
+    saveButton->setSize(glm::vec2(buttonWidth, buttonHeight));
+    
+    // Position the back button below save button
+    backButton->setPosition(glm::vec2(startX, startY - 1 * (buttonHeight + buttonSpacing)));
+    backButton->setSize(glm::vec2(buttonWidth, buttonHeight));
 }
 
 void SettingsScreen::update(float deltaTime) {
-    // Update button hover states
-    for (size_t i = 0; i < buttons.size(); i++) {
-        // Update button color based on hover state
-        if (buttons[i].background) {
-            // Create a new style with the updated color
-            Rendering::Styles::Rectangle newStyle = buttons[i].background->getStyle();
-            newStyle.color = buttons[i].isHovered ? buttons[i].hoverColor : buttons[i].color;
-            buttons[i].background->setStyle(newStyle);
-        }
-    }
+    // No need to update button hover states manually anymore
+    // The Button component handles that internally
 }
 
 void SettingsScreen::render() {
@@ -267,35 +232,14 @@ void SettingsScreen::render() {
 void SettingsScreen::handleInput(float deltaTime) {
     GLFWwindow* window = screenManager->getWindow();
     
-    // Get cursor position
+    // Get cursor position for any custom input handling
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
     lastCursorX = static_cast<float>(xpos);
     lastCursorY = static_cast<float>(ypos);
     
-    // Check for button hover
-    for (auto& button : buttons) {
-        button.isHovered = isPointInRect(
-            lastCursorX, lastCursorY,
-            button.position.x, button.position.y,
-            button.size.x, button.size.y
-        );
-    }
-    
-    // Check for button click
-    static bool wasPressed = false;
-    bool isPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
-    
-    if (isPressed && !wasPressed) {
-        for (const auto& button : buttons) {
-            if (button.isHovered && button.callback) {
-                button.callback();
-                break;
-            }
-        }
-    }
-    
-    wasPressed = isPressed;
+    // Let the button layer handle input for buttons
+    buttonLayer->handleInput(deltaTime);
     
     // Check for ESC key to go back to main menu
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
