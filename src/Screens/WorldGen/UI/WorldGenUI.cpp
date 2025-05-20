@@ -307,6 +307,11 @@ void WorldGenUI::setState(UIState newState) {
                 landButton->setDisabled(true);
                 std::cout << "Loading";
                 break;
+            case UIState::LoadingGameWorld:
+                generateButton->setDisabled(true);
+                landButton->setDisabled(true);
+                std::cout << "Loading Game World";
+                break;
         }
         
         std::cout << std::endl;
@@ -324,8 +329,10 @@ void WorldGenUI::setProgress(float progress, const std::string& message) {
     currentProgress = progress;
     statusMessage = message;
     
-    // If we're updating progress, ensure we're in the Generating state
-    if (state != UIState::Generating) {
+    // Don't auto-change state when progress is updated
+    // The state is now controlled explicitly by the caller
+    // Only force state to Generating if we're not in a valid progress state
+    if (state != UIState::Generating && state != UIState::LoadingGameWorld) {
         setState(UIState::Generating);
     }
     

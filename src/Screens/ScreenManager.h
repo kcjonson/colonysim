@@ -5,13 +5,13 @@
 #include <unordered_map>
 #include <functional>
 #include "Screen.h"
+#include "Game/World.h"  // Include World.h instead of forward declaration
 
 // Forward declarations
 struct GLFWwindow;  // Changed from class to struct to maintain consistency across the codebase
 class Camera;
 struct GameState;   // Changed to struct to match GameState.h
-class World;
-// Removed: class Entities;
+// Forward declarations no longer needed for World since we include the header
 class InputManager;
 // Removed: class Interface;
 class Examples;
@@ -36,8 +36,7 @@ public:
     void run();
     void switchScreen(ScreenType screenType);
     void cleanup();
-    
-    // For initializing OpenGL after splash screen
+      // For initializing OpenGL after splash screen
     bool initializeOpenGL();
 
     // Getters for shared resources
@@ -45,6 +44,8 @@ public:
     Camera* getCamera() const { return camera.get(); }
     GameState* getGameState() const { return gameState.get(); }
     World* getWorld() const { return world.get(); }
+    // Setter for world - allows replacing the world with a new one
+    void setWorld(std::unique_ptr<World> newWorld) { world = std::move(newWorld); }
     // Removed: Entities* getEntities() const { return entities.get(); }
     InputManager* getInputManager() const { return inputManager.get(); }
     // Removed: Interface* getInterface() const { return interface.get(); }

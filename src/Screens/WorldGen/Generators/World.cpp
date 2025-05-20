@@ -479,6 +479,12 @@ void World::GenerateTerrainData() {
     static std::mt19937 rng(static_cast<unsigned int>(m_seed & 0xFFFFFFFF));
     std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
     
+    // Water level constant for terrain type determination
+    const float waterLevel = 0.4f;
+    
+    // Counters for terrain types (for debugging)
+    std::unordered_map<TerrainType, int> terrainTypeCounts;
+    
     // Generate elevation data
     for (size_t i = 0; i < m_tiles.size(); i++) {
         glm::vec3 pos = m_tiles[i].GetCenter();
@@ -493,6 +499,30 @@ void World::GenerateTerrainData() {
         elevation = glm::clamp(elevation, 0.0f, 1.0f);
         
         m_tiles[i].SetElevation(elevation);
+        
+        // Set terrain type based on elevation
+        TerrainType terrainType;
+        if (elevation < waterLevel - 0.2f) {
+            terrainType = TerrainType::Ocean;
+        } else if (elevation < waterLevel - 0.05f) {
+            terrainType = TerrainType::Shallow;
+        } else if (elevation < waterLevel + 0.05f) {
+            terrainType = TerrainType::Beach;
+        } else if (elevation < waterLevel + 0.3f) {
+            terrainType = TerrainType::Lowland;
+        } else if (elevation < waterLevel + 0.6f) {
+            terrainType = TerrainType::Highland;
+        } else if (elevation < waterLevel + 0.8f) {
+            terrainType = TerrainType::Mountain;
+        } else {
+            terrainType = TerrainType::Peak;
+        }
+        
+        // Set the terrain type
+        m_tiles[i].SetTerrainType(terrainType);
+        
+        // Count terrain types for debugging
+        terrainTypeCounts[terrainType]++;
         
         // Simple moisture based on elevation and position
         // Higher elevations are typically drier
@@ -526,6 +556,18 @@ void World::GenerateTerrainData() {
             m_progressTracker->UpdateProgress(progress, message);
         }
     }
+    
+    // Log terrain type distribution
+    std::cout << "\n============ TERRAIN TYPE DISTRIBUTION ============" << std::endl;
+    std::cout << "Ocean: " << terrainTypeCounts[TerrainType::Ocean] << " tiles" << std::endl;
+    std::cout << "Shallow: " << terrainTypeCounts[TerrainType::Shallow] << " tiles" << std::endl;
+    std::cout << "Beach: " << terrainTypeCounts[TerrainType::Beach] << " tiles" << std::endl;
+    std::cout << "Lowland: " << terrainTypeCounts[TerrainType::Lowland] << " tiles" << std::endl;
+    std::cout << "Highland: " << terrainTypeCounts[TerrainType::Highland] << " tiles" << std::endl;
+    std::cout << "Mountain: " << terrainTypeCounts[TerrainType::Mountain] << " tiles" << std::endl;
+    std::cout << "Peak: " << terrainTypeCounts[TerrainType::Peak] << " tiles" << std::endl;
+    std::cout << "Total: " << m_tiles.size() << " tiles" << std::endl;
+    std::cout << "==================================================" << std::endl;
     
     // Report progress before smoothing starts
     if (m_progressTracker) {
@@ -572,11 +614,33 @@ void World::SmoothTerrainData() {
                 count++;
             }
         }
-        
-        // Apply the smoothed values
-        m_tiles[i].SetElevation(sumElevation / count);
+          // Apply the smoothed values
+        float smoothedElevation = sumElevation / count;
+        m_tiles[i].SetElevation(smoothedElevation);
         m_tiles[i].SetMoisture(sumMoisture / count);
         m_tiles[i].SetTemperature(sumTemperature / count);
+        
+        // Update terrain type based on smoothed elevation
+        const float waterLevel = 0.4f;
+        TerrainType terrainType;
+        if (smoothedElevation < waterLevel - 0.2f) {
+            terrainType = TerrainType::Ocean;
+        } else if (smoothedElevation < waterLevel - 0.05f) {
+            terrainType = TerrainType::Shallow;
+        } else if (smoothedElevation < waterLevel + 0.05f) {
+            terrainType = TerrainType::Beach;
+        } else if (smoothedElevation < waterLevel + 0.3f) {
+            terrainType = TerrainType::Lowland;
+        } else if (smoothedElevation < waterLevel + 0.6f) {
+            terrainType = TerrainType::Highland;
+        } else if (smoothedElevation < waterLevel + 0.8f) {
+            terrainType = TerrainType::Mountain;
+        } else {
+            terrainType = TerrainType::Peak;
+        }
+        
+        // Set the terrain type
+        m_tiles[i].SetTerrainType(terrainType);
     }
 }
 

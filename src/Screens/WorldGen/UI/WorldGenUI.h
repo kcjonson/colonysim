@@ -29,11 +29,12 @@ enum class UIEvent {
 using UIEventCallback = std::function<void()>;
 
 enum class UIState {
-    ParameterSetup,  // Initial state: adjusting world generation parameters
-    Generating,      // While world is being generated
-    Viewing,         // Examining the generated world
-    Saving,          // Saving world parameters
-    Loading          // Loading saved parameters
+    ParameterSetup,    // Initial state: adjusting world generation parameters
+    Generating,        // While world is being generated
+    Viewing,           // Examining the generated world
+    Saving,            // Saving world parameters
+    Loading,           // Loading saved parameters
+    LoadingGameWorld   // Creating the 2D game world from the 3D model
 };
 
 class WorldGenUI {

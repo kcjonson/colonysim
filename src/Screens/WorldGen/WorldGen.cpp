@@ -5,9 +5,16 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <random>
+#include <cmath>
 #include "Generators/TerrainGenerator.h"
+#include "Core/Util.h" // Include the new Util.h file
 #include "VectorGraphics.h"
 #include <algorithm> // Keep algorithm include
+
+// Define M_PI if not already defined
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 // Initialize the static instances map
 std::unordered_map<GLFWwindow*, WorldGenScreen*> WorldGenScreen::s_instances;
@@ -47,12 +54,17 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window):
 }
 
 WorldGenScreen::~WorldGenScreen() {
-    // Signal thread to stop
+    // Signal threads to stop
     m_shouldStopGeneration = true;
+    m_shouldStopGameWorldCreation = true;
     
-    // Wait for thread to finish
+    // Wait for threads to finish
     if (m_generationThread.joinable()) {
         m_generationThread.join();
+    }
+    
+    if (m_gameWorldThread.joinable()) {
+        m_gameWorldThread.join();
     }
     
     // Remove scroll callback
@@ -134,40 +146,66 @@ bool WorldGenScreen::initialize() {
             std::cerr << "ERROR: World must be generated before proceeding to land view" << std::endl;
             m_worldGenUI->setState(WorldGen::UIState::ParameterSetup);
             return;
+        }        std::cout << "Land on World button clicked" << std::endl;
+        
+        // Don't start a new thread if we're already creating a game world
+        if (m_isCreatingGameWorld) {
+            std::cout << "Already creating game world, please wait..." << std::endl;
+            return;
         }
-          // Convert the icosahedron world to terrain data
+        
+        // Create a new game world from the generator world in a background thread
         // Use the progress tracker directly
         m_progressTracker->Reset();
         m_progressTracker->AddPhase("Converting", 0.8f);
         m_progressTracker->AddPhase("Finalizing", 0.2f);
         
-        m_progressTracker->StartPhase("Converting");
-        convertWorldToTerrainData();
+        // Calculate sample rate based on world complexity - higher subdivisions need higher sampling
+        float subdivisionLevel = static_cast<float>(m_planetParams.resolution);
+        float worldRadius = m_world->GetRadius();
         
-        m_progressTracker->CompletePhase();
-        m_progressTracker->StartPhase("Finalizing");
+        // More aggressive clamping of subdivision level
+        // A subdivision level of 5 is already quite detailed and produces a high-quality map
+        float clampedSubdivision = std::min(subdivisionLevel, 4.0f); 
         
-        // Transfer the terrain data to the game world
-        if (screenManager->getWorld()) {
-            std::cout << "Transferring " << generatedTerrainData.size() << " tiles to world" << std::endl;
-            screenManager->getWorld()->setTerrainData(generatedTerrainData);
-        } else {
-            std::cerr << "ERROR: World is null in screenManager" << std::endl;
+        // Adjusted sample rate calculation to be more conservative
+        // This creates a more reasonable number of tiles while maintaining quality
+        float sampleRate = 6.0f * (1.0f + clampedSubdivision);
+        
+        // Add a hard maximum on the sample rate to prevent performance and memory issues
+        const float MAX_SAMPLE_RATE = 48.0f;
+        sampleRate = std::min(sampleRate, MAX_SAMPLE_RATE);
+        
+        std::cout << "Using sample rate: " << sampleRate << " for planet with subdivision level " 
+                  << subdivisionLevel << " (clamped to " << clampedSubdivision << ") "
+                  << "and radius " << worldRadius << std::endl;
+        
+        // Get components we need from the screen manager
+        GameState* gameState = screenManager->getGameState();
+        Camera* camera = screenManager->getCamera();
+        
+        // Check if required components are available
+        if (!gameState || !camera) {
+            std::cerr << "ERROR: Required components missing from screen manager" << std::endl;
             return;
         }
         
-        // Reset OpenGL state before switching to Game screen
-        // This is critical to ensure the Game screen gets the correct viewport and rendering state
-        int width, height;
-        glfwGetWindowSize(m_window, &width, &height);
-        glViewport(0, 0, width, height);  // Reset to full window viewport
-        glDisable(GL_DEPTH_TEST);         // Disable depth testing which Game screen doesn't use
-        glEnable(GL_BLEND);               // Ensure blending is enabled
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Set standard alpha blending
-        glLineWidth(1.0f);                // Reset line width to default
+        // Set up the parameters for the game world creation thread
+        m_gameWorldParams.sampleRate = sampleRate;
+        m_gameWorldParams.camera = camera;
+        m_gameWorldParams.gameState = gameState;
+        m_gameWorldParams.window = m_window;
+        m_gameWorldParams.seed = std::to_string(m_planetParams.seed);
         
-        // Switch to gameplay screen
-        screenManager->switchScreen(ScreenType::Gameplay);
+        // Set flag to indicate we're creating a game world
+        m_isCreatingGameWorld = true;
+        
+        // Show loading UI
+        m_worldGenUI->setState(WorldGen::UIState::LoadingGameWorld);
+        
+        // Start the game world creation thread
+        std::cout << "Starting game world creation thread..." << std::endl;
+        m_gameWorldThread = std::thread(&WorldGenScreen::gameWorldCreationThreadFunc, this);
     });
     
     // Back button event
@@ -551,11 +589,94 @@ void WorldGenScreen::worldGenerationThreadFunc() {
     m_isGenerating = false;
 }
 
+// New method for creating the game world in a background thread
+void WorldGenScreen::gameWorldCreationThreadFunc() {
+    try {
+        // Update progress tracker
+        m_progressTracker->StartPhase("Converting");
+        
+        // Get the parameters
+        float sampleRate = m_gameWorldParams.sampleRate;
+        Camera* camera = m_gameWorldParams.camera;
+        GameState* gameState = m_gameWorldParams.gameState;
+        GLFWwindow* window = m_gameWorldParams.window;
+        std::string seed = m_gameWorldParams.seed;
+        
+        // Check if we should stop
+        if (m_shouldStopGameWorldCreation) {
+            std::lock_guard<std::mutex> lock(m_progressMutex);
+            m_latestProgress.progress = 0.0f;
+            m_latestProgress.message = "Game world creation canceled";
+            m_latestProgress.hasUpdate = true;
+            m_isCreatingGameWorld = false;
+            return;
+        }
+        
+        // Create the game world using the utility function
+        // Note: Progress updates happen inside the createGameWorld function via m_progressTracker
+        m_newGameWorld = WorldGen::Core::createGameWorld(
+            *m_world,         // Generator world
+            *gameState,       // Game state
+            sampleRate,       // Sample rate
+            camera,           // Camera
+            window,           // Window
+            seed              // Seed
+        );
+        
+        // Check if we should stop
+        if (m_shouldStopGameWorldCreation) {
+            std::lock_guard<std::mutex> lock(m_progressMutex);
+            m_latestProgress.progress = 0.0f;
+            m_latestProgress.message = "Game world creation canceled";
+            m_latestProgress.hasUpdate = true;
+            m_isCreatingGameWorld = false;
+            m_newGameWorld = nullptr; // Clean up if we're stopping
+            return;
+        }
+        
+        // Check if game world creation was successful
+        if (!m_newGameWorld) {
+            std::lock_guard<std::mutex> lock(m_progressMutex);
+            m_latestProgress.progress = 0.0f;
+            m_latestProgress.message = "Failed to create game world";
+            m_latestProgress.hasUpdate = true;
+            m_isCreatingGameWorld = false;
+            return;
+        }
+        
+        // Signal completion
+        m_progressTracker->CompletePhase();
+        m_progressTracker->StartPhase("Finalizing");
+        
+        std::lock_guard<std::mutex> lock(m_progressMutex);
+        m_latestProgress.progress = 1.0f;
+        m_latestProgress.message = "Game world creation complete!";
+        m_latestProgress.hasUpdate = true;
+    }
+    catch (const std::exception& e) {
+        // Handle any exceptions
+        std::lock_guard<std::mutex> lock(m_progressMutex);
+        m_latestProgress.progress = 0.0f;
+        m_latestProgress.message = std::string("Error: ") + e.what();
+        m_latestProgress.hasUpdate = true;
+    }
+    catch (...) {
+        // Handle unknown exceptions
+        std::lock_guard<std::mutex> lock(m_progressMutex);
+        m_latestProgress.progress = 0.0f;
+        m_latestProgress.message = "Unknown error during game world creation";
+        m_latestProgress.hasUpdate = true;
+    }
+    
+    m_isCreatingGameWorld = false;
+}
+
 void WorldGenScreen::processProgressMessages() {
     // Check if there's an update to process
     bool hasUpdate = false;
     float progress = 0.0f;
     std::string message;
+    bool gameWorldComplete = false; // Flag to check if game world creation is complete
     
     {
         std::lock_guard<std::mutex> lock(m_progressMutex);
@@ -564,6 +685,11 @@ void WorldGenScreen::processProgressMessages() {
             progress = m_latestProgress.progress;
             message = m_latestProgress.message;
             m_latestProgress.hasUpdate = false; // Reset the flag
+            
+            // Check if game world creation is complete
+            if (progress == 1.0f && m_isCreatingGameWorld == false && m_newGameWorld != nullptr) {
+                gameWorldComplete = true;
+            }
         }
     }
     
@@ -572,8 +698,8 @@ void WorldGenScreen::processProgressMessages() {
         // Update the UI directly
         m_worldGenUI->setProgress(progress, message);
         
-        // Special handling for completion message
-        if (progress == 1.0f && worldGenerated) {
+        // Special handling for world generation completion message
+        if (progress == 1.0f && worldGenerated && !m_isCreatingGameWorld && !gameWorldComplete) {
             // Update the world renderer now that generation is complete
             m_worldRenderer->SetWorld(m_world.get());
             m_worldGenUI->setState(WorldGen::UIState::Viewing);
@@ -583,6 +709,56 @@ void WorldGenScreen::processProgressMessages() {
             glfwGetWindowSize(m_window, &width, &height);
             m_stars->generate(width, height);
             m_worldGenUI->onResize(width, height);
+        }
+        
+        // Special handling for game world creation completion
+        if (gameWorldComplete) {
+            std::cout << "Game world creation complete, transitioning to gameplay..." << std::endl;
+            
+            // Get components we need from the screen manager
+            GameState* gameState = screenManager->getGameState();
+            
+            // Replace the existing world in the screen manager with our new world
+            try {
+                screenManager->setWorld(std::move(m_newGameWorld));
+                
+                // Let the game state know we're using a custom world
+                gameState->set("custom_world", "true");
+                gameState->set("world_sample_rate", std::to_string(m_gameWorldParams.sampleRate));
+                gameState->set("world_seed", m_gameWorldParams.seed);
+                
+                // Reset OpenGL state before switching to Game screen
+                // This is critical to ensure the Game screen gets the correct viewport and rendering state
+                int width, height;
+                glfwGetWindowSize(m_window, &width, &height);
+                glViewport(0, 0, width, height);  // Reset to full window viewport
+                glDisable(GL_DEPTH_TEST);         // Disable depth testing which Game screen doesn't use
+                glEnable(GL_BLEND);               // Ensure blending is enabled
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Set standard alpha blending
+                glLineWidth(1.0f);                // Reset line width to default
+                
+                std::cout << "================= PRE-SCREEN TRANSITION DIAGNOSTICS ===================" << std::endl;
+                std::cout << "Generator world tiles: " << m_world->GetTiles().size() << std::endl;
+                std::cout << "Game world: valid" << std::endl;
+                std::cout << "Camera position: " << 
+                          (m_gameWorldParams.camera ? std::to_string(m_gameWorldParams.camera->getPosition().x) + ", " + 
+                                                    std::to_string(m_gameWorldParams.camera->getPosition().y) + ", " + 
+                                                    std::to_string(m_gameWorldParams.camera->getPosition().z) : "null") << std::endl;
+                std::cout << "About to switch to Game screen..." << std::endl;
+                std::cout << "====================================================================" << std::endl;
+                
+                // Switch to gameplay screen
+                screenManager->switchScreen(ScreenType::Gameplay);
+                std::cout << "Successfully switched to Game screen" << std::endl;
+            }
+            catch (const std::exception& e) {
+                std::cerr << "ERROR: Exception when handling game world completion: " << e.what() << std::endl;
+                m_worldGenUI->setState(WorldGen::UIState::Viewing); // Return to viewing state on error
+            }
+            catch (...) {
+                std::cerr << "ERROR: Unknown exception during game world completion handling" << std::endl;
+                m_worldGenUI->setState(WorldGen::UIState::Viewing); // Return to viewing state on error
+            }
         }
     }
 }

@@ -72,11 +72,35 @@ glm::vec4 World::getCameraBounds() const {
 }
 
 void World::render() {
-    // Only update visibility if the camera view actually changed
-    if (cameraViewChanged()) {
-        updateTileVisibility();
+    try {
+        // Check if we have a valid world layer before rendering
+        if (!worldLayer) {
+            std::cerr << "ERROR: Attempting to render with null worldLayer" << std::endl;
+            return;
+        }
+        
+        // Check if we have any terrain data before trying to render
+        if (terrainData.empty()) {
+            std::cerr << "WARNING: No terrain data available in World::render" << std::endl;
+        }
+        
+        // Only update visibility if the camera view actually changed
+        if (cameraViewChanged()) {
+            try {
+                updateTileVisibility();
+            } catch (const std::exception& e) {
+                std::cerr << "ERROR: Exception during updateTileVisibility: " << e.what() << std::endl;
+            }
+        }
+        
+        // Render the layer, which respects item visibility
+        worldLayer->render(false);
+        
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR: Exception in World::render: " << e.what() << std::endl;
+    } catch (...) {
+        std::cerr << "ERROR: Unknown exception in World::render" << std::endl;
     }
-    worldLayer->render(false); // Render the layer, which respects item visibility
 }
 
 // Helper function to check if camera position or projection changed
@@ -105,75 +129,140 @@ bool World::cameraViewChanged() const {
 }
 
 void World::updateTileVisibility() {
-    if (!camera) return; // Need camera for bounds
+    // Early return for no camera
+    if (!camera) {
+        std::cerr << "WARNING: No camera in updateTileVisibility" << std::endl;
+        return;
+    }
+
+    // Early return for empty terrain data
+    if (terrainData.empty()) {
+        std::cerr << "WARNING: No terrain data in updateTileVisibility" << std::endl;
+        return;
+    }
 
     // --- This whole block now only runs if cameraViewChanged() was true --- 
+    try {
+        // Get current camera state
+        glm::vec3 currentPos = camera->getPosition();
+        glm::vec4 currentProjBounds(
+            camera->getProjectionLeft(),
+            camera->getProjectionRight(),
+            camera->getProjectionBottom(),
+            camera->getProjectionTop()
+        );
+        glm::vec4 currentWorldBounds = getCameraBounds(); // Calculate world bounds based on current state
 
-    // Get current camera state
-    glm::vec3 currentPos = camera->getPosition();
-    glm::vec4 currentProjBounds(
-        camera->getProjectionLeft(),
-        camera->getProjectionRight(),
-        camera->getProjectionBottom(),
-        camera->getProjectionTop()
-    );
-    glm::vec4 currentWorldBounds = getCameraBounds(); // Calculate world bounds based on current state
-
-    // Calculate visible tile range with overscan based on current world bounds
-    int minX = static_cast<int>(std::floor(currentWorldBounds.x / TILE_SIZE)) - overscanAmount;
-    int maxX = static_cast<int>(std::ceil(currentWorldBounds.y / TILE_SIZE)) + overscanAmount;
-    int minY = static_cast<int>(std::floor(currentWorldBounds.z / TILE_SIZE)) - overscanAmount;
-    int maxY = static_cast<int>(std::ceil(currentWorldBounds.w / TILE_SIZE)) + overscanAmount;
-
-    // Determine the set of tiles that should be visible this frame
-    currentVisibleTiles.clear();
-    for (int y = minY; y <= maxY; y++) {
-        for (int x = minX; x <= maxX; x++) {
-            WorldGen::TileCoord coord{x, y}; // Use TileCoord
-            if (terrainData.count(coord) > 0) {
-                currentVisibleTiles.insert(coord);
+        // Calculate visible tile range with overscan based on current world bounds
+        // Use double for intermediate calculations to avoid potential precision issues
+        double minXDouble = std::floor(currentWorldBounds.x / TILE_SIZE) - overscanAmount;
+        double maxXDouble = std::ceil(currentWorldBounds.y / TILE_SIZE) + overscanAmount;
+        double minYDouble = std::floor(currentWorldBounds.z / TILE_SIZE) - overscanAmount;
+        double maxYDouble = std::ceil(currentWorldBounds.w / TILE_SIZE) + overscanAmount;
+        
+        // Convert to integers with safety bounds
+        int minX = static_cast<int>(std::max(minXDouble, -100000.0));
+        int maxX = static_cast<int>(std::min(maxXDouble, 100000.0));
+        int minY = static_cast<int>(std::max(minYDouble, -100000.0));
+        int maxY = static_cast<int>(std::min(maxYDouble, 100000.0));    // Determine the set of tiles that should be visible this frame
+        currentVisibleTiles.clear();
+        
+        // Limit the number of tiles to process to avoid excessive processing
+        const int MAX_TILES_TO_CHECK = 10000; // Arbitrary limit to prevent too much iteration
+        int tilesChecked = 0;
+        
+        for (int y = minY; y <= maxY; y++) {
+            for (int x = minX; x <= maxX; x++) {
+                // Safety check to avoid excessive processing
+                if (++tilesChecked > MAX_TILES_TO_CHECK) {
+                    std::cout << "WARNING: Maximum tile check limit reached in updateTileVisibility" << std::endl;
+                    break;
+                }
+                
+                WorldGen::TileCoord coord{x, y}; // Use TileCoord
+                if (terrainData.count(coord) > 0) {
+                    currentVisibleTiles.insert(coord);
+                }
+            }
+            
+            // Break out of outer loop if we hit the limit
+            if (tilesChecked > MAX_TILES_TO_CHECK) {
+                break;
             }
         }
-    }
+        
+        std::cout << "Visibility update: checked " << tilesChecked << " tiles, found " 
+                  << currentVisibleTiles.size() << " visible tiles" << std::endl;
 
-    // Iterate through tiles that *were* visible last frame
-    for (const auto& coord : lastVisibleTiles) { // Use TileCoord
-        if (currentVisibleTiles.find(coord) == currentVisibleTiles.end()) {
+        // Iterate through tiles that *were* visible last frame
+        for (const auto& coord : lastVisibleTiles) { // Use TileCoord
+            if (currentVisibleTiles.find(coord) == currentVisibleTiles.end()) {
+                auto tileIt = tiles.find(coord);
+                if (tileIt != tiles.end() && tileIt->second && tileIt->second->isVisible()) {
+                    tileIt->second->setVisible(false);
+                }
+            }
+        }        // Limit the number of new tiles to create per frame to avoid memory spikes
+        const int MAX_NEW_TILES_PER_FRAME = 100;
+        int newTilesCreated = 0;
+        
+        // Iterate through tiles that *should be* visible this frame
+        for (const auto& coord : currentVisibleTiles) { // Use TileCoord
             auto tileIt = tiles.find(coord);
-            if (tileIt != tiles.end() && tileIt->second->isVisible()) {
-                tileIt->second->setVisible(false);
+            if (tileIt == tiles.end()) {
+                // If we've hit our limit of new tiles this frame, skip creating more
+                if (newTilesCreated >= MAX_NEW_TILES_PER_FRAME) {
+                    continue;
+                }
+                
+                auto terrainIt = terrainData.find(coord);
+                if (terrainIt != terrainData.end()) {
+                    try {
+                        const auto& data = terrainIt->second;
+                        glm::vec2 tilePosition(coord.x * TILE_SIZE, coord.y * TILE_SIZE); // Use coord.x, coord.y
+                        
+                        auto tile = std::make_shared<Rendering::Tile>(
+                            tilePosition, data.height, data.resource, data.type, data.color
+                        );
+                        
+                        tiles[coord] = tile;
+                        
+                        // Only add the item if we have a valid worldLayer
+                        if (worldLayer) {
+                            worldLayer->addItem(tile);
+                        } else {
+                            std::cerr << "WARNING: Null worldLayer when adding tile" << std::endl;
+                        }
+                        
+                        tile->setVisible(true);
+                        newTilesCreated++;
+                    } catch (const std::exception& e) {
+                        std::cerr << "ERROR: Exception creating tile at " << coord.x << ", " << coord.y 
+                                  << ": " << e.what() << std::endl;
+                    }
+                }
+            } else if (tileIt->second) { // Check for null before using
+                if (!tileIt->second->isVisible()) {
+                    tileIt->second->setVisible(true);
+                }
             }
         }
-    }
-
-    // Iterate through tiles that *should be* visible this frame
-    for (const auto& coord : currentVisibleTiles) { // Use TileCoord
-        auto tileIt = tiles.find(coord);
-        if (tileIt == tiles.end()) {
-            auto terrainIt = terrainData.find(coord);
-            if (terrainIt != terrainData.end()) {
-                const auto& data = terrainIt->second;
-                glm::vec2 tilePosition(coord.x * TILE_SIZE, coord.y * TILE_SIZE); // Use coord.x, coord.y
-                auto tile = std::make_shared<Rendering::Tile>(
-                    tilePosition, data.height, data.resource, data.type, data.color
-                );
-                tiles[coord] = tile;
-                worldLayer->addItem(tile);
-                tile->setVisible(true);
-            }
-        } else {
-            if (!tileIt->second->isVisible()) {
-                tileIt->second->setVisible(true);
-            }
+        
+        if (newTilesCreated > 0) {
+            std::cout << "Created " << newTilesCreated << " new tiles this frame" << std::endl;
         }
+
+        // Update lastVisibleTiles for the next frame
+        lastVisibleTiles = currentVisibleTiles;
+
+        // Cache the camera state for the next frame's check
+        lastCameraPos = currentPos;
+        lastCameraProjBounds = currentProjBounds;
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR: Exception in updateTileVisibility: " << e.what() << std::endl;
+    } catch (...) {
+        std::cerr << "ERROR: Unknown exception in updateTileVisibility" << std::endl;
     }
-
-    // Update lastVisibleTiles for the next frame
-    lastVisibleTiles = currentVisibleTiles;
-
-    // Cache the camera state for the next frame's check
-    lastCameraPos = currentPos;
-    lastCameraProjBounds = currentProjBounds;
 
     // --- End of block that runs only if camera view changed --- 
 }

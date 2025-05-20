@@ -107,30 +107,54 @@ void GameScreen::update(float deltaTime) {
 }
 
 void GameScreen::render() {
-    // Clear screen with black background
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    try {
+        // Clear screen with black background
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
 
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // Render game components in correct order using local members
-    World* world = screenManager->getWorld();
+        // Render game components in correct order using local members
+        World* world = screenManager ? screenManager->getWorld() : nullptr;
 
-    // First batch: Render world (background layer)
-    if (world) {
-        world->render();
-    }
+        // First batch: Render world (background layer)
+        if (world) {
+            try {
+                std::cout << "Rendering world..." << std::endl;
+                world->render();
+                std::cout << "World rendered successfully" << std::endl;
+            } catch (const std::exception& e) {
+                std::cerr << "ERROR: Exception during world rendering: " << e.what() << std::endl;
+            } catch (...) {
+                std::cerr << "ERROR: Unknown exception during world rendering" << std::endl;
+            }
+        } else {
+            std::cerr << "WARNING: World is null in GameScreen::render" << std::endl;
+        }
 
-    // Second batch: Render entities (foreground layer)
-    if (entities_) {
-        entities_->render();
-    }
+        // Second batch: Render entities (foreground layer)
+        if (entities_) {
+            try {
+                entities_->render();
+            } catch (const std::exception& e) {
+                std::cerr << "ERROR: Exception during entities rendering: " << e.what() << std::endl;
+            }
+        }
 
-    // Third batch: Render interface elements (top layer)
-    if (interface_) {
-        interface_->render();
+        // Third batch: Render interface elements (top layer)
+        if (interface_) {
+            try {
+                interface_->render();
+            } catch (const std::exception& e) {
+                std::cerr << "ERROR: Exception during interface rendering: " << e.what() << std::endl;
+            }
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR: Exception in GameScreen::render: " << e.what() << std::endl;
+    } catch (...) {
+        std::cerr << "ERROR: Unknown exception in GameScreen::render" << std::endl;
     }
 }
 

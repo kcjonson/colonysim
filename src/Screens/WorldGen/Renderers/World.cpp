@@ -195,15 +195,9 @@ void World::GenerateRenderingData()
         unsigned int indexOffset = static_cast<unsigned int>(m_indices.size());
           // Get the terrain type of this tile and use its color
         TerrainType terrainType = tile.GetTerrainType();
-        
-        // Get color from the TerrainColors map, convert vec4 to vec3 (drop alpha)
+          // Get color from the TerrainColors map, convert vec4 to vec3 (drop alpha)
         const glm::vec4& colorVec4 = TerrainColors.at(terrainType);
         glm::vec3 tileColor = glm::vec3(colorVec4.r, colorVec4.g, colorVec4.b);
-        
-        // Adjust color for pentagon tiles to make them slightly distinct
-        if (tile.GetShape() == Generators::Tile::TileShape::Pentagon) {
-            tileColor = glm::clamp(tileColor * 1.2f, glm::vec3(0.0f), glm::vec3(1.0f));
-        }
         
         // Get the center position
         glm::vec3 centerPos = glm::normalize(tile.GetCenter());
@@ -212,16 +206,15 @@ void World::GenerateRenderingData()
           // Store vertex data
         // First the center vertex
         unsigned int centerVertexIndex = vertexOffset;
-        
-        m_vertexData.push_back(centerPos.x);
+          m_vertexData.push_back(centerPos.x);
         m_vertexData.push_back(centerPos.y);
         m_vertexData.push_back(centerPos.z);
-        m_vertexData.push_back(centerPos.x); // Normal = position for a sphere
+        m_vertexData.push_back(centerPos.x); 
         m_vertexData.push_back(centerPos.y);
         m_vertexData.push_back(centerPos.z);
-        m_vertexData.push_back(tileColor.r * 1.2f); // Make center slightly brighter
-        m_vertexData.push_back(tileColor.g * 1.2f);
-        m_vertexData.push_back(tileColor.b * 1.2f);
+        m_vertexData.push_back(tileColor.r); 
+        m_vertexData.push_back(tileColor.g);
+        m_vertexData.push_back(tileColor.b);
         
         vertexOffset++;
         
@@ -264,16 +257,12 @@ void World::GenerateRenderingData()
             [](const std::pair<float, glm::vec3>& a, const std::pair<float, glm::vec3>& b) {
                 return a.first < b.first;
             });
-        
-        // Next, add all sorted perimeter vertices with slightly different brightness
+          // Next, add all sorted perimeter vertices with same color as the tile
         unsigned int firstPerimeterIndex = vertexOffset;
         
         for (size_t i = 0; i < sortedVertices.size(); ++i) {
             // Normalize and expand the perimeter vertex slightly
             glm::vec3 vertexPos = glm::normalize(sortedVertices[i].second) * expansionFactor;
-            
-            // Vary brightness to distinguish vertices
-            float brightness = 0.8f + (static_cast<float>(i) / sortedVertices.size()) * 0.2f;
             
             // Add vertex
             m_vertexData.push_back(vertexPos.x);
@@ -282,9 +271,9 @@ void World::GenerateRenderingData()
             m_vertexData.push_back(vertexPos.x); // Normal = position for a sphere
             m_vertexData.push_back(vertexPos.y);
             m_vertexData.push_back(vertexPos.z);
-            m_vertexData.push_back(tileColor.r * brightness);
-            m_vertexData.push_back(tileColor.g * brightness);
-            m_vertexData.push_back(tileColor.b * brightness);
+            m_vertexData.push_back(tileColor.r);
+            m_vertexData.push_back(tileColor.g);
+            m_vertexData.push_back(tileColor.b);
             
             // Add this vertex to the indices
             m_indices.push_back(vertexOffset);
@@ -408,7 +397,8 @@ void World::RenderTiles(const glm::mat4& viewMatrix, const glm::mat4& projection
         // Approximation: consider positions just barely beyond the hemisphere (with a small margin)
         return glm::dot(normalizedPos, cameraForward) < 0.05f;
     };
-      // PASS 1: Draw the solid colored tiles
+
+    // PASS 1: Draw the solid colored tiles
     // Tell shader to use vertex colors (1 for true)
     if (useColorAttribLoc != -1) {
         glUniform1i(useColorAttribLoc, 1);
@@ -418,8 +408,6 @@ void World::RenderTiles(const glm::mat4& viewMatrix, const glm::mat4& projection
     glBindVertexArray(m_vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    
-    // Draw each tile individually using a triangle fan
     for (const auto& tileInfo : m_tileFanInfo) {
         RenderTile(tileInfo, isVisible, true);
     }
@@ -427,19 +415,20 @@ void World::RenderTiles(const glm::mat4& viewMatrix, const glm::mat4& projection
     
     // PASS 3: Draw tile edges
     // Draw wireframe edges for better tile visibility
-    if (useColorAttribLoc != -1) {
-        glUniform1i(useColorAttribLoc, 0); // Use uniform color for edges
-    }
-    if (planetColorLoc != -1) {
-        glUniform3f(planetColorLoc, 0.0f, 0.0f, 0.0f); // Black edges
-    }
+    // if (useColorAttribLoc != -1) {
+    //     glUniform1i(useColorAttribLoc, 0); // Use uniform color for edges
+    // }
+    // if (planetColorLoc != -1) {
+    //     glUniform3f(planetColorLoc, 0.0f, 0.0f, 0.0f); // Black edges
+    // }
     
-    glLineWidth(1.5f);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDepthMask(GL_FALSE); // Disable depth writing for wireframe to ensure all lines are visible
-      for (const auto& tileInfo : m_tileFanInfo) {
-        RenderTile(tileInfo, isVisible, false);
-    }
+    // glLineWidth(1.5f);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // glDepthMask(GL_FALSE); // Disable depth writing for wireframe to ensure all lines are visible
+    //   for (const auto& tileInfo : m_tileFanInfo) {
+    //     RenderTile(tileInfo, isVisible, false);
+    // }
+
       // Reset OpenGL state
     glDepthMask(GL_TRUE);
     glLineWidth(1.0f);

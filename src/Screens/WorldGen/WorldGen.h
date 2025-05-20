@@ -12,6 +12,8 @@
 #include "Generators/World.h"
 #include "Generators/Generator.h"
 #include "Renderers/World.h"
+#include "../Game/World.h" // Include for game world
+#include "../../GameState.h" // Include for GameState
 #include <thread>
 #include <mutex>
 #include <queue>
@@ -76,12 +78,26 @@ private:
     
     // Static callback handling
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
-    static std::unordered_map<GLFWwindow*, WorldGenScreen*> s_instances;
-
-    // Thread management
+    static std::unordered_map<GLFWwindow*, WorldGenScreen*> s_instances;    // Thread management
     std::thread m_generationThread;
     std::atomic<bool> m_isGenerating{false};
     std::atomic<bool> m_shouldStopGeneration{false};
+
+    // Game world creation thread
+    std::thread m_gameWorldThread;
+    std::atomic<bool> m_isCreatingGameWorld{false};
+    std::atomic<bool> m_shouldStopGameWorldCreation{false};
+    std::unique_ptr<World> m_newGameWorld;
+    
+    // Game world creation parameters
+    struct GameWorldCreationParams {
+        float sampleRate;
+        Camera* camera;
+        GameState* gameState;
+        GLFWwindow* window;
+        std::string seed;
+    };
+    GameWorldCreationParams m_gameWorldParams;
     
     // Replace queue with single latest update
     struct ProgressMessage {
@@ -92,8 +108,9 @@ private:
     ProgressMessage m_latestProgress;
     std::mutex m_progressMutex;
     
-    // Thread worker method
+    // Thread worker methods
     void worldGenerationThreadFunc();
+    void gameWorldCreationThreadFunc();
     
     // Process any pending progress messages
     void processProgressMessages();
