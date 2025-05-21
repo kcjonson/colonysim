@@ -7,7 +7,7 @@ constexpr float PI = 3.14159265358979323846f;
 
 // Examples constructor: Pass camera and window
 Examples::Examples(Camera* cam, GLFWwindow* win) 
-    : examplesLayer(std::make_shared<Rendering::Layer>(0.0f, Rendering::ProjectionType::ScreenSpace, cam, win)) {
+    : Rendering::Layer(0.0f, Rendering::ProjectionType::ScreenSpace, cam, win) {
     // Constructor body can be empty if initialization is done in the list
 }
 
@@ -16,17 +16,16 @@ void Examples::initialize() {
     
     // Create examples for different shapes
     createRectangleExamples();
-    createCircleExamples();    createLineExamples();
+    createCircleExamples();
+    createLineExamples();
     createPolygonExamples();
     createTextExamples();
     createTextInputExamples();
 }
 
-void Examples::render() {
-    examplesLayer->render(false);
-}
-
-void Examples::createRectangleExamples() {    // Example of rectangle with transparency
+void Examples::createRectangleExamples() {
+    
+    // Example of rectangle with transparency
     auto transRect = std::make_shared<Rendering::Shapes::Rectangle>(
         Rendering::Shapes::Rectangle::Args{
             .position = glm::vec2(250.0f, 250.0f),  // Top-left position
@@ -37,8 +36,9 @@ void Examples::createRectangleExamples() {    // Example of rectangle with trans
             .zIndex = 10.0f  // Z-index
         }
     );
-    examplesLayer->addItem(transRect);
-      // Example of rectangle with border and corner radius
+    addItem(transRect);
+
+    // Example of rectangle with border and corner radius
     auto roundedRect = std::make_shared<Rendering::Shapes::Rectangle>(
         Rendering::Shapes::Rectangle::Args{
             .position = glm::vec2(300.0f, 300.0f),  // Top-left position
@@ -53,8 +53,9 @@ void Examples::createRectangleExamples() {    // Example of rectangle with trans
             .zIndex = 11.0f  // Z-index
         }
     );
-    examplesLayer->addItem(roundedRect);
-      // Example of rectangle with green color
+    addItem(roundedRect);
+
+    // Example of rectangle with green color
     auto greenRect = std::make_shared<Rendering::Shapes::Rectangle>(
         Rendering::Shapes::Rectangle::Args{
             .position = glm::vec2(200.0f, 300.0f),  // Top-left position
@@ -65,8 +66,9 @@ void Examples::createRectangleExamples() {    // Example of rectangle with trans
             .zIndex = 12.0f  // Z-index
         }
     );
-    examplesLayer->addItem(greenRect);
-      // Example of rectangle with yellow border
+    addItem(greenRect);
+
+    // Example of rectangle with yellow border
     auto borderedRect = std::make_shared<Rendering::Shapes::Rectangle>(
         Rendering::Shapes::Rectangle::Args{
             .position = glm::vec2(340.0f, 210.0f),  // Top-left position
@@ -80,8 +82,9 @@ void Examples::createRectangleExamples() {    // Example of rectangle with trans
             .zIndex = 13.0f  // Z-index
         }
     );
-    examplesLayer->addItem(borderedRect);
-      // Example of rectangle with high corner radius (pill shape)
+    addItem(borderedRect);
+
+    // Example of rectangle with high corner radius (pill shape)
     auto pillRect = std::make_shared<Rendering::Shapes::Rectangle>(
         Rendering::Shapes::Rectangle::Args{
             .position = glm::vec2(370.0f, 410.0f),  // Top-left position
@@ -96,10 +99,11 @@ void Examples::createRectangleExamples() {    // Example of rectangle with trans
             .zIndex = 14.0f  // Z-index
         }
     );
-    examplesLayer->addItem(pillRect);
+    addItem(pillRect);
 }
 
 void Examples::createCircleExamples() {
+    
     // Basic circle example - create style using constructor parameters
     Rendering::Styles::CircleStyleParams basicParams;
     basicParams.color = glm::vec4(1.0f, 0.0f, 0.0f, 0.7f); // Red with 70% transparency
@@ -110,7 +114,7 @@ void Examples::createCircleExamples() {
         Rendering::Styles::Circle(basicParams),
         15.0f  // Z-index
     );
-    examplesLayer->addItem(basicCircle);
+    addItem(basicCircle);
     
     // Circle with border
     Rendering::Styles::CircleStyleParams borderedParams;
@@ -125,7 +129,7 @@ void Examples::createCircleExamples() {
         Rendering::Styles::Circle(borderedParams),
         16.0f  // Z-index
     );
-    examplesLayer->addItem(borderedCircle);
+    addItem(borderedCircle);
     
     // Circle with inside border
     Rendering::Styles::CircleStyleParams insideBorderedParams;
@@ -140,7 +144,7 @@ void Examples::createCircleExamples() {
         Rendering::Styles::Circle(insideBorderedParams),
         17.0f  // Z-index
     );
-    examplesLayer->addItem(insideBorderedCircle);
+    addItem(insideBorderedCircle);
     
     // High segment circle for smoother appearance
     Rendering::Styles::CircleStyleParams smoothParams;
@@ -155,7 +159,7 @@ void Examples::createCircleExamples() {
         Rendering::Styles::Circle(smoothParams),
         18.0f  // Z-index
     );
-    examplesLayer->addItem(smoothCircle);
+    addItem(smoothCircle);
     
     // Large transparent circle
     Rendering::Styles::CircleStyleParams largeParams;
@@ -167,7 +171,7 @@ void Examples::createCircleExamples() {
         Rendering::Styles::Circle(largeParams),
         19.0f  // Z-index
     );
-    examplesLayer->addItem(largeCircle);
+    addItem(largeCircle);
 }
 
 void Examples::createLineExamples() {
@@ -181,7 +185,7 @@ void Examples::createLineExamples() {
         }),
         20.0f  // Z-index
     );
-    examplesLayer->addItem(basicLine);
+    addItem(basicLine);
     
     // Thick line
     auto thickLine = std::make_shared<Rendering::Shapes::Line>(
@@ -193,7 +197,7 @@ void Examples::createLineExamples() {
         }),
         21.0f  // Z-index
     );
-    examplesLayer->addItem(thickLine);
+    addItem(thickLine);
     
     // Diagonal line
     auto diagonalLine = std::make_shared<Rendering::Shapes::Line>(
@@ -205,7 +209,7 @@ void Examples::createLineExamples() {
         }),
         22.0f  // Z-index
     );
-    examplesLayer->addItem(diagonalLine);
+    addItem(diagonalLine);
 }
 
 void Examples::createPolygonExamples() {
@@ -224,7 +228,7 @@ void Examples::createPolygonExamples() {
         }),
         23.0f  // Z-index
     );
-    examplesLayer->addItem(triangle);
+    addItem(triangle);
     
     // Pentagon
     std::vector<glm::vec2> pentagonVertices;
@@ -244,7 +248,7 @@ void Examples::createPolygonExamples() {
         }),
         24.0f  // Z-index
     );
-    examplesLayer->addItem(pentagon);
+    addItem(pentagon);
     
     // Star
     std::vector<glm::vec2> starVertices;
@@ -265,7 +269,7 @@ void Examples::createPolygonExamples() {
         }),
         25.0f  // Z-index
     );
-    examplesLayer->addItem(star);
+    addItem(star);
 }
 
 void Examples::createTextExamples() {
@@ -280,7 +284,7 @@ void Examples::createTextExamples() {
             .zIndex = 26.0f  // Z-index
         }
     );
-    examplesLayer->addItem(basicText);
+    addItem(basicText);
     
     // Colored text
     auto coloredText = std::make_shared<Rendering::Shapes::Text>(
@@ -293,7 +297,7 @@ void Examples::createTextExamples() {
             .zIndex = 27.0f  // Z-index
         }
     );
-    examplesLayer->addItem(coloredText);
+    addItem(coloredText);
     
     // Semi-transparent text
     auto transparentText = std::make_shared<Rendering::Shapes::Text>(
@@ -306,7 +310,7 @@ void Examples::createTextExamples() {
             .zIndex = 28.0f  // Z-index
         }
     );
-    examplesLayer->addItem(transparentText);
+    addItem(transparentText);
 }
 
 void Examples::createTextInputExamples() {
@@ -322,7 +326,7 @@ void Examples::createTextInputExamples() {
             .zIndex = 29.0f
         }
     );
-    examplesLayer->addItem(textInputLabel);
+    addItem(textInputLabel);
     
     // Basic text input example
     auto basicTextInput = std::make_shared<Rendering::Components::Form::Text>(
@@ -334,7 +338,7 @@ void Examples::createTextInputExamples() {
             .zIndex = 30.0f
         }
     );
-    examplesLayer->addItem(basicTextInput);
+    addItem(basicTextInput);
     
     // Styled text input example
     Rendering::Components::Form::Text::StyleParams customStyleParams;
@@ -359,7 +363,7 @@ void Examples::createTextInputExamples() {
             }
         }
     );
-    examplesLayer->addItem(customStyledTextInput);
+    addItem(customStyledTextInput);
     
     // Prefilled text input
     auto prefilledTextInput = std::make_shared<Rendering::Components::Form::Text>(
@@ -371,7 +375,7 @@ void Examples::createTextInputExamples() {
             .zIndex = 32.0f
         }
     );
-    examplesLayer->addItem(prefilledTextInput);
+    addItem(prefilledTextInput);
     
     // Disabled text input
     auto disabledTextInput = std::make_shared<Rendering::Components::Form::Text>(
@@ -384,5 +388,5 @@ void Examples::createTextInputExamples() {
             .zIndex = 33.0f
         }
     );
-    examplesLayer->addItem(disabledTextInput);
+    addItem(disabledTextInput);
 }

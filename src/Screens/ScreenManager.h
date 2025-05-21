@@ -37,9 +37,7 @@ public:
     void switchScreen(ScreenType screenType);
     void cleanup();
       // For initializing OpenGL after splash screen
-    bool initializeOpenGL();
-
-    // Getters for shared resources
+    bool initializeOpenGL();    // Getters for shared resources
     GLFWwindow* getWindow() const { return window; }
     Camera* getCamera() const { return camera.get(); }
     GameState* getGameState() const { return gameState.get(); }
@@ -49,7 +47,7 @@ public:
     // Removed: Entities* getEntities() const { return entities.get(); }
     InputManager* getInputManager() const { return inputManager.get(); }
     // Removed: Interface* getInterface() const { return interface.get(); }
-    Examples* getExamples() const { return examples.get(); }
+    // Removed: Examples is now created in DeveloperScreen
 
     // Window callback handlers
     static void framebufferSizeCallback(GLFWwindow* window, int width, int height);
@@ -61,13 +59,12 @@ public:
 private:
     // Game shared resources
     GLFWwindow* window;
-    std::unique_ptr<Camera> camera;
-    std::unique_ptr<GameState> gameState;
+    std::unique_ptr<Camera> camera;    std::unique_ptr<GameState> gameState;
     std::unique_ptr<World> world;
     // Removed: std::unique_ptr<Entities> entities;
     std::unique_ptr<InputManager> inputManager;
     // Removed: std::unique_ptr<Interface> interface;
-    std::unique_ptr<Examples> examples;
+    // Removed: std::unique_ptr<Examples> examples;
     
     // Screen management (lazy init)
     std::unordered_map<ScreenType, std::function<std::unique_ptr<Screen>()>> screenFactories;

@@ -13,12 +13,12 @@ public:
     InputManager(GLFWwindow* window, Camera& camera, GameState& gameState);
     ~InputManager();
 
-    void update(float deltaTime);
-    void handleKeyInput(int key, int action);
+    void update(float deltaTime);    void handleKeyInput(int key, int action);
     void handleMouseButton(int button, int action);
     void handleMouseMove(double x, double y);
     void handleScroll(double xoffset, double yoffset);
     void handleCursorEnter(int entered); // Add new method for cursor enter/leave events
+    void handleCharInput(unsigned int codepoint); // Add character input method
 
     // Configuration
     void loadConfig(const std::string& configPath);
@@ -31,14 +31,13 @@ public:
     void setMaxPanAcceleration(float accel) { maxPanAcceleration = accel; }
     void setPanAccelRate(float rate) { panAccelRate = rate; }
     void setMaxZoomAcceleration(float accel) { maxZoomAcceleration = accel; }
-    void setZoomAccelRate(float rate) { zoomAccelRate = rate; }
-
-    // Static callback functions
+    void setZoomAccelRate(float rate) { zoomAccelRate = rate; }    // Static callback functions
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
     static void cursorPosCallback(GLFWwindow* window, double xpos, double ypos);
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
     static void cursorEnterCallback(GLFWwindow* window, int entered); // Add new static callback
+    static void charCallback(GLFWwindow* window, unsigned int codepoint); // Add character callback
 
 private:
     GLFWwindow* window;

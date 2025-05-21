@@ -77,5 +77,10 @@ namespace Rendering {
 				}
 			}
 		}
+
+		float Text::measureTextWidth(const std::string &text) const {
+			VectorGraphics &vectorGraphics = VectorGraphics::getInstance();
+			return vectorGraphics.measureText(text, style.fontSize).x;
+		}
 	} // namespace Shapes
 } // namespace Rendering

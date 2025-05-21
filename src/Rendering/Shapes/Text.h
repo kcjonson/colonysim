@@ -63,7 +63,9 @@ namespace Rendering {
                     position = s;
                     markDirty();
                 }
-                
+
+                // Measure the width of the given text string based on the current style
+                float measureTextWidth(const std::string &text) const;
 
                 virtual void draw() override;
 

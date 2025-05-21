@@ -243,6 +243,7 @@ void Layer::update(float deltaTime) {
     }
 }
 void Layer::handleInput(float deltaTime) {
+
     // Skip if layer is not visible
     if (!visible) {
         return;

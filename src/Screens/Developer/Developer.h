@@ -7,6 +7,7 @@
 #include "../../Rendering/Shapes/Rectangle.h"
 #include "../../Rendering/Shapes/Text.h"
 #include "../../Rendering/Components/Button.h"
+#include "Examples.h"
 
 class DeveloperScreen : public Screen {
 public:
@@ -26,9 +27,11 @@ private:
     std::shared_ptr<Rendering::Components::Button> backButton;
     float lastCursorX;
     float lastCursorY;
-    
-    // UI Layers
+      // UI Layers
     std::shared_ptr<Rendering::Layer> backgroundLayer;
     std::shared_ptr<Rendering::Layer> buttonLayer;
     std::shared_ptr<Rendering::Layer> titleLayer;
+    
+    // Examples instance for rendering example shapes
+    std::shared_ptr<Examples> examples;
 };

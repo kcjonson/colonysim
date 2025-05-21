@@ -13,7 +13,7 @@
 #include "Camera.h" // Add missing include
 #include <GLFW/glfw3.h> // Add missing include
 
-class Examples {
+class Examples : public Rendering::Layer {
 public:
     // Update constructor declaration
     Examples(Camera* cam, GLFWwindow* win);
@@ -22,9 +22,6 @@ public:
     // Initialize the examples
     void initialize();
     
-    // Render the examples
-    void render();
-    
 private:    // Create examples for different shapes
     void createRectangleExamples();
     void createCircleExamples();
@@ -32,7 +29,4 @@ private:    // Create examples for different shapes
     void createPolygonExamples();
     void createTextExamples();
     void createTextInputExamples();
-    
-    // Layer to hold all the example shapes
-    std::shared_ptr<Rendering::Layer> examplesLayer;
 };

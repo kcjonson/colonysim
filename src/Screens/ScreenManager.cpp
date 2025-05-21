@@ -206,19 +206,9 @@ bool ScreenManager::initializeOpenGL() {
         return false;
     }
     
-    // Initialize examples for developer screen (pass camera and window)
-    try {
-        examples = std::make_unique<Examples>(camera.get(), window);
-        if (!examples) {
-            std::cerr << "ERROR: Failed to create Examples" << std::endl;
-            return false;
-        }
-        
-        examples->initialize();
-    } catch (const std::exception& e) {
-        std::cerr << "ERROR: Exception during Examples initialization: " << e.what() << std::endl;
-        return false;
-    }
+    // Examples are now created within the DeveloperScreen class
+    
+    // Initialize screen system
     
     std::cout << "OpenGL and core component initialization complete" << std::endl;
     return true;
@@ -348,7 +338,6 @@ void ScreenManager::cleanup() {
     activeScreens.clear();
     
     // Clear other resources
-    examples.reset();
     inputManager.reset();
     world.reset();
     camera.reset();

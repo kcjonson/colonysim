@@ -1,4 +1,5 @@
 #include "InputManager.h"
+#include "Rendering/Components/Form/Text.h"
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -40,6 +41,7 @@ InputManager::InputManager(GLFWwindow* window, Camera& camera, GameState& gameSt
         glfwSetCursorPosCallback(window, cursorPosCallback);
         glfwSetScrollCallback(window, scrollCallback);
         glfwSetCursorEnterCallback(window, cursorEnterCallback);
+        glfwSetCharCallback(window, charCallback); // Add character callback
     }
     
     // Set default key mappings
@@ -82,6 +84,12 @@ void InputManager::scrollCallback(GLFWwindow* window, double xoffset, double yof
 void InputManager::cursorEnterCallback(GLFWwindow* window, int entered) {
     if (s_instance) {
         s_instance->handleCursorEnter(entered);
+    }
+}
+
+void InputManager::charCallback(GLFWwindow* window, unsigned int codepoint) {
+    if (s_instance) {
+        s_instance->handleCharInput(codepoint);
     }
 }
 
@@ -129,6 +137,12 @@ void InputManager::update(float deltaTime) {
 void InputManager::handleKeyInput(int key, int action) {
     // We now handle keyboard panning in processKeyboardInput for continuous acceleration
     // This callback can still be used for one-shot key actions if needed
+    
+    // Forward keypress to the currently focused text input component
+    auto focusedText = Rendering::Components::Form::Text::focusedTextInput;
+    if (focusedText) {
+        focusedText->handleKeyInput(key, 0, action, 0);
+    }
 }
 
 void InputManager::handleMouseButton(int button, int action) {
@@ -412,5 +426,13 @@ void InputManager::loadConfig(const std::string& configPath) {
     }
     catch (const json::parse_error& e) {
         std::cerr << "Failed to parse input config file: " << e.what() << std::endl;
+    }
+}
+
+void InputManager::handleCharInput(unsigned int codepoint) {
+    // Forward character input to the currently focused text input component
+    auto focusedText = Rendering::Components::Form::Text::focusedTextInput;
+    if (focusedText) {
+        focusedText->handleCharInput(codepoint);
     }
 }

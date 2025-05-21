@@ -1,13 +1,17 @@
 #include "Rendering/Components/Form/Text.h"
 #include <GLFW/glfw3.h> // For input constants
+#include <glad/glad.h> // For OpenGL scissor
 #include <algorithm>    // For std::min/max
 
 namespace Rendering {
     namespace Components {
         namespace Form {
+            
+            // Initialize the static pointer
+            std::shared_ptr<Text> Text::focusedTextInput;
 
             Text::Text(const Args &args)
-                : Layer(args.zIndex),
+                : Layer(args.zIndex, ProjectionType::ScreenSpace, nullptr, glfwGetCurrentContext()),
                   position(args.position),
                   label(args.label),
                   placeholder(args.placeholder),
@@ -74,7 +78,9 @@ namespace Rendering {
                     ),
                     .zIndex = inputTextZ
                 });
-
+                // Store base position for scrolling
+                inputTextBasePosition = inputPosition;
+                
                 // Create cursor for text editing
                 cursor = std::make_shared<Shapes::Rectangle>(
                     Shapes::Rectangle::Args{
@@ -213,6 +219,8 @@ namespace Rendering {
                 if (inputText) {
                     // Keep the relative position of the input text
                     inputText->setPosition(inputText->getPosition() + offset);
+                    // Update base position for scrolling
+                    inputTextBasePosition += offset;
                 }
                 
                 if (cursor && focused) {
@@ -221,9 +229,7 @@ namespace Rendering {
                 }
                 
                 markDirty();
-            }
-
-            void Text::setFocus(bool focus) {
+            }            void Text::setFocus(bool focus) {
                 if (focused != focus && !disabled) {
                     focused = focus;
                     if (focused) {
@@ -231,9 +237,17 @@ namespace Rendering {
                         cursorPosition = value.length();
                         cursorBlinkTimer = 0.0f;
                         cursorVisible = true;
+                        
+                        // Set this as the currently focused text input
+                        focusedTextInput = shared_from_this();
                     } else {
                         // Hide cursor when losing focus
                         cursor->setVisible(false);
+                        
+                        // If this was the focused input, clear the static pointer
+                        if (focusedTextInput.get() == this) {
+                            focusedTextInput = nullptr;
+                        }
                     }
                     updateVisualState();
                     markDirty();
@@ -254,11 +268,29 @@ namespace Rendering {
                     labelText->draw();
                 }
                 
+                // Apply scissor mask for input field region
+                GLFWwindow* window = glfwGetCurrentContext();
+                // Get window and framebuffer sizes for DPI scaling
+                int winW, winH, fbW, fbH;
+                glfwGetWindowSize(window, &winW, &winH);
+                glfwGetFramebufferSize(window, &fbW, &fbH);
+                float scaleX = (float)fbW / (float)winW;
+                float scaleY = (float)fbH / (float)winH;
+                // Compute scissor rectangle in framebuffer coords
+                // Include viewport origin
+                GLint vp[4]; glGetIntegerv(GL_VIEWPORT, vp);
+                int scX = vp[0] + static_cast<int>(position.x * scaleX);
+                int scY = vp[1] + static_cast<int>(fbH - (position.y + size.y) * scaleY);
+                int scW = static_cast<int>(size.x * scaleX);
+                int scH = static_cast<int>(size.y * scaleY);
+                glEnable(GL_SCISSOR_TEST);
+                glScissor(scX, scY, scW, scH);
+                // Draw text and cursor within mask
                 inputText->draw();
-                
                 if (focused && cursorVisible) {
                     cursor->draw();
                 }
+                glDisable(GL_SCISSOR_TEST);
             }
 
             bool Text::containsPoint(const glm::vec2 &point) const {
@@ -551,19 +583,24 @@ namespace Rendering {
                     if (cursor) {
                         cursor->setVisible(cursorVisible);
                         
-                        // Calculate cursor position based on text measurement
-                        // This is a simplified approach - a more accurate approach would measure text width
-                        glm::vec2 cursorPos = inputText->getPosition();
-                        
-                        // Very basic estimation - assuming monospace font and fixed width per character
-                        // In a real implementation, you'd want to measure the actual text width
-                        if (!value.empty() && cursorPosition > 0) {
-                            // Assuming each character is about 8-10 pixels wide at fontSize 1.0
-                            // This is a rough approximation
-                            float charWidth = 10.0f * inputText->getStyle().fontSize;
-                            cursorPos.x += charWidth * static_cast<float>(cursorPosition);
+                        // Adjust horizontal offset to ensure cursor is visible
+                        float beforeWidth = inputText->measureTextWidth(value.substr(0, cursorPosition));
+                        float availWidth = size.x - 10.0f;
+                        if (beforeWidth + horizontalOffset < 0.0f) {
+                            horizontalOffset = -beforeWidth;
+                        } else if (beforeWidth + horizontalOffset > availWidth) {
+                            horizontalOffset = availWidth - beforeWidth;
                         }
+                        // Optionally clamp offset to content bounds
+                        float fullTextWidth = inputText->measureTextWidth(value);
+                        float minOffset = std::min(0.0f, availWidth - fullTextWidth);
+                        horizontalOffset = std::max(minOffset, std::min(horizontalOffset, 0.0f));
+                        // Compute cursor position based on updated offset and base position
+                        glm::vec2 cursorPos = inputTextBasePosition + glm::vec2(horizontalOffset + beforeWidth, 0.0f);
                         
+                        // Vertical centering
+                        float textHeight = inputText->getStyle().fontSize * 16.0f; // Approximate line height
+                        cursorPos.y = inputTextBasePosition.y + (inputText->getSize().y - textHeight) / 2.0f;
                         cursor->setPosition(cursorPos);
                     }
                 } else {
@@ -590,6 +627,10 @@ namespace Rendering {
                     }
                     
                     inputText->setStyle(textStyle);
+                    
+                    // Apply horizontal offset for scrolling based on base position
+                    glm::vec2 newPos = inputTextBasePosition + glm::vec2(horizontalOffset, 0.0f);
+                    inputText->setPosition(newPos);
                 }
                 
                 markDirty();

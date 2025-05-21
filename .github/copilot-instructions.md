@@ -1,6 +1,7 @@
 
 
 * Please always read this file and make sure you do all these things on every instruction that I give.
+* This project is written in C++ (CPP) and should use CPP best practices and patterns. 
 * The terminal is Powershell 7, make sure to use the correct Powershell 7 syntax when executing commands
 * The build can be run via the config in the tasks.json file. Thats the definitive place to look. Don't try and run the build in ways not specified there.
 * The build should be run after you make code changes to make sure there are no build errors. If there are errors, your work is not done, iterate to fix them before declaring that you're done. Do not run the build if you have not made code changes since the last time you ran the build.

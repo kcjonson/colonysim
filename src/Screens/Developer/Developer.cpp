@@ -16,6 +16,9 @@ DeveloperScreen::DeveloperScreen(Camera* camera, GLFWwindow* window)
     buttonLayer = std::make_shared<Rendering::Layer>(20.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
     titleLayer = std::make_shared<Rendering::Layer>(10.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
     
+    // Create Examples instance
+    examples = std::make_shared<Examples>(camera, window);
+    
     // Create back button using the new Button component
     backButton = std::make_shared<Rendering::Components::Button>(
         Rendering::Components::Button::Args{
@@ -46,11 +49,8 @@ bool DeveloperScreen::initialize() {
     // Re-creating layers here might be cleaner if ScreenManager isn't available in constructor.
     // For now, let's assume the pointers passed via addItem or constructor are sufficient.
 
-    // Set window reference for Examples if available
-    // Examples class needs similar modification
-    if (screenManager->getExamples()) {
-        // screenManager->getExamples()->setWindow(window); // This needs to be removed/refactored in Examples.cpp
-    }
+    // Initialize the Examples instance
+    examples->initialize();
     
     // Layout UI elements
     layoutUI();
@@ -105,11 +105,8 @@ void DeveloperScreen::render() {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
-    // Render examples if available
-    Examples* examples = screenManager->getExamples();
-    if (examples) {
-        examples->render();
-    }
+    // Render examples
+    examples->render();
     
     // Render all UI layers on top
     backgroundLayer->render(false);
@@ -118,6 +115,8 @@ void DeveloperScreen::render() {
 }
 
 void DeveloperScreen::handleInput(float deltaTime) {
+
+
     GLFWwindow* window = screenManager->getWindow();
     
     // Get cursor position for any custom input handling
@@ -133,18 +132,13 @@ void DeveloperScreen::handleInput(float deltaTime) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         screenManager->switchScreen(ScreenType::MainMenu);
     }
+
+    examples->handleInput(deltaTime);
 }
 
 void DeveloperScreen::onResize(int width, int height) {
     // Re-layout UI when the window is resized
     layoutUI();
-    
-    // Update Examples window reference if needed
-    // This needs refactoring in Examples class
-    GLFWwindow* window = screenManager->getWindow();
-    if (screenManager->getExamples()) {
-        // screenManager->getExamples()->setWindow(window); // Remove/refactor
-    }
 }
 
 bool DeveloperScreen::isPointInRect(float px, float py, float rx, float ry, float rw, float rh) {

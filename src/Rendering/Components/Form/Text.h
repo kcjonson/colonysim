@@ -12,17 +12,17 @@
 
 namespace Rendering {
     namespace Components {
-        namespace Form {
-
-            /**
+        namespace Form {            /**
              * A text input component with a label and onChange callback
              *
              * The text input uses a rectangle for its background, a text
              * for its label, and allows user to input text. It provides
              * a callback function when the text changes.
-             */
-            class Text : public Layer {
+             */            class Text : public Layer, public std::enable_shared_from_this<Text> {
               public:
+                // Static pointer to the currently focused text input
+                static std::shared_ptr<Text> focusedTextInput;
+                
                 // Parameter struct for text input styling
                 struct StyleParams {
                     glm::vec4 color = glm::vec4(0.95f, 0.95f, 0.95f, 1.0f);          // Background color
@@ -121,22 +121,20 @@ namespace Rendering {
 
                 // Focus state
                 bool isFocused() const { return focused; }
-                void setFocus(bool focus);
-
-                // Implementation of the render method (overriding Layer)
+                void setFocus(bool focus);                // Implementation of the render method (overriding Layer)
                 virtual void render(bool batched = false) override;
 
                 // Input handling methods
                 void handleInput(float deltaTime = 0.0f);
+                
+                // Process keyboard input
+                void handleKeyInput(int key, int scancode, int action, int mods);
+                void handleCharInput(unsigned int codepoint);
 
               private:
 
                 // Implementation of the draw method (no longer overriding)
                 void draw();
-
-                // Process keyboard input
-                void handleKeyInput(int key, int scancode, int action, int mods);
-                void handleCharInput(unsigned int codepoint);
 
                 // Process mouse input
                 void handleMouseMove(const glm::vec2 &mousePos);
@@ -197,6 +195,8 @@ namespace Rendering {
                 size_t cursorPosition = 0;
                 float cursorBlinkTimer = 0.0f;
                 bool cursorVisible = true;
+                float horizontalOffset = 0.0f; // Horizontal offset for scrolling text
+                glm::vec2 inputTextBasePosition; // Base position for input text to apply scrolling offset
             };
 
         } // namespace Form
