@@ -4,7 +4,7 @@
 #include <sstream>
 #include <algorithm> // Required for std::max in measureText if you use my previous measureText
 
-FontRenderer::FontRenderer() : VAO(0), VBO(0), library(nullptr) {
+FontRenderer::FontRenderer() : VAO(0), VBO(0), library(nullptr), maxGlyphHeightUnscaled(0.0f) {
     // std::cout << "FontRenderer constructor called" << std::endl;
 }
 
@@ -74,6 +74,9 @@ bool FontRenderer::loadFont(const std::string& fontPath) {
     // The 'scale' parameter in renderText will be applied to this.
     // face->size->metrics.ascender is in 26.6 fixed point format.
     this->scaledAscender = (float)(face->size->metrics.ascender >> 6);
+    // Store the maximum glyph line height (ascender-descender) for the base font size.
+    // face->size->metrics.height is in 26.6 fixed point format.
+    this->maxGlyphHeightUnscaled = (float)(face->size->metrics.height >> 6);
 
     // Load first 128 characters of ASCII set
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -260,4 +263,10 @@ glm::vec2 FontRenderer::measureText(const std::string& text, float scale) const 
     actual_height_scaled = std::max(0.0f, actual_height_scaled);
 
     return glm::vec2(scaled_total_width, actual_height_scaled);
+}
+
+// Get the maximum height of any glyph (ascender + |descender|) at the specified scale
+float FontRenderer::getMaxGlyphHeight(float scale) const {
+    // maxGlyphHeightUnscaled holds the line height (distance between baselines) in unscaled pixels
+    return maxGlyphHeightUnscaled * scale;
 }

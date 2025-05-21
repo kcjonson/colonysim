@@ -31,50 +31,46 @@ namespace Rendering {
 			if (!text.empty()) {
 				VectorGraphics &vectorGraphics = VectorGraphics::getInstance();
 
-				if (size.x <= 0 || size.y <= 0) {
-					vectorGraphics.drawText(text, position, style.color, style.fontSize);
-				} else {
-					// Measure the text dimensions using VectorGraphics
-					// The scale factor may need adjustment based on your specific implementation
-					glm::vec2 textSize = vectorGraphics.measureText(text, style.fontSize);
+				// Determine measured width and consistent line height
+				glm::vec2 textSize = vectorGraphics.measureText(text, style.fontSize);
+				float lineHeight = Renderer::getInstance().getLineHeight(style.fontSize);
 
-					// Determine box size (use measured text size if size is zero)
-					glm::vec2 boxSize = size.x <= 0 || size.y <= 0 ? textSize : size;
+				// Determine box size (use measured text size if size is zero)
+				glm::vec2 boxSize = size.x <= 0 || size.y <= 0 ? textSize : size;
 
-					// Calculate the position adjustment based on alignment
-					glm::vec2 alignedPosition = position;
+				// Calculate the position adjustment based on alignment
+				glm::vec2 alignedPosition = position;
 
-					// Apply horizontal alignment
-					switch (style.horizontalAlign) {
-						case TextAlign::Horizontal::Left:
-							// No adjustment needed for left alignment
-							break;
-						case TextAlign::Horizontal::Center:
-							alignedPosition.x += (boxSize.x - textSize.x) / 2.0f;
-							break;
-						case TextAlign::Horizontal::Right:
-							alignedPosition.x += boxSize.x - textSize.x;
-							break;
-					}
-
-					// Apply vertical alignment
-					switch (style.verticalAlign) {
-						case TextAlign::Vertical::Top:
-							// No adjustment needed for top alignment if the font renderer draws from the top
-							// If the font renderer uses baseline positioning, you may need to adjust
-							break;
-						case TextAlign::Vertical::Middle:
-							alignedPosition.y += (boxSize.y - textSize.y) / 2.0f;
-							break;
-						case TextAlign::Vertical::Bottom:
-							alignedPosition.y += boxSize.y - textSize.y;
-							break;
-					}
-
-					// Draw the text at the aligned position using VectorGraphics
-					// Apply both color and opacity when drawing
-					vectorGraphics.drawText(text, alignedPosition, style.color, style.fontSize);
+				// Apply horizontal alignment
+				switch (style.horizontalAlign) {
+					case TextAlign::Horizontal::Left:
+						// No adjustment needed for left alignment
+						break;
+					case TextAlign::Horizontal::Center:
+						alignedPosition.x += (boxSize.x - textSize.x) / 2.0f;
+						break;
+					case TextAlign::Horizontal::Right:
+						alignedPosition.x += boxSize.x - textSize.x;
+						break;
 				}
+
+				// Apply vertical alignment
+				switch (style.verticalAlign) {
+					case TextAlign::Vertical::Top:
+						// No adjustment needed for top alignment if the font renderer draws from the top
+						// If the font renderer uses baseline positioning, you may need to adjust
+						break;
+					case TextAlign::Vertical::Middle:
+						alignedPosition.y += (boxSize.y - lineHeight) / 2.0f;
+						break;
+					case TextAlign::Vertical::Bottom:
+						alignedPosition.y += boxSize.y - lineHeight;
+						break;
+				}
+
+				// Draw the text at the aligned position using VectorGraphics
+				// Apply both color and opacity when drawing
+				vectorGraphics.drawText(text, alignedPosition, style.color, style.fontSize);
 			}
 		}
 

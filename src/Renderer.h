@@ -43,7 +43,13 @@ public:
     
     // Measure text dimensions
     glm::vec2 measureText(const std::string& text, float scale = 1.0f) const;
-    private:
+    /**
+     * Get a consistent line height (max glyph height) at the given scale
+     * @param scale Scaling factor (1.0f = original font size)
+     * @return Height of the tallest glyph at the specified scale
+     */
+    float getLineHeight(float scale = 1.0f) const { return fontRenderer.getMaxGlyphHeight(scale); }
+private:
     // Private constructor for singleton
     Renderer();
     ~Renderer() = default;
@@ -52,4 +58,4 @@ public:
     
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
-}; 
+};

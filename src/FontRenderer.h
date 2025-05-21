@@ -46,6 +46,13 @@ public:
     // Calculate the dimensions of a text string with the given scale
     glm::vec2 measureText(const std::string& text, float scale = 1.0f) const;
 
+    /**
+     * Get the maximum glyph height (distance from top of ascender to bottom of descender) scaled by the given factor
+     * @param scale Scaling factor for the font size (1.0f = original size)
+     * @return Height of the tallest glyph in the font at the given scale
+     */
+    float getMaxGlyphHeight(float scale = 1.0f) const;
+
 private:
     /**
      * Character information for font rendering
@@ -71,4 +78,5 @@ private:
     FT_Library library;                    // FreeType library instance
     FT_Face face;                          // FreeType font face
     float scaledAscender;                  // Stores the ascender for the base font size (e.g., 16px)
+    float maxGlyphHeightUnscaled;          // Unscaled maximum glyph height for the loaded font
 };
