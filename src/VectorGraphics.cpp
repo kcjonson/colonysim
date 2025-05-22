@@ -90,16 +90,17 @@ void VectorGraphics::render(const glm::mat4& viewMatrix, const glm::mat4& projec
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
-
-        #ifdef DEBUG_MODE
-            GLenum err;
-            while ((err = glGetError()) != GL_NO_ERROR) {
-                std::cerr << "OpenGL error: " << err << std::endl;
-            }
-        #endif
     }
-      // Render all text commands using the Renderer with the SAME view and projection matrices
+
+    // Render all text commands using the Renderer
     if (renderer != nullptr) {
+        // Save current OpenGL scissor state
+        GLboolean wasScissorEnabled = glIsEnabled(GL_SCISSOR_TEST);
+        GLint originalScissorBox[4];
+        if (wasScissorEnabled) {
+            glGetIntegerv(GL_SCISSOR_BOX, originalScissorBox);
+        }
+
         // Set the view and projection matrices on the renderer
         renderer->setView(viewMatrix);
         renderer->setProjection(projectionMatrix);
@@ -107,12 +108,31 @@ void VectorGraphics::render(const glm::mat4& viewMatrix, const glm::mat4& projec
         for (const auto& cmd : textCommands) {
             // Convert RGBA color to RGB for text renderer
             glm::vec3 textColor(cmd.color.r, cmd.color.g, cmd.color.b);
+
+            // Apply scissor if this command has one
+            if (cmd.scissorBox.has_value()) {
+                glEnable(GL_SCISSOR_TEST);
+                const auto& box = cmd.scissorBox.value();
+                glScissor(box.x, box.y, box.z, box.w);
+            } else if (wasScissorEnabled) {
+                // If no specific scissor for this command but there was one active,
+                // temporarily disable it
+                glDisable(GL_SCISSOR_TEST);
+            }
             
-            // Use the Renderer to render text with the same matrices as shapes
+            // Use the Renderer to render text
             renderer->renderText(cmd.text, cmd.position, cmd.size, textColor);
         }
         
-        // Clear text commands after rendering - just like we clear vertices after rendering
+        // Restore original scissor state
+        if (wasScissorEnabled) {
+            glEnable(GL_SCISSOR_TEST);
+            glScissor(originalScissorBox[0], originalScissorBox[1], 
+                     originalScissorBox[2], originalScissorBox[3]);
+        } else {
+            glDisable(GL_SCISSOR_TEST);
+        }
+        
         textCommands.clear();
     } else {
         std::cerr << "Warning: Text rendering attempted with null renderer" << std::endl;
@@ -257,7 +277,16 @@ void VectorGraphics::drawText(const std::string& text, const glm::vec2& position
     cmd.position = position;
     cmd.color = color;
     cmd.size = size;
+    cmd.scissorBox = currentScissorBox;
     textCommands.push_back(cmd);
+}
+
+void VectorGraphics::setScissor(int x, int y, int width, int height) {
+    currentScissorBox = glm::ivec4(x, y, width, height);
+}
+
+void VectorGraphics::clearScissor() {
+    currentScissorBox.reset();
 }
 
 glm::vec2 VectorGraphics::measureText(const std::string& text, float size) const {

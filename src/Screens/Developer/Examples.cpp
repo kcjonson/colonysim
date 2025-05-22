@@ -103,7 +103,7 @@ void Examples::createRectangleExamples() {
 }
 
 void Examples::createCircleExamples() {
-    
+
     // Basic circle example - create style using constructor parameters
     Rendering::Styles::CircleStyleParams basicParams;
     basicParams.color = glm::vec4(1.0f, 0.0f, 0.0f, 0.7f); // Red with 70% transparency
@@ -340,53 +340,53 @@ void Examples::createTextInputExamples() {
     );
     addItem(basicTextInput);
     
-    // Styled text input example
-    Rendering::Components::Form::Text::StyleParams customStyleParams;
-    customStyleParams.color = glm::vec4(0.9f, 0.95f, 1.0f, 1.0f);  // Light blue background
-    customStyleParams.borderColor = glm::vec4(0.4f, 0.6f, 0.9f, 1.0f);  // Blue border
-    customStyleParams.focusColor = glm::vec4(0.85f, 0.9f, 1.0f, 1.0f);  // Lighter blue when focused
-    customStyleParams.focusBorderColor = glm::vec4(0.2f, 0.4f, 0.8f, 1.0f);  // Darker blue border when focused
-    customStyleParams.textColor = glm::vec4(0.1f, 0.1f, 0.5f, 1.0f);  // Dark blue text
-    customStyleParams.placeholderColor = glm::vec4(0.5f, 0.6f, 0.7f, 1.0f);  // Gray-blue placeholder
+    // // Styled text input example
+    // Rendering::Components::Form::Text::StyleParams customStyleParams;
+    // customStyleParams.color = glm::vec4(0.9f, 0.95f, 1.0f, 1.0f);  // Light blue background
+    // customStyleParams.borderColor = glm::vec4(0.4f, 0.6f, 0.9f, 1.0f);  // Blue border
+    // customStyleParams.focusColor = glm::vec4(0.85f, 0.9f, 1.0f, 1.0f);  // Lighter blue when focused
+    // customStyleParams.focusBorderColor = glm::vec4(0.2f, 0.4f, 0.8f, 1.0f);  // Darker blue border when focused
+    // customStyleParams.textColor = glm::vec4(0.1f, 0.1f, 0.5f, 1.0f);  // Dark blue text
+    // customStyleParams.placeholderColor = glm::vec4(0.5f, 0.6f, 0.7f, 1.0f);  // Gray-blue placeholder
     
-    auto customStyledTextInput = std::make_shared<Rendering::Components::Form::Text>(
-        Rendering::Components::Form::Text::Args{
-            .label = "Styled Input:",
-            .placeholder = "Custom styled input...",
-            .position = glm::vec2(500.0f, 150.0f),
-            .size = glm::vec2(250.0f, 35.0f),
-            .style = Rendering::Components::Form::Text::Styles(customStyleParams),
-            .zIndex = 31.0f,
-            .onChange = [](const std::string& value) {
-                // In a real application, you might do something with the value
-                // For this example, we're just demonstrating the callback
-            }
-        }
-    );
-    addItem(customStyledTextInput);
+    // auto customStyledTextInput = std::make_shared<Rendering::Components::Form::Text>(
+    //     Rendering::Components::Form::Text::Args{
+    //         .label = "Styled Input:",
+    //         .placeholder = "Custom styled input...",
+    //         .position = glm::vec2(500.0f, 150.0f),
+    //         .size = glm::vec2(250.0f, 35.0f),
+    //         .style = Rendering::Components::Form::Text::Styles(customStyleParams),
+    //         .zIndex = 31.0f,
+    //         .onChange = [](const std::string& value) {
+    //             // In a real application, you might do something with the value
+    //             // For this example, we're just demonstrating the callback
+    //         }
+    //     }
+    // );
+    // addItem(customStyledTextInput);
     
-    // Prefilled text input
-    auto prefilledTextInput = std::make_shared<Rendering::Components::Form::Text>(
-        Rendering::Components::Form::Text::Args{
-            .label = "Prefilled Input:",
-            .value = "Initial value",
-            .position = glm::vec2(500.0f, 220.0f),
-            .size = glm::vec2(200.0f, 30.0f),
-            .zIndex = 32.0f
-        }
-    );
-    addItem(prefilledTextInput);
+    // // Prefilled text input
+    // auto prefilledTextInput = std::make_shared<Rendering::Components::Form::Text>(
+    //     Rendering::Components::Form::Text::Args{
+    //         .label = "Prefilled Input:",
+    //         .value = "Initial value",
+    //         .position = glm::vec2(500.0f, 220.0f),
+    //         .size = glm::vec2(200.0f, 30.0f),
+    //         .zIndex = 32.0f
+    //     }
+    // );
+    // addItem(prefilledTextInput);
     
-    // Disabled text input
-    auto disabledTextInput = std::make_shared<Rendering::Components::Form::Text>(
-        Rendering::Components::Form::Text::Args{
-            .label = "Disabled Input:",
-            .value = "Cannot edit this",
-            .position = glm::vec2(500.0f, 290.0f),
-            .size = glm::vec2(200.0f, 30.0f),
-            .disabled = true,
-            .zIndex = 33.0f
-        }
-    );
-    addItem(disabledTextInput);
+    // // Disabled text input
+    // auto disabledTextInput = std::make_shared<Rendering::Components::Form::Text>(
+    //     Rendering::Components::Form::Text::Args{
+    //         .label = "Disabled Input:",
+    //         .value = "Cannot edit this",
+    //         .position = glm::vec2(500.0f, 290.0f),
+    //         .size = glm::vec2(200.0f, 30.0f),
+    //         .disabled = true,
+    //         .zIndex = 33.0f
+    //     }
+    // );
+    // addItem(disabledTextInput);
 }

@@ -25,6 +25,11 @@ namespace Rendering {
 			position = args.position;
 			size = args.size;
 			zIndex = args.zIndex;
+            // Store the optional scissor box from args, though it won't be directly used by this draw method
+            // to set GL state. It's captured by VectorGraphics::drawText if set on the VG instance.
+            if (args.scissorBox.has_value()) {
+                this->scissorBox = args.scissorBox.value();
+            }
 		}
 
 		void Text::draw() {
@@ -44,7 +49,6 @@ namespace Rendering {
 				// Apply horizontal alignment
 				switch (style.horizontalAlign) {
 					case TextAlign::Horizontal::Left:
-						// No adjustment needed for left alignment
 						break;
 					case TextAlign::Horizontal::Center:
 						alignedPosition.x += (boxSize.x - textSize.x) / 2.0f;
@@ -57,8 +61,6 @@ namespace Rendering {
 				// Apply vertical alignment
 				switch (style.verticalAlign) {
 					case TextAlign::Vertical::Top:
-						// No adjustment needed for top alignment if the font renderer draws from the top
-						// If the font renderer uses baseline positioning, you may need to adjust
 						break;
 					case TextAlign::Vertical::Middle:
 						alignedPosition.y += (boxSize.y - lineHeight) / 2.0f;
@@ -68,8 +70,9 @@ namespace Rendering {
 						break;
 				}
 
-				// Draw the text at the aligned position using VectorGraphics
-				// Apply both color and opacity when drawing
+				// Draw the text. VectorGraphics::drawText will queue a command that includes
+                // the VectorGraphics instance's currentScissorBox state, which should be
+                // set by the calling component (e.g., Form::Text).
 				vectorGraphics.drawText(text, alignedPosition, style.color, style.fontSize);
 			}
 		}

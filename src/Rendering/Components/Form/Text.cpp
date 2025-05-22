@@ -76,7 +76,8 @@ namespace Rendering {
                          .horizontalAlign = TextAlign::Horizontal::Left,
                          .verticalAlign = TextAlign::Vertical::Middle}
                     ),
-                    .zIndex = inputTextZ
+                    .zIndex = inputTextZ,
+                    // No explicit scissorBox here, will rely on Text::draw() to set it on VectorGraphics
                 });
                 // Store base position for scrolling
                 inputTextBasePosition = inputPosition;
@@ -268,29 +269,29 @@ namespace Rendering {
                     labelText->draw();
                 }
                 
-                // Apply scissor mask for input field region
+                // Set up scissor mask for input field region
+                VectorGraphics& vg = VectorGraphics::getInstance();
                 GLFWwindow* window = glfwGetCurrentContext();
-                // Get window and framebuffer sizes for DPI scaling
                 int winW, winH, fbW, fbH;
                 glfwGetWindowSize(window, &winW, &winH);
                 glfwGetFramebufferSize(window, &fbW, &fbH);
-                float scaleX = (float)fbW / (float)winW;
-                float scaleY = (float)fbH / (float)winH;
-                // Compute scissor rectangle in framebuffer coords
-                // Include viewport origin
+                float scaleX = (winW > 0) ? (float)fbW / (float)winW : 1.0f;
+                float scaleY = (winH > 0) ? (float)fbH / (float)winH : 1.0f;
                 GLint vp[4]; glGetIntegerv(GL_VIEWPORT, vp);
                 int scX = vp[0] + static_cast<int>(position.x * scaleX);
                 int scY = vp[1] + static_cast<int>(fbH - (position.y + size.y) * scaleY);
                 int scW = static_cast<int>(size.x * scaleX);
                 int scH = static_cast<int>(size.y * scaleY);
-                glEnable(GL_SCISSOR_TEST);
-                glScissor(scX, scY, scW, scH);
-                // Draw text and cursor within mask
+                
+                vg.setScissor(scX, scY, scW, scH);
+
                 inputText->draw();
+                
                 if (focused && cursorVisible) {
-                    cursor->draw();
+                    cursor->draw(); 
                 }
-                glDisable(GL_SCISSOR_TEST);
+
+                vg.clearScissor();
             }
 
             bool Text::containsPoint(const glm::vec2 &point) const {

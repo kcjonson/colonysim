@@ -7,6 +7,7 @@
 #include <memory>
 #include <map>
 #include <iostream>
+#include <optional>
 #include "Vertex.h"
 #include "Shader.h"
 #include "Rendering/Styles/BorderPosition.h"
@@ -25,6 +26,7 @@ struct TextCommand {
     glm::vec2 position;
     glm::vec4 color;
     float size;
+    std::optional<glm::ivec4> scissorBox;
 };
 
 class VectorGraphics {
@@ -55,6 +57,10 @@ public:
     bool isBatching = false;                                                     // Whether currently batching draw calls
 
     void beginFrame(); // Add this method to reset frame counters
+
+    // Add scissor control methods
+    void setScissor(int x, int y, int width, int height);
+    void clearScissor();
 
     /**
      * Drawing primitives
@@ -169,4 +175,5 @@ private:
     bool initialized;                  // Whether the graphics system is initialized
     Renderer* renderer;                // Pointer to the renderer
     std::vector<TextCommand> textCommands; // List of text commands to execute in order
+    std::optional<glm::ivec4> currentScissorBox;
 };

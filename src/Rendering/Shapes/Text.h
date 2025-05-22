@@ -4,6 +4,7 @@
 #include "Rendering/Styles/Shape.h"
 #include <glm/glm.hpp>
 #include <string>
+#include <optional> // Added for std::optional
 
 namespace Rendering {
     namespace Shapes {
@@ -28,6 +29,7 @@ namespace Rendering {
                     glm::vec2 size = glm::vec2(0.0f); 
                     Styles style = Styles({});
                     float zIndex = 0.0f;
+                    std::optional<glm::ivec4> scissorBox = std::nullopt; // Added optional scissor box
                 };
 
                 /**
@@ -75,6 +77,7 @@ namespace Rendering {
                 glm::vec2 position;
                 float zIndex;
                 glm::vec2 size; 
+                std::optional<glm::ivec4> scissorBox; // Added to store scissor box for this shape
 
         };
 
