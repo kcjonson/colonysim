@@ -98,7 +98,16 @@ bool WorldGenScreen::initialize() {
     glfwSetScrollCallback(m_window, scrollCallback);    // Initialize world object and renderer, but don't generate the world yet
     m_world = std::make_unique<WorldGen::Generators::World>(m_planetParams, m_progressTracker);
     m_worldRenderer = std::make_unique<WorldGen::Renderers::World>();
-    m_worldRenderer->SetWorld(m_world.get());
+    m_landingLocation = std::make_unique<WorldGen::Renderers::LandingLocation>(m_worldRenderer.get());
+    
+    std::cout << "Initializing world renderer and landing location..." << std::endl;
+      m_worldRenderer->SetWorld(m_world.get());
+    m_landingLocation->SetWorld(m_world.get());
+    
+    // No longer generate a dummy location - we'll use the cursor
+    // m_landingLocation->GenerateDummyLocation();
+    
+    std::cout << "World renderer and landing location initialized" << std::endl;
 
     // Initialize the projection matrix
     int windowWidth, windowHeight;
@@ -312,10 +321,16 @@ void WorldGenScreen::render() {
             aspectRatio,          // Aspect ratio
             0.1f,                 // Near plane
             100.0f                // Far plane
-        );
+        );        // Render the world with adjusted projection
+        m_worldRenderer->Render(m_viewMatrix, adjustedProjection);
         
-        // Render the world with adjusted projection
-        m_worldRenderer->Render(m_viewMatrix, adjustedProjection);        // Fully reset OpenGL state for UI rendering
+        // Render the landing location indicator
+        if (m_landingLocation) {
+            // std::cout << "Rendering landing location indicator" << std::endl;
+            m_landingLocation->Render(m_viewMatrix, adjustedProjection);
+        }
+        
+        // Fully reset OpenGL state for UI rendering
         glViewport(0, 0, width, height);
         glDisable(GL_DEPTH_TEST);
         
@@ -333,32 +348,132 @@ void WorldGenScreen::render() {
 }
 
 void WorldGenScreen::handleInput(float deltaTime) {
-    // Handle planet rotation with mouse drag
-    if (glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-        double xpos, ypos;
-        glfwGetCursorPos(m_window, &xpos, &ypos);
-        
-        // Only allow planet rotation if cursor is in the planet view area (right side of screen)
-        if (xpos > m_worldGenUI->getSidebarWidth()) {
-            if (!m_isDragging) {
+    // Get mouse position
+    double xpos, ypos;
+    glfwGetCursorPos(m_window, &xpos, &ypos);
+    float mouseX = static_cast<float>(xpos);
+    float mouseY = static_cast<float>(ypos);
+    
+    // Only process mouse input if cursor is in the planet view area (right side of screen)
+    if (mouseX > m_worldGenUI->getSidebarWidth()) {
+          // Handle mouse clicks
+        bool isLeftButtonPressed = glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+        static bool wasLeftButtonPressed = false;
+        static float mouseDownX = 0.0f; // Track where the mouse was first pressed
+        static float mouseDownY = 0.0f;
+        static bool hasDragged = false;
+          // If we have a world and landing location renderer...
+        if (m_landingLocation && m_world && worldGenerated) {
+            int width, height;
+            glfwGetWindowSize(m_window, &width, &height);
+          // Always update landing location based on mouse position
+            // if a location hasn't been selected yet
+            if (!m_landingLocation->HasLocationSelected()) {                // Adjust mouse coordinates for the sidebar offset
+                float sidebarWidth = m_worldGenUI->getSidebarWidth();
+                float adjustedMouseX = mouseX - sidebarWidth; // Subtract sidebar width
+                
+                // Calculate viewport dimensions
+                int renderWidth = width - static_cast<int>(sidebarWidth);
+                int renderHeight = height;
+                  // Calculate correct aspect ratio for the viewport
+                float aspectRatio = static_cast<float>(renderWidth) / renderHeight;
+                
+                // Create adjusted projection matrix for this viewport
+                glm::mat4 adjustedProjection = glm::perspective(
+                    glm::radians(45.0f),  // FOV
+                    aspectRatio,          // Aspect ratio
+                    0.1f,                 // Near plane
+                    100.0f                // Far plane
+                );
+                
+                m_landingLocation->UpdateFromMousePosition(
+                    adjustedMouseX, mouseY, 
+                    m_viewMatrix, adjustedProjection, // Use the same adjusted projection as for rendering 
+                    renderWidth, renderHeight
+                );
+            }
+            
+            // When the mouse button is first pressed, record the position
+            if (isLeftButtonPressed && !wasLeftButtonPressed) {
+                mouseDownX = mouseX;
+                mouseDownY = mouseY;
+                hasDragged = false;
+                
+                // Start potential dragging for planet rotation
                 m_isDragging = true;
-                lastCursorX = static_cast<float>(xpos);
-                lastCursorY = static_cast<float>(ypos);
-            } else {
-                float deltaX = static_cast<float>(xpos) - lastCursorX;
+                lastCursorX = mouseX;
+                lastCursorY = mouseY;
+            }
+            // If dragging, update rotation
+            else if (isLeftButtonPressed && m_isDragging) {
+                float deltaX = mouseX - lastCursorX;
+                float deltaY = mouseY - lastCursorY;
+                
+                // If the mouse moves more than a small threshold, consider it a drag
+                if (std::abs(deltaX) > 3.0f || std::abs(deltaY) > 3.0f) {
+                    hasDragged = true;
+                }
+                
                 m_rotationAngle += deltaX * 0.01f;
-                lastCursorX = static_cast<float>(xpos);
-                lastCursorY = static_cast<float>(ypos);
+                lastCursorX = mouseX;
+                lastCursorY = mouseY;
+            }
+            // If button released, handle click or end dragging
+            else if (!isLeftButtonPressed && wasLeftButtonPressed) {
+                // Button has just been released
+                m_isDragging = false;
+                
+                // Only consider it a click if the mouse hasn't moved much (not a drag)
+                float distMoved = std::sqrt(std::pow(mouseX - mouseDownX, 2) + std::pow(mouseY - mouseDownY, 2));
+                
+                if (!hasDragged && distMoved < 5.0f) {
+                    // It's a click, not a drag
+                    
+                    // If we already have a location selected, unselect it
+                    if (m_landingLocation->HasLocationSelected()) {
+                        m_landingLocation->Reset();
+                        std::cout << "Landing location unselected!" << std::endl;
+                    }
+                    // Otherwise try to select a new landing location
+                    else if (m_landingLocation->SelectCurrentLocation()) {
+                        std::cout << "Landing location selected!" << std::endl;
+                    }
+                }
             }
         }
-    } else {
-        m_isDragging = false;
+        // If no world/landing location but mouse pressed, handle just planet rotation
+        else if (isLeftButtonPressed) {
+            if (!m_isDragging) {
+                m_isDragging = true;
+                lastCursorX = mouseX;
+                lastCursorY = mouseY;
+            } else {
+                float deltaX = mouseX - lastCursorX;
+                m_rotationAngle += deltaX * 0.01f;
+                lastCursorX = mouseX;
+                lastCursorY = mouseY;
+            }
+        } else {
+            m_isDragging = false;
+        }
+        
+        wasLeftButtonPressed = isLeftButtonPressed;
     }
-    
-    // Check for ESC key to go back to main menu
+      // Check for ESC key to go back to main menu
     if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         screenManager->switchScreen(ScreenType::MainMenu);
     }
+    
+    // Check for 'R' key to reset landing location
+    static bool wasRPressed = false;
+    bool isRPressed = glfwGetKey(m_window, GLFW_KEY_R) == GLFW_PRESS;
+    if (isRPressed && !wasRPressed) {
+        if (m_landingLocation) {
+            m_landingLocation->Reset();
+            std::cout << "Landing location reset!" << std::endl;
+        }
+    }
+    wasRPressed = isRPressed;
 
     m_worldGenUI->handleInput(deltaTime);
 }

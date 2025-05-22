@@ -12,6 +12,7 @@
 #include "Generators/World.h"
 #include "Generators/Generator.h"
 #include "Renderers/World.h"
+#include "Renderers/LandingLocation.h" // Add LandingLocation
 #include "../Game/World.h" // Include for game world
 #include "../../GameState.h" // Include for GameState
 #include <thread>
@@ -65,11 +66,10 @@ private:
     std::unique_ptr<WorldGen::WorldGenUI> m_worldGenUI;
     
     // Store window pointer for callbacks
-    GLFWwindow* m_window;
-
-    // New icosahedron-based world generator
+    GLFWwindow* m_window;    // New icosahedron-based world generator
     std::unique_ptr<WorldGen::Generators::World> m_world;
     std::unique_ptr<WorldGen::Renderers::World> m_worldRenderer;
+    std::unique_ptr<WorldGen::Renderers::LandingLocation> m_landingLocation;
     WorldGen::PlanetParameters m_planetParams;
     float m_distortionFactor = 0.15f;
     

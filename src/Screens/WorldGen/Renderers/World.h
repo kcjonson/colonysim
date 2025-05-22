@@ -49,6 +49,9 @@ public:    // Visualization options are now handled internally
      */
     void ValidateTileGeometry();
 
+    // Add getter for shader
+    const Shader& getShader() const { return m_shader; }
+
 private:    /**
      * @brief Generate rendering data for the world.
      */
@@ -82,7 +85,7 @@ private:    /**
     Shader m_shader;                     ///< Shader object
     std::vector<TileFanInfo> m_tileFanInfo; ///< Triangle fan information for each tile
 
-    // Render data for different modes
+    // Render data for different modes    // Render data for different modes
     std::vector<float> m_vertexData;     ///< Vertex data for rendering
     std::vector<unsigned int> m_indices; ///< Indices for rendering
       bool m_dataGenerated;                ///< Whether rendering data has been generated

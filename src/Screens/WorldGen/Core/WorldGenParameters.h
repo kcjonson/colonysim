@@ -26,7 +26,7 @@ struct PlanetParameters {
     float eccentricity = 0.017f;
     
     // Generator properties
-    int resolution = 100000; // Terrain resolution (what units are these?)
+    int resolution = 10000; // Terrain resolution (what units are these?)
     uint64_t seed = 12345; // Default seed
 };
 
