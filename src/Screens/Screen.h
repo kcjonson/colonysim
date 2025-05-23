@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../CoordinateSystem.h"
+
 // Forward declarations
 class ScreenManager;
 
@@ -17,6 +19,12 @@ public:
     virtual void render() = 0;
     virtual void handleInput(float deltaTime) = 0;
     virtual void onResize(int width, int height) = 0;
+    
+    // Called when leaving this screen - resets OpenGL state
+    virtual void onExit() {
+        auto& coordSys = CoordinateSystem::getInstance();
+        coordSys.resetOpenGLState();
+    }
 
 protected:
     ScreenManager* screenManager; // Reference to the screen manager that owns this screen

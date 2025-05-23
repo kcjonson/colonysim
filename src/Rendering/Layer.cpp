@@ -8,6 +8,7 @@
 #include "ConfigManager.h"
 #include <string>
 #include <typeinfo> // Add for typeid
+#include "../CoordinateSystem.h"
 
 namespace Rendering {
 
@@ -161,37 +162,19 @@ glm::mat4 Layer::getViewMatrix() const {
 }
 
 glm::mat4 Layer::getProjectionMatrix() const {
-    if (projectionType == ProjectionType::ScreenSpace && window != nullptr) {
+    auto& coordSys = CoordinateSystem::getInstance();
+    
+    if (projectionType == ProjectionType::ScreenSpace) {
         // Create screen-space projection matrix for UI
-        int width, height;
-        glfwGetWindowSize(window, &width, &height);
-        
-        glm::mat4 screenProjection = glm::mat4(1.0f);
-        screenProjection[0][0] = 2.0f / width;       // Scale x
-        screenProjection[1][1] = -2.0f / height;     // Scale y (negative to flip y-axis)
-        screenProjection[3][0] = -1.0f;              // Translate x
-        screenProjection[3][1] = 1.0f;               // Translate y
-        
-        return screenProjection;
+        // (0,0) = top-left, Y increases downward
+        return coordSys.createScreenSpaceProjection();
     } else if (camera != nullptr) {
         // For world space, get projection matrix from camera
         return camera->getProjectionMatrix();
-    } else if (projectionType == ProjectionType::WorldSpace && window != nullptr) {
-        // Create a direct pixel-to-world-unit mapping for WorldSpace projection
-        int width, height;
-        glfwGetWindowSize(window, &width, &height);
-        
-        // In pixel coordinates, (0,0) is top-left, but we want (0,0) to be center
-        float halfWidth = width / 2.0f;
-        float halfHeight = height / 2.0f;
-        
-        // Map pixels directly to world units for 1:1 correspondence
-        // The view will span exactly from -halfWidth to +halfWidth, -halfHeight to +halfHeight
-        return glm::ortho(
-            -halfWidth, halfWidth,       // Left, Right
-            -halfHeight, halfHeight,     // Bottom, Top
-            -1000.0f, 1000.0f           // Near, Far
-        );
+    } else if (projectionType == ProjectionType::WorldSpace) {
+        // Create world-space projection matrix
+        // (0,0) = center, Y increases upward
+        return coordSys.createWorldSpaceProjection();
     }
     
     // Default to identity if no camera or window is available

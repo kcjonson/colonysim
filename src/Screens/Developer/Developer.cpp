@@ -1,6 +1,7 @@
 #include "Developer.h"
 #include "../ScreenManager.h"
 #include "../../VectorGraphics.h"
+#include "../../CoordinateSystem.h"
 #include "Examples.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -59,10 +60,11 @@ bool DeveloperScreen::initialize() {
 }
 
 void DeveloperScreen::layoutUI() {
-    // Get window size
-    GLFWwindow* window = screenManager->getWindow();
-    int width, height;
-    glfwGetWindowSize(window, &width, &height);
+    // Use coordinate system for consistent layout
+    auto& coordSys = CoordinateSystem::getInstance();
+    auto windowSize = coordSys.getWindowSize();
+    float width = windowSize.x;
+    float height = windowSize.y;
     
     // Clear all layers
     backgroundLayer->clearItems();

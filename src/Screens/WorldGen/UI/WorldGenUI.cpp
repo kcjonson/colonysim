@@ -1,4 +1,7 @@
 #include "WorldGenUI.h"
+#include "../../../VectorGraphics.h"
+#include "../../../ConfigManager.h"
+#include "../../../CoordinateSystem.h"
 #include "Camera.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -19,9 +22,10 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
     sidebarLayer = std::make_shared<Rendering::Layer>(50.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
     infoLayer = std::make_shared<Rendering::Layer>(150.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
     
-    int width, height;
-    glfwGetWindowSize(window, &width, &height);
-    windowSize = std::make_tuple(width, height);
+    // Use coordinate system for consistent window sizing
+    auto& coordSys = CoordinateSystem::getInstance();
+    auto size = coordSys.getWindowSize();
+    windowSize = std::make_tuple(static_cast<int>(size.x), static_cast<int>(size.y));
 
         
     // Parameter labels and values
@@ -32,7 +36,7 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
       auto sidebarBackground = std::make_shared<Rendering::Shapes::Rectangle>(
         Rendering::Shapes::Rectangle::Args{
             .position = glm::vec2(0.0f, 0.0f),
-            .size = glm::vec2(sidebarWidth, static_cast<float>(std::get<1>(windowSize))),
+            .size = glm::vec2(sidebarWidth, size.y),
             .style = Rendering::Shapes::Rectangle::Styles({
                 .color = glm::vec4(0.1f, 0.1f, 0.1f, 0.9f)
             }),
@@ -352,11 +356,15 @@ void WorldGenUI::setProgress(float progress, const std::string& message) {
 void WorldGenUI::onResize(int windowWidth, int windowHeight) {
     windowSize = std::make_tuple(windowWidth, windowHeight);
 
+    // Use coordinate system for consistent positioning
+    auto& coordSys = CoordinateSystem::getInstance();
+    auto size = coordSys.getWindowSize();
+
     // TODO: Subtract sidebar width from the window width
-    statusText->setPosition(glm::vec2(windowWidth / 2.0f, windowHeight - 40.0f));
-    progressBackground->setPosition(glm::vec2(windowWidth / 2.0f, windowHeight - 80.0f));
-    progressFill->setPosition(glm::vec2(windowWidth / 2.0f, windowHeight - 80.0f));
-    progressText->setPosition(glm::vec2(windowWidth / 2.0f, windowHeight - 80.0f));
+    statusText->setPosition(glm::vec2(size.x / 2.0f, size.y - 40.0f));
+    progressBackground->setPosition(glm::vec2(size.x / 2.0f, size.y - 80.0f));
+    progressFill->setPosition(glm::vec2(size.x / 2.0f, size.y - 80.0f));
+    progressText->setPosition(glm::vec2(size.x / 2.0f, size.y - 80.0f));
 }
 
 void WorldGenUI::render() {

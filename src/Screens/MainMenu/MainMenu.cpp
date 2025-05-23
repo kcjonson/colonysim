@@ -1,6 +1,8 @@
 #include "MainMenu.h"
 #include "../ScreenManager.h"
 #include "../../VectorGraphics.h"
+#include "../../ConfigManager.h"
+#include "../../CoordinateSystem.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
@@ -17,13 +19,13 @@ MainMenuScreen::MainMenuScreen(Camera* camera, GLFWwindow* window) {
 
 
     // Create title
-    int width, height;
-    glfwGetWindowSize(window, &width, &height);
+    auto& coordSys = CoordinateSystem::getInstance();
+    auto windowSize = coordSys.getWindowSize();
     
     auto titleText = std::make_shared<Rendering::Shapes::Text>(
         Rendering::Shapes::Text::Args{
             .text = "ColonySim",
-            .position = glm::vec2((width - 150.0f) / 2.0f, height * 0.2f),
+            .position = glm::vec2((windowSize.x - 150.0f) / 2.0f, windowSize.y * 0.2f),
             .style = Rendering::Shapes::Text::Styles({
                 .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
                 .fontSize = 1.0f
@@ -33,11 +35,11 @@ MainMenuScreen::MainMenuScreen(Camera* camera, GLFWwindow* window) {
     );
     titleLayer->addItem(titleText);
     
-    // Create menu box background
+    // Create menu box background (initial size - will be updated in doLayout)
     float boxWidth = 300.0f;
     float boxHeight = 300.0f;
-    float boxX = (width - boxWidth) / 2.0f;
-    float boxY = (height - boxHeight) / 2.0f;
+    float boxX = (windowSize.x - boxWidth) / 2.0f;
+    float boxY = (windowSize.y - boxHeight) / 2.0f;
     
 
     menuBackground = std::make_shared<Rendering::Shapes::Rectangle>(
@@ -134,15 +136,15 @@ void MainMenuScreen::handleInput(float deltaTime) {
 }
 
 void MainMenuScreen::doLayout() {
-    GLFWwindow* window = screenManager->getWindow(); // Still need window for size calculation
-    int currentWidth, currentHeight;
-    glfwGetWindowSize(window, &currentWidth, &currentHeight); // Use current size
+    // Use coordinate system for consistent layout
+    auto& coordSys = CoordinateSystem::getInstance();
+    auto windowSize = coordSys.getWindowSize();
 
     // TODO: Get the button height from a getter on the button
     int buttonHeight = 50;
     int buttonWidth = menuWidth - (menuPadding * 2);
     int menuHeight = (buttonHeight * 4) + (menuPadding * 5); // 4 buttons + padding
-    glm::vec2 menuPosition = glm::vec2((currentWidth - menuWidth) / 2, (currentHeight - menuHeight) / 2);
+    glm::vec2 menuPosition = glm::vec2((windowSize.x - menuWidth) / 2, (windowSize.y - menuHeight) / 2);
     menuBackground->setPosition(menuPosition);
     menuBackground->setSize(glm::vec2(menuWidth, menuHeight));
 
