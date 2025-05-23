@@ -51,7 +51,8 @@ A 2D top-down colony simulation game inspired by Rimworld, built with C++ and Op
    ./bootstrap-vcpkg.sh
    ```
 
-5. Set VCPKG_ROOT environment variable (optional but recommended):
+
+5. Set VCPKG_ROOT environment variable and integrate
    ```bash
    # Windows (PowerShell)
    [Environment]::SetEnvironmentVariable("VCPKG_ROOT", "$PWD", [EnvironmentVariableTarget]::User)
@@ -60,6 +61,12 @@ A 2D top-down colony simulation game inspired by Rimworld, built with C++ and Op
    echo 'export VCPKG_ROOT="$PWD"' >> ~/.bashrc  # or .zshrc if using zsh
    source ~/.bashrc  # or source ~/.zshrc
    ```
+
+   Integrate (IMPOTANT)
+   ```
+      $VCPKG_ROOT/vcpkg integrate install
+   ```
+
 
 6. Build the project:
    ```bash
