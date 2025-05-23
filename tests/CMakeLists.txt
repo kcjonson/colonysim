@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
-# Set fmt library location explicitly
-set(fmt_DIR "C:/vcpkg/installed/x64-windows/share/fmt")
+# Find fmt package
+find_package(fmt CONFIG REQUIRED)
 
 # Include source files needed from the main project
 set(SOURCE_FILES
@@ -55,7 +55,6 @@ target_include_directories(ColonySimTests PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/extern
     ${CMAKE_SOURCE_DIR}
-    C:/vcpkg/installed/x64-windows/include # For vcpkg-installed packages
 )
 
 # Link with dependencies

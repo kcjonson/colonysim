@@ -43,16 +43,16 @@ This guide will walk you through setting up your Windows system to build and run
    .\vcpkg integrate install
    ```
 
-## 4. Install Required Libraries
+## 4. Set Up vcpkg Environment Variable
 
-Using vcpkg, install the required libraries:
+1. Set VCPKG_ROOT environment variable:
+   ```powershell
+   [Environment]::SetEnvironmentVariable("VCPKG_ROOT", "C:\vcpkg", [EnvironmentVariableTarget]::User)
+   ```
 
-```powershell
-.\vcpkg install glfw3:x64-windows
-.\vcpkg install glm:x64-windows
-.\vcpkg install glew:x64-windows
-.\vcpkg install glad:x64-windows
-```
+2. Restart any open PowerShell/Command Prompt windows to apply the changes.
+
+Note: You don't need to install packages individually. The project uses vcpkg manifest mode (vcpkg.json) to automatically install all required dependencies.
 
 ## 5. Set Up Environment Variables
 
@@ -68,18 +68,17 @@ Using vcpkg, install the required libraries:
 ## 6. Build the Project
 
 1. Open PowerShell in your project directory
-2. Create and enter the build directory:
+2. Install dependencies using vcpkg manifest mode:
    ```powershell
-   mkdir build
-   cd build
+   & $env:VCPKG_ROOT\vcpkg install --triplet=x64-windows
    ```
-3. Generate the build files:
+3. Create build directory and generate the build files:
    ```powershell
-   cmake .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+   cmake -B build -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake"
    ```
 4. Build the project:
    ```powershell
-   cmake --build . --config Release
+   cmake --build build --config Release
    ```
 
 ## 7. Run the Game

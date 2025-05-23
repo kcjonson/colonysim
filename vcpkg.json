@@ -1,0 +1,17 @@
+{
+  "name": "colony-sim",
+  "version": "0.1.0",
+  "description": "A 2D top-down colony simulation game, built with C++ and OpenGL",
+  "homepage": "https://github.com/user/colonysim",
+  "dependencies": [
+    "opengl",
+    "glfw3",
+    "glm",
+    "nlohmann-json",
+    "zlib",
+    "freetype",
+    "glad",
+    "catch2",
+    "fmt"
+  ]
+}
