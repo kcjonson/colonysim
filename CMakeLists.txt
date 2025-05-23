@@ -1,19 +1,35 @@
 cmake_minimum_required(VERSION 3.10)
 project(ColonySim)
 
-# Set vcpkg toolchain file using VCPKG_ROOT environment variable
-if(DEFINED ENV{VCPKG_ROOT})
-    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
-    message(STATUS "Using vcpkg toolchain file from environment variable: $ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
-else()
-    message(FATAL_ERROR "VCPKG_ROOT environment variable is not set. Please set it to the path of your vcpkg installation.")
+# Detect platform for vcpkg integration and setting triplet
+if(WIN32)
+    set(VCPKG_TARGET_TRIPLET "x64-windows" CACHE STRING "")
+elseif(APPLE)
+    set(VCPKG_TARGET_TRIPLET "x64-osx" CACHE STRING "")
+elseif(UNIX AND NOT APPLE)
+    set(VCPKG_TARGET_TRIPLET "x64-linux" CACHE STRING "")
 endif()
 
+message(STATUS "Using triplet: ${VCPKG_TARGET_TRIPLET}")
+
+# Check for local vcpkg installation
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/share")
+    # Add local vcpkg packages to the prefix path
+    list(APPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/share")
+    message(STATUS "Using local vcpkg packages: ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/share")
+endif()
+
+# Set vcpkg toolchain file if VCPKG_ROOT is defined
+if(DEFINED ENV{VCPKG_ROOT})
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+    message(STATUS "Using vcpkg toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
+endif()
 
 # Debugging messages to verify vcpkg integration
 message(STATUS "CMAKE_TOOLCHAIN_FILE: ${CMAKE_TOOLCHAIN_FILE}")
 message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 message(STATUS "VCPKG_TARGET_TRIPLET: ${VCPKG_TARGET_TRIPLET}")
+
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 20)

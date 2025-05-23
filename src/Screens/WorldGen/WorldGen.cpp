@@ -653,6 +653,7 @@ void WorldGenScreen::convertWorldToTerrainData() {
             case WorldGen::TerrainType::Highland: highlandCount++; break;
             case WorldGen::TerrainType::Mountain: mountainCount++; break;
             case WorldGen::TerrainType::Peak: peakCount++; break;
+            case WorldGen::TerrainType::Volcano: /* Count volcanoes separately if needed */ break;
         }
     }
 
