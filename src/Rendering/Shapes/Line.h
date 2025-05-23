@@ -11,7 +11,7 @@ class Line : public Shape {
 public:
     Line(const glm::vec2& start = glm::vec2(0.0f),
          const glm::vec2& end = glm::vec2(1.0f),
-         const Styles::Line& style = Styles::Line({}),
+         const Styles::Line& style = Styles::Line(Rendering::Styles::LineStyleParams{}),
          float zIndex = 0.0f);
     virtual ~Line() = default;
 

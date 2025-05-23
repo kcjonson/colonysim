@@ -18,7 +18,10 @@
         {
             "label": "run-tests",
             "type": "shell",
-            "command": "${workspaceFolder}/build/tests/Debug/ColonySimTests.exe",
+            "command": "${workspaceFolder}/build/tests/ColonySimTests",
+            "windows": {
+                "command": "${workspaceFolder}/build/tests/Debug/ColonySimTests.exe"
+            },
             "group": "test",
             "presentation": {
                 "reveal": "always",

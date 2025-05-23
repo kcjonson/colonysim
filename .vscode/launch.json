@@ -6,10 +6,14 @@
             "name": "Debug ColonySim",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/build/Debug/ColonySim.exe",
+            "program": "${workspaceFolder}/build/ColonySim",
             "args": [],
-            "cwd": "${workspaceFolder}/build/Debug",
+            "cwd": "${workspaceFolder}/build",
             "console": "integratedTerminal",
+            "windows": {
+                "program": "${workspaceFolder}/build/Debug/ColonySim.exe",
+                "cwd": "${workspaceFolder}/build/Debug"
+            },
             "preLaunchTask": "build-debug"
         }
     ]

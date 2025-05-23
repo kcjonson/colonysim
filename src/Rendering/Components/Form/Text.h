@@ -125,7 +125,7 @@ namespace Rendering {
                 virtual void render(bool batched = false) override;
 
                 // Input handling methods
-                void handleInput(float deltaTime = 0.0f);
+                void handleInput(float deltaTime = 0.0f) override;
                 
                 // Process keyboard input
                 void handleKeyInput(int key, int scancode, int action, int mods);
