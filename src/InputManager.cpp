@@ -101,13 +101,11 @@ void InputManager::update(float deltaTime) {
         processEdgePan(deltaTime);
     }
 
-    // Check if the gameState is valid before attempting to access it
-    if (&gameState != nullptr) {
-        // Update GameState once per frame with latest values
-        try {
-            // Window Position (from last mouse move)
-            gameState.set("input.windowPos", 
-                        std::to_string((int)lastMousePos.x) + ", " + std::to_string((int)lastMousePos.y));
+    // Update GameState once per frame with latest values
+    try {
+        // Window Position (from last mouse move)
+        gameState.set("input.windowPos", 
+                    std::to_string((int)lastMousePos.x) + ", " + std::to_string((int)lastMousePos.y));
             
             // World Position (from last mouse move)
             // Only calculate screenToWorld once here
@@ -125,10 +123,6 @@ void InputManager::update(float deltaTime) {
         catch (const std::exception& e) {
             std::cerr << "Error updating GameState in InputManager: " << e.what() << std::endl;
         }
-    }
-    else {
-        std::cerr << "Warning: GameState reference is invalid in InputManager::update" << std::endl;
-    }
 
     // Selected Entity (updated in handleMouseButton)
     // No change needed here, it's updated on click

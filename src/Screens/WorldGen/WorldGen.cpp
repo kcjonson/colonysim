@@ -1,6 +1,9 @@
 #include "WorldGen.h"
-#include <iostream>
 #include "../ScreenManager.h"
+#include "../../VectorGraphics.h"
+#include "../../ConfigManager.h"
+#include "../../CoordinateSystem.h"
+#include <iostream>
 #include "../Game/World.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -219,15 +222,6 @@ bool WorldGenScreen::initialize() {
     
     // Back button event
     m_worldGenUI->addEventListener(WorldGen::UIEvent::Back, [this]() {
-        // Reset OpenGL state before switching screens
-        int width, height;
-        glfwGetWindowSize(m_window, &width, &height);
-        glViewport(0, 0, width, height);  // Reset to full window viewport
-        glDisable(GL_DEPTH_TEST);         // Disable depth testing
-        glEnable(GL_BLEND);               // Ensure blending is enabled
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Set standard alpha blending
-        glLineWidth(1.0f);                // Reset line width to default
-        
         screenManager->switchScreen(ScreenType::MainMenu);
     });
     
@@ -270,12 +264,11 @@ void WorldGenScreen::update(float deltaTime) {
     
     m_viewMatrix = m_viewMatrix * rotationMatrix;
     
-    // Update projection matrix - use full width for proper aspect ratio
-    int width, height;
-    glfwGetWindowSize(m_window, &width, &height);
+    // Update projection matrix - use coordinate system for proper aspect ratio
+    auto& coordSys = CoordinateSystem::getInstance();
     m_projectionMatrix = glm::perspective(
         glm::radians(45.0f),
-        static_cast<float>(width) / height,
+        coordSys.getAspectRatio(),
         0.1f,
         100.0f
     );
@@ -288,12 +281,12 @@ void WorldGenScreen::render() {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    // Get window size
-    int width, height;
-    glfwGetWindowSize(m_window, &width, &height);
+    // Get coordinate system for proper viewport management
+    auto& coordSys = CoordinateSystem::getInstance();
+    auto windowSize = coordSys.getWindowSize();
     
     // Use the full window viewport for all rendering
-    glViewport(0, 0, width, height);
+    coordSys.setFullViewport();
     
     // --- Render stars (background, always first, blending enabled) ---
     glDisable(GL_DEPTH_TEST);
@@ -308,9 +301,11 @@ void WorldGenScreen::render() {
         
         // Only render in the main area (not over sidebar)
         float sidebarWidth = m_worldGenUI->getSidebarWidth();
-        int renderWidth = width - static_cast<int>(sidebarWidth);
-        int renderHeight = height;
-        glViewport(static_cast<int>(sidebarWidth), 0, renderWidth, renderHeight);
+        int renderWidth = static_cast<int>(windowSize.x - sidebarWidth);
+        int renderHeight = static_cast<int>(windowSize.y);
+        
+        // Use coordinate system for proper viewport scaling
+        coordSys.setViewport(static_cast<int>(sidebarWidth), 0, renderWidth, renderHeight);
         
         // Calculate correct aspect ratio for the viewport
         float aspectRatio = static_cast<float>(renderWidth) / renderHeight;
@@ -331,7 +326,7 @@ void WorldGenScreen::render() {
         }
         
         // Fully reset OpenGL state for UI rendering
-        glViewport(0, 0, width, height);
+        coordSys.setFullViewport();
         glDisable(GL_DEPTH_TEST);
         
         // Make sure blending is properly set up again for UI rendering
@@ -364,8 +359,8 @@ void WorldGenScreen::handleInput(float deltaTime) {
         static bool hasDragged = false;
           // If we have a world and landing location renderer...
         if (m_landingLocation && m_world && worldGenerated) {
-            int width, height;
-            glfwGetWindowSize(m_window, &width, &height);
+            auto& coordSys = CoordinateSystem::getInstance();
+            auto windowSize = coordSys.getWindowSize();
           // Always update landing location based on mouse position
             // if a location hasn't been selected yet
             if (!m_landingLocation->HasLocationSelected()) {                // Adjust mouse coordinates for the sidebar offset
@@ -373,8 +368,8 @@ void WorldGenScreen::handleInput(float deltaTime) {
                 float adjustedMouseX = mouseX - sidebarWidth; // Subtract sidebar width
                 
                 // Calculate viewport dimensions
-                int renderWidth = width - static_cast<int>(sidebarWidth);
-                int renderHeight = height;
+                int renderWidth = static_cast<int>(windowSize.x - sidebarWidth);
+                int renderHeight = static_cast<int>(windowSize.y);
                   // Calculate correct aspect ratio for the viewport
                 float aspectRatio = static_cast<float>(renderWidth) / renderHeight;
                 
@@ -482,10 +477,11 @@ void WorldGenScreen::onResize(int width, int height) {
     // Update UI layout
     m_worldGenUI->onResize(width, height);
     
-    // Update projection matrix
+    // Update projection matrix using coordinate system
+    auto& coordSys = CoordinateSystem::getInstance();
     m_projectionMatrix = glm::perspective(
         glm::radians(45.0f),
-        static_cast<float>(width) / height,
+        coordSys.getAspectRatio(),
         0.1f,
         100.0f
     );
@@ -653,6 +649,7 @@ void WorldGenScreen::convertWorldToTerrainData() {
             case WorldGen::TerrainType::Highland: highlandCount++; break;
             case WorldGen::TerrainType::Mountain: mountainCount++; break;
             case WorldGen::TerrainType::Peak: peakCount++; break;
+            case WorldGen::TerrainType::Volcano: /* Count volcanoes separately if needed */ break;
         }
     }
 
@@ -841,16 +838,6 @@ void WorldGenScreen::processProgressMessages() {
                 gameState->set("custom_world", "true");
                 gameState->set("world_sample_rate", std::to_string(m_gameWorldParams.sampleRate));
                 gameState->set("world_seed", m_gameWorldParams.seed);
-                
-                // Reset OpenGL state before switching to Game screen
-                // This is critical to ensure the Game screen gets the correct viewport and rendering state
-                int width, height;
-                glfwGetWindowSize(m_window, &width, &height);
-                glViewport(0, 0, width, height);  // Reset to full window viewport
-                glDisable(GL_DEPTH_TEST);         // Disable depth testing which Game screen doesn't use
-                glEnable(GL_BLEND);               // Ensure blending is enabled
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Set standard alpha blending
-                glLineWidth(1.0f);                // Reset line width to default
                 
                 std::cout << "================= PRE-SCREEN TRANSITION DIAGNOSTICS ===================" << std::endl;
                 std::cout << "Generator world tiles: " << m_world->GetTiles().size() << std::endl;

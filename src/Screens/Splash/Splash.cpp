@@ -3,6 +3,7 @@
 #include "../../ConfigManager.h"
 #include "../../InputManager.h" // Added this line
 #include "../../VectorGraphics.h"
+#include "../../CoordinateSystem.h"
 #include "../ScreenManager.h"
 #include <glad/glad.h>
 #include <iostream>
@@ -29,10 +30,11 @@ bool SplashScreen::initialize() {
 	// Record the start time
 	startTime = std::chrono::steady_clock::now();
 
-	// Get window dimensions
-	GLFWwindow *window = screenManager->getWindow();
-	int width, height;
-	glfwGetWindowSize(window, &width, &height);
+	// Get window dimensions using coordinate system
+	auto& coordSys = CoordinateSystem::getInstance();
+	auto windowSize = coordSys.getWindowSize();
+	float width = windowSize.x;
+	float height = windowSize.y;
 
 	// REMOVED: Set window reference for layer
 	// splashLayer->setWindow(window);

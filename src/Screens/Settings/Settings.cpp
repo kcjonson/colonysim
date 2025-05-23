@@ -2,6 +2,7 @@
 #include "../ScreenManager.h"
 #include "../../VectorGraphics.h"
 #include "../../ConfigManager.h"
+#include "../../CoordinateSystem.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
@@ -67,10 +68,11 @@ bool SettingsScreen::initialize() {
 }
 
 void SettingsScreen::layoutUI() {
-    // Get window size
-    GLFWwindow* window = screenManager->getWindow();
-    int width, height;
-    glfwGetWindowSize(window, &width, &height);
+    // Use coordinate system for consistent layout
+    auto& coordSys = CoordinateSystem::getInstance();
+    auto windowSize = coordSys.getWindowSize();
+    float width = windowSize.x;
+    float height = windowSize.y;
     
     // REMOVED: Set window reference for all layers
     // backgroundLayer->setWindow(window);

@@ -12,6 +12,7 @@
 #include "../VectorGraphics.h"
 #include "../Renderer.h"
 #include "Developer/Examples.h"
+#include "../CoordinateSystem.h"
 
 // Include all screen types
 #include "Splash/Splash.h"
@@ -134,10 +135,14 @@ bool ScreenManager::initializeOpenGL() {
         return false;
     }
     
-    // Set up viewport
-    int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
-    glViewport(0, 0, width, height);
+    // Initialize coordinate system
+    if (!CoordinateSystem::getInstance().initialize(window)) {
+        std::cerr << "ERROR: CoordinateSystem initialization failed!" << std::endl;
+        return false;
+    }
+    
+    // Set up viewport using coordinate system
+    CoordinateSystem::getInstance().setFullViewport();
     
     // Enable blending
     glEnable(GL_BLEND);
@@ -168,8 +173,11 @@ bool ScreenManager::initializeOpenGL() {
         return false;
     }
     
-    float halfWidth = width / 2.0f;
-    float halfHeight = height / 2.0f;
+    // Use coordinate system for camera projection
+    auto& coordSys = CoordinateSystem::getInstance();
+    auto windowSize = coordSys.getWindowSize();
+    float halfWidth = windowSize.x / 2.0f;
+    float halfHeight = windowSize.y / 2.0f;
     camera->setOrthographicProjection(
         -halfWidth, halfWidth,
         -halfHeight, halfHeight,
@@ -324,6 +332,15 @@ void ScreenManager::initializeScreen(ScreenType screenType) {
 }
 
 void ScreenManager::switchScreen(ScreenType screenType) {
+    // Call onExit on the current screen to clean up its state
+    if (currentScreen) {
+        currentScreen->onExit();
+    }
+    
+    // Reset OpenGL state to prevent viewport issues between screens
+    auto& coordSys = CoordinateSystem::getInstance();
+    coordSys.resetOpenGLState();
+    
     // Lazy initialize if needed
     initializeScreen(screenType);
     if (!activeScreens[screenType]) {
@@ -331,6 +348,8 @@ void ScreenManager::switchScreen(ScreenType screenType) {
         return;
     }
     currentScreen = activeScreens[screenType].get();
+    
+    std::cout << "Switched to screen type: " << static_cast<int>(screenType) << std::endl;
 }
 
 void ScreenManager::cleanup() {
@@ -352,8 +371,11 @@ void ScreenManager::cleanup() {
 }
 
 void ScreenManager::framebufferSizeCallback(GLFWwindow* window, int width, int height) {
+    // Update coordinate system
+    CoordinateSystem::getInstance().updateWindowSize(width, height);
+    
     // Update viewport
-    glViewport(0, 0, width, height);
+    CoordinateSystem::getInstance().setFullViewport();
     
     ScreenManager* manager = static_cast<ScreenManager*>(glfwGetWindowUserPointer(window));
     if (manager && manager->currentScreen) {
@@ -361,8 +383,10 @@ void ScreenManager::framebufferSizeCallback(GLFWwindow* window, int width, int h
         
         // Also update camera projection if camera exists
         if (manager->camera) {
-            float halfWidth = width / 2.0f;
-            float halfHeight = height / 2.0f;
+            auto& coordSys = CoordinateSystem::getInstance();
+            auto windowSize = coordSys.getWindowSize();
+            float halfWidth = windowSize.x / 2.0f;
+            float halfHeight = windowSize.y / 2.0f;
             
             manager->camera->setOrthographicProjection(
                 -halfWidth, halfWidth,

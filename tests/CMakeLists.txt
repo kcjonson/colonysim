@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
-# Set fmt library location explicitly
-set(fmt_DIR "C:/vcpkg/installed/x64-windows/share/fmt")
+# Find fmt package
+find_package(fmt CONFIG REQUIRED)
 
 # Include source files needed from the main project
 set(SOURCE_FILES
@@ -49,13 +49,14 @@ find_package(glm CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(Catch2 CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)  # Add fmt library dependency
+find_package(freetype REQUIRED)
+find_package(glad CONFIG REQUIRED)
 
 # Include directories
 target_include_directories(ColonySimTests PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/extern
     ${CMAKE_SOURCE_DIR}
-    C:/vcpkg/installed/x64-windows/include # For vcpkg-installed packages
 )
 
 # Link with dependencies
@@ -64,6 +65,8 @@ target_link_libraries(ColonySimTests PRIVATE
     ${OPENGL_LIBRARIES}
     Catch2::Catch2
     fmt::fmt  # Link against fmt library
+    freetype
+    glad::glad
 )
 
 # Add custom target to run tests

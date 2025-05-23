@@ -70,10 +70,10 @@ namespace Rendering {
 				glm::vec2 position = glm::vec2(0.0f);
 				glm::vec2 size = glm::vec2(100.0f, 30.0f);
 				Type type = Type::Primary; // Default to Primary type
-				Styles style = Styles::Button({});
+				Styles style = Styles(Rendering::Styles::ButtonStyleParams{});
 				bool disabled = false;
-				Styles hoverStyle = Styles::Button({});
-				Styles pressedStyle = Styles::Button({});
+				Styles hoverStyle = Styles(Rendering::Styles::ButtonStyleParams{});
+				Styles pressedStyle = Styles(Rendering::Styles::ButtonStyleParams{});
 				float zIndex = 0.0f;
 				std::function<void()> onClick = nullptr;
 			};
@@ -126,7 +126,7 @@ namespace Rendering {
 
 			// Trigger the click event directly
 			void click(); // Input handling methods
-			void handleInput(float deltaTime = 0.0f);
+			void handleInput(float deltaTime = 0.0f) override;
 
 
 		  private:

@@ -1,11 +1,35 @@
 cmake_minimum_required(VERSION 3.10)
 project(ColonySim)
 
-# Set vcpkg toolchain file
-set(CMAKE_TOOLCHAIN_FILE "C:/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+# Detect platform for vcpkg integration and setting triplet
+if(WIN32)
+    set(VCPKG_TARGET_TRIPLET "x64-windows" CACHE STRING "")
+elseif(APPLE)
+    set(VCPKG_TARGET_TRIPLET "x64-osx" CACHE STRING "")
+elseif(UNIX AND NOT APPLE)
+    set(VCPKG_TARGET_TRIPLET "x64-linux" CACHE STRING "")
+endif()
 
-# Set vcpkg installed packages path
-set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};C:/vcpkg/installed/x64-windows")
+message(STATUS "Using triplet: ${VCPKG_TARGET_TRIPLET}")
+
+# Check for local vcpkg installation
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/share")
+    # Add local vcpkg packages to the prefix path
+    list(APPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/share")
+    message(STATUS "Using local vcpkg packages: ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/share")
+endif()
+
+# Set vcpkg toolchain file if VCPKG_ROOT is defined
+if(DEFINED ENV{VCPKG_ROOT})
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+    message(STATUS "Using vcpkg toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
+endif()
+
+# Debugging messages to verify vcpkg integration
+message(STATUS "CMAKE_TOOLCHAIN_FILE: ${CMAKE_TOOLCHAIN_FILE}")
+message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+message(STATUS "VCPKG_TARGET_TRIPLET: ${VCPKG_TARGET_TRIPLET}")
+
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 20)
@@ -13,13 +37,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find required packages
 find_package(OpenGL REQUIRED)
-find_package(glfw3 REQUIRED)
-find_package(glm REQUIRED)
-find_package(nlohmann_json REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(Freetype REQUIRED)
+find_package(freetype REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(Catch2 CONFIG REQUIRED)
+
 
 # Add source files
 # Using file(GLOB) to find source files automatically
@@ -81,8 +106,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${OPENGL_INCLUDE_DIR}
     ${GLM_INCLUDE_DIRS}
     ${FREETYPE_INCLUDE_DIRS}
-    C:/vcpkg/installed/x64-windows/include
-    C:/vcpkg/installed/x64-windows/include/KHR
 )
 
 # Link libraries
@@ -90,7 +113,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     ${OPENGL_LIBRARIES}
     glfw
     nlohmann_json::nlohmann_json
-    Freetype::Freetype
+    freetype
     glad::glad
 )
 

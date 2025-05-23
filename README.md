@@ -11,61 +11,80 @@ A 2D top-down colony simulation game inspired by Rimworld, built with C++ and Op
 
 ## Build Requirements
 
-- CMake 3.5 or higher
-- Python 3.6 or higher
-- Git for Windows
-- Visual Studio Build Tools 2022
-  - MSVC v143 - VS 2022 C++ x64/x86 build tools
-  - Windows 10/11 SDK
-  - C++ CMake tools for Windows
-- OpenGL 4.3 or higher
-- GLFW 3.3 or higher
+- CMake 3.15 or higher
+- Git
+- C++ Compiler with C++20 support:
+  - Windows: Visual Studio 2019/2022 with C++ workload
+  - macOS: Xcode Command Line Tools or Clang
+  - Linux: GCC 10+ or Clang 10+
+- vcpkg package manager
 
 ## Setup Guide
 
 1. Install Git:
-   - Download from https://git-scm.com/download/win
-   - Run the installer with default settings
+   - Windows: Download from https://git-scm.com/download/win
+   - macOS: `brew install git` or Xcode Command Line Tools
+   - Linux: `sudo apt install git` or equivalent
    - Verify installation: `git --version`
 
-2. Install Python:
-   - Download from https://www.python.org/downloads/
-   - During installation, check "Add Python to PATH"
-   - Verify installation: `python --version`
+2. Install a C++ compiler:
+   - Windows: Install Visual Studio 2022 with "Desktop development with C++" workload
+   - macOS: Install Xcode Command Line Tools: `xcode-select --install`
+   - Linux: Install GCC: `sudo apt install build-essential` or equivalent
 
-3. Install Visual Studio Build Tools:
-   - Download from https://visualstudio.microsoft.com/visual-cpp-build-tools/
-   - Select "Desktop development with C++"
-   - Include:
-     - MSVC v143 - VS 2022 C++ x64/x86 build tools
-     - Windows 10/11 SDK
-     - C++ CMake tools for Windows
+3. Install CMake:
+   - Windows: Download from https://cmake.org/download/
+   - macOS: `brew install cmake`
+   - Linux: `sudo apt install cmake` or equivalent
+   - Verify installation: `cmake --version`
 
 4. Install vcpkg:
-   - Open "Developer Command Prompt for VS 2022"
-   - Run these commands:
-     ```bash
-     cd C:\
-     git clone https://github.com/Microsoft/vcpkg.git
-     cd vcpkg
-     .\bootstrap-vcpkg.bat
-     ```
-
-5. Install required libraries using vcpkg:
    ```bash
-   .\vcpkg install glfw3:x64-windows
-   .\vcpkg install glad:x64-windows
-   .\vcpkg integrate install
+   # Windows (PowerShell)
+   git clone https://github.com/Microsoft/vcpkg.git
+   cd vcpkg
+   .\bootstrap-vcpkg.bat
+   
+   # macOS/Linux
+   git clone https://github.com/Microsoft/vcpkg.git
+   cd vcpkg
+   ./bootstrap-vcpkg.sh
    ```
 
+
+5. Set VCPKG_ROOT environment variable and integrate
+   ```bash
+   # Windows (PowerShell)
+   [Environment]::SetEnvironmentVariable("VCPKG_ROOT", "$PWD", [EnvironmentVariableTarget]::User)
+   
+   # macOS/Linux
+   echo 'export VCPKG_ROOT="$PWD"' >> ~/.bashrc  # or .zshrc if using zsh
+   source ~/.bashrc  # or source ~/.zshrc
+   ```
+
+   Integrate (IMPOTANT)
+   ```
+      $VCPKG_ROOT/vcpkg integrate install
+   ```
+
+
 6. Build the project:
-   - Open "Developer Command Prompt for VS 2022"
-   - Navigate to project directory
-   - Run:
-     ```bash
-     cmake -B build
-     cmake --build build
-     ```
+   ```bash
+   # Clone the repository if you haven't already
+   git clone https://github.com/user/colonysim.git
+   cd colonysim
+   
+   # Install dependencies using vcpkg manifest mode
+   $VCPKG_ROOT/vcpkg install --triplet=x64-osx  # For macOS
+   # $VCPKG_ROOT/vcpkg install --triplet=x64-windows  # For Windows
+   # $VCPKG_ROOT/vcpkg install --triplet=x64-linux  # For Linux
+   
+   # Configure and build
+   cmake -B build -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+   cmake --build build --config Release
+   ```
+
+   All dependencies specified in vcpkg.json will be automatically installed.
 
 ## Project Structure
 
