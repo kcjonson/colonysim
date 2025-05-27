@@ -13,7 +13,7 @@
 #include "Generators/Generator.h"
 #include "Renderers/World.h"
 #include "Renderers/LandingLocation.h" // Add LandingLocation
-#include "../Game/World.h" // Include for game world
+#include "../Game/World.h" // Include for World class
 #include "../../GameState.h" // Include for GameState
 #include <thread>
 #include <mutex>
@@ -87,7 +87,7 @@ private:
     std::thread m_gameWorldThread;
     std::atomic<bool> m_isCreatingGameWorld{false};
     std::atomic<bool> m_shouldStopGameWorldCreation{false};
-    std::unique_ptr<World> m_newGameWorld;
+    std::unique_ptr<World> m_newWorld;
     
     // Game world creation parameters
     struct GameWorldCreationParams {

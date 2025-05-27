@@ -5,8 +5,14 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include "../Generators/World.h"
-#include "../../Game/World.h"
 #include "TerrainTypes.h"
+#include "ChunkTypes.h"
+
+// Forward declarations
+class World;
+class GameState;
+class Camera;
+struct GLFWwindow;
 
 namespace WorldGen {
 namespace Core {
@@ -18,31 +24,34 @@ namespace Core {
  * @param tiles Vector of generator tiles to search.
  * @return int Index of the nearest tile.
  */
-int findNearestTile(const glm::vec3& point, const std::vector<WorldGen::Generators::Tile>& tiles);
+int findNearestTile(const glm::vec3& point, const std::vector<::WorldGen::Generators::Tile>& tiles);
 
-/**
- * @brief Creates a Game::World object from a WorldGen::Generators::World object.
- * 
- * This function samples the surface of the generator world (which uses pentagon/hexagon tiles)
- * at the specified sample rate and produces game tiles (which are square). Depending on the
- * sample rate, a single world generator tile could produce many game tiles.
- * 
- * @param generatorWorld The source WorldGen::Generators::World object.
- * @param gameState Reference to the GameState object required for Game::World construction.
- * @param sampleRate The number of samples to take per unit distance on the sphere surface.
- *        Higher values result in more detailed game worlds.
- * @param camera Optional pointer to a Camera object for the Game::World.
- * @param window Optional pointer to a GLFW window for the Game::World.
- * @param seed Optional seed string for the Game::World.
- * @return std::unique_ptr<World> A new Game::World object.
- */
+// DEPRECATED: This function is deprecated. Use the new World constructor with generateInitialChunk instead.
+// The new World class uses chunked loading for better performance and memory usage.
+/*
 std::unique_ptr<World> createGameWorld(
-    const WorldGen::Generators::World& generatorWorld,
+    const ::WorldGen::Generators::World& worldGenerator,
     GameState& gameState,
     float sampleRate,
     Camera* camera = nullptr,
     GLFWwindow* window = nullptr,
     const std::string& seed = "DefaultSeed"
+);
+*/
+
+/**
+ * @brief Generate the initial chunk at the landing location.
+ * 
+ * This is a convenience function that generates the first chunk centered
+ * at the player's landing location on the sphere.
+ * 
+ * @param worldGenerator The source WorldGen::Generators::World object containing spherical world data.
+ * @param landingLocation The 3D point on the unit sphere where the player lands.
+ * @return std::unique_ptr<ChunkData> The generated chunk data.
+ */
+std::unique_ptr<ChunkData> generateInitialChunk(
+    const ::WorldGen::Generators::World& worldGenerator,
+    const glm::vec3& landingLocation
 );
 
 } // namespace Core

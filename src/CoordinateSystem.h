@@ -1,64 +1,37 @@
 #pragma once
-
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
-// Forward declaration to avoid OpenGL header conflicts
 struct GLFWwindow;
 
-/**
- * CoordinateSystem manages window coordinates, DPI scaling, and viewport handling
- * for consistent rendering across different screens and displays on macOS.
- */
 class CoordinateSystem {
 public:
-    static CoordinateSystem& getInstance();
-    
-    // Initialize with window - must be called after GLFW window creation
-    bool initialize(GLFWwindow* window);
-    
-    // Update when window size changes
-    void updateWindowSize(int windowWidth, int windowHeight);
-    
-    // Get window dimensions in different coordinate systems
-    struct WindowDimensions {
-        int windowWidth;     // Window size in screen coordinates
-        int windowHeight;
-        int framebufferWidth;  // Framebuffer size in pixels
-        int framebufferHeight;
-        float scaleX;        // DPI scale factors
-        float scaleY;
-    };
-    
-    const WindowDimensions& getDimensions() const { return dimensions; }
-    
-    // Coordinate conversions
-    glm::vec2 screenToFramebuffer(const glm::vec2& screenCoords) const;
-    glm::vec2 framebufferToScreen(const glm::vec2& framebufferCoords) const;
-    
-    // Create projection matrices for different use cases
-    glm::mat4 createScreenSpaceProjection() const;      // UI elements (0,0 = top-left)
-    glm::mat4 createWorldSpaceProjection() const;       // World content (0,0 = center)
-    glm::mat4 createCenteredProjection() const;         // Centered coordinate system
-    
-    // Viewport management
-    void setFullViewport() const;
-    void setViewport(int x, int y, int width, int height) const;
-    void setScaledViewport(float x, float y, float width, float height) const;
-    
-    // OpenGL state management for screen transitions
-    void resetOpenGLState() const;
-    void saveOpenGLState();
-    void restoreOpenGLState() const;
-    
-    // Utility functions for UI layout
-    float getAspectRatio() const;
-    glm::vec2 getWindowCenter() const;
+    static CoordinateSystem& getInstance() {
+        static CoordinateSystem instance;
+        return instance;
+    }
+
+    glm::mat4 createScreenSpaceProjection() const;
+    glm::mat4 createWorldSpaceProjection() const;
     glm::vec2 getWindowSize() const;
+    void resetOpenGLState() const;
+    bool initialize(GLFWwindow* window);
+    void setFullViewport() const;
+    void updateWindowSize(int width, int height);
+
+    // Coordinate conversion methods
+    // These are used internally by the rendering system to handle high-DPI displays
+    float getPixelRatio() const;
+    glm::vec2 windowToFramebuffer(const glm::vec2& windowCoords) const;
+    glm::vec2 framebufferToWindow(const glm::vec2& fbCoords) const;
     
-    // For backward compatibility and gradual migration
-    int getWindowWidth() const { return dimensions.windowWidth; }
-    int getWindowHeight() const { return dimensions.windowHeight; }
-    
+    // Percentage-based layout helpers
+    // These allow UI elements to use relative sizing (e.g., "50%" of screen width)
+    float percentWidth(float percent) const;
+    float percentHeight(float percent) const;
+    glm::vec2 percentSize(float widthPercent, float heightPercent) const;
+    glm::vec2 percentPosition(float xPercent, float yPercent) const;
+
 private:
     CoordinateSystem() = default;
     ~CoordinateSystem() = default;
@@ -66,18 +39,6 @@ private:
     CoordinateSystem& operator=(const CoordinateSystem&) = delete;
     
     GLFWwindow* window = nullptr;
-    WindowDimensions dimensions = {};
-    bool initialized = false;
-    
-    // Saved OpenGL state for restoration
-    struct SavedOpenGLState {
-        bool depthTest;
-        bool blend;
-        int blendSrcRGB, blendDstRGB, blendSrcAlpha, blendDstAlpha;
-        int blendEquationRGB, blendEquationAlpha;
-        float lineWidth;
-        int viewport[4];
-    } savedState;
-    
-    void updateDimensions();
+    mutable float cachedPixelRatio = 1.0f;
+    mutable bool pixelRatioDirty = true;
 };

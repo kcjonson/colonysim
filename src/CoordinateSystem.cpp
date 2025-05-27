@@ -1,196 +1,162 @@
-#define GL_SILENCE_DEPRECATION
+#include "CoordinateSystem.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "CoordinateSystem.h"
-#include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
-CoordinateSystem& CoordinateSystem::getInstance() {
-    static CoordinateSystem instance;
-    return instance;
-}
-
-bool CoordinateSystem::initialize(GLFWwindow* glfwWindow) {
-    if (!glfwWindow) {
-        std::cerr << "CoordinateSystem: Cannot initialize with null window" << std::endl;
-        return false;
-    }
-    
-    window = glfwWindow;
-    updateDimensions();
-    initialized = true;
-    
-    std::cout << "CoordinateSystem initialized:" << std::endl;
-    std::cout << "  Window size: " << dimensions.windowWidth << "x" << dimensions.windowHeight << std::endl;
-    std::cout << "  Framebuffer size: " << dimensions.framebufferWidth << "x" << dimensions.framebufferHeight << std::endl;
-    std::cout << "  Scale factors: " << dimensions.scaleX << "x" << dimensions.scaleY << std::endl;
-    
-    return true;
-}
-
-void CoordinateSystem::updateWindowSize(int windowWidth, int windowHeight) {
-    if (!initialized) {
-        std::cerr << "CoordinateSystem: Cannot update size before initialization" << std::endl;
-        return;
-    }
-    
-    updateDimensions();
-    
-    std::cout << "CoordinateSystem window resized:" << std::endl;
-    std::cout << "  New window size: " << dimensions.windowWidth << "x" << dimensions.windowHeight << std::endl;
-    std::cout << "  New framebuffer size: " << dimensions.framebufferWidth << "x" << dimensions.framebufferHeight << std::endl;
-}
-
-void CoordinateSystem::updateDimensions() {
-    if (!window) return;
-    
-    // Get window size in screen coordinates
-    glfwGetWindowSize(window, &dimensions.windowWidth, &dimensions.windowHeight);
-    
-    // Get framebuffer size in pixels
-    glfwGetFramebufferSize(window, &dimensions.framebufferWidth, &dimensions.framebufferHeight);
-    
-    // Calculate DPI scale factors
-    dimensions.scaleX = static_cast<float>(dimensions.framebufferWidth) / dimensions.windowWidth;
-    dimensions.scaleY = static_cast<float>(dimensions.framebufferHeight) / dimensions.windowHeight;
-}
-
-glm::vec2 CoordinateSystem::screenToFramebuffer(const glm::vec2& screenCoords) const {
-    return glm::vec2(
-        screenCoords.x * dimensions.scaleX,
-        screenCoords.y * dimensions.scaleY
-    );
-}
-
-glm::vec2 CoordinateSystem::framebufferToScreen(const glm::vec2& framebufferCoords) const {
-    return glm::vec2(
-        framebufferCoords.x / dimensions.scaleX,
-        framebufferCoords.y / dimensions.scaleY
-    );
-}
+// COORDINATE SYSTEM DESIGN PHILOSOPHY:
+// 
+// This coordinate system is designed to abstract away the complexity of high-DPI displays
+// (like Retina displays on macOS) from the rest of the application.
+//
+// Key concepts:
+// 1. LOGICAL PIXELS (Window Coordinates): What the user works with. These are the same
+//    regardless of display DPI. A 100x100 button is always 100x100 logical pixels.
+//
+// 2. PHYSICAL PIXELS (Framebuffer Coordinates): Actual pixels on the screen. On a 2x
+//    Retina display, a 100x100 logical pixel button is 200x200 physical pixels.
+//
+// 3. PIXEL RATIO: The ratio between physical and logical pixels (e.g., 2.0 on Retina).
+//
+// Design decisions:
+// - All public APIs use logical pixels (window coordinates)
+// - Only glViewport uses physical pixels (framebuffer size)
+// - Projection matrices use logical pixels to keep consistent coordinate spaces
+// - Mouse input is already in logical pixels from GLFW
+// - This abstraction is hidden from UI components - they just use logical pixels
 
 glm::mat4 CoordinateSystem::createScreenSpaceProjection() const {
-    // Screen space projection: (0,0) = top-left, Y increases downward
-    // This is good for UI elements that should be positioned from the top-left
-    const float width = static_cast<float>(dimensions.windowWidth);
-    const float height = static_cast<float>(dimensions.windowHeight);
+    // IMPORTANT: We use window size (logical pixels) for projection matrices, NOT framebuffer size.
+    // This ensures UI elements have consistent sizes regardless of display DPI.
+    // The GPU will handle the scaling to physical pixels automatically.
+    int width, height;
+    if (window) {
+        glfwGetWindowSize(window, &width, &height);
+    } else {
+        width = 1920;  // Default fallback
+        height = 1080;
+    }
     
-    return glm::ortho(0.0f, width, height, 0.0f, -1000.0f, 1000.0f);
+    // Screen-space orthographic projection: (0,0) at top-left, Y increases downward
+    return glm::ortho(0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, -1.0f, 1.0f);
 }
 
 glm::mat4 CoordinateSystem::createWorldSpaceProjection() const {
-    // World space projection: (0,0) = center, Y increases upward
-    // This is good for world content and game objects
-    const float halfWidth = dimensions.windowWidth / 2.0f;
-    const float halfHeight = dimensions.windowHeight / 2.0f;
+    // Use window size for consistency with screen space projection
+    int width, height;
+    if (window) {
+        glfwGetWindowSize(window, &width, &height);
+    } else {
+        width = 1920;  // Default fallback
+        height = 1080;
+    }
     
-    return glm::ortho(-halfWidth, halfWidth, -halfHeight, halfHeight, -1000.0f, 1000.0f);
-}
-
-glm::mat4 CoordinateSystem::createCenteredProjection() const {
-    // Centered projection: (0,0) = center, Y increases upward
-    // Similar to world space but with explicit naming for clarity
-    return createWorldSpaceProjection();
-}
-
-void CoordinateSystem::setFullViewport() const {
-    glViewport(0, 0, dimensions.framebufferWidth, dimensions.framebufferHeight);
-}
-
-void CoordinateSystem::setViewport(int x, int y, int width, int height) const {
-    // Scale viewport coordinates to framebuffer coordinates
-    int scaledX = static_cast<int>(x * dimensions.scaleX);
-    int scaledY = static_cast<int>(y * dimensions.scaleY);
-    int scaledWidth = static_cast<int>(width * dimensions.scaleX);
-    int scaledHeight = static_cast<int>(height * dimensions.scaleY);
-    
-    glViewport(scaledX, scaledY, scaledWidth, scaledHeight);
-}
-
-void CoordinateSystem::setScaledViewport(float x, float y, float width, float height) const {
-    // Set viewport using normalized coordinates (0.0 to 1.0)
-    int pixelX = static_cast<int>(x * dimensions.framebufferWidth);
-    int pixelY = static_cast<int>(y * dimensions.framebufferHeight);
-    int pixelWidth = static_cast<int>(width * dimensions.framebufferWidth);
-    int pixelHeight = static_cast<int>(height * dimensions.framebufferHeight);
-    
-    glViewport(pixelX, pixelY, pixelWidth, pixelHeight);
-}
-
-float CoordinateSystem::getAspectRatio() const {
-    return static_cast<float>(dimensions.windowWidth) / dimensions.windowHeight;
-}
-
-glm::vec2 CoordinateSystem::getWindowCenter() const {
-    return glm::vec2(dimensions.windowWidth / 2.0f, dimensions.windowHeight / 2.0f);
+    // World-space orthographic projection: (0,0) at center, Y increases upward
+    float halfWidth = static_cast<float>(width) / 2.0f;
+    float halfHeight = static_cast<float>(height) / 2.0f;
+    return glm::ortho(-halfWidth, halfWidth, -halfHeight, halfHeight, -1.0f, 1.0f);
 }
 
 glm::vec2 CoordinateSystem::getWindowSize() const {
-    return glm::vec2(static_cast<float>(dimensions.windowWidth), static_cast<float>(dimensions.windowHeight));
+    // Return logical window size, not physical framebuffer size
+    int width, height;
+    if (window) {
+        glfwGetWindowSize(window, &width, &height);
+    } else {
+        width = 1920;  // Default fallback
+        height = 1080;
+    }
+    return glm::vec2(static_cast<float>(width), static_cast<float>(height));
 }
 
 void CoordinateSystem::resetOpenGLState() const {
-    if (!initialized) return;
-    
-    // Reset to full viewport
-    setFullViewport();
-    
-    // Reset OpenGL state to safe defaults for UI rendering
-    glDisable(GL_DEPTH_TEST);
+    // Reset OpenGL state to defaults for 2D rendering
+    glDisable(GL_DEPTH_TEST);  // Disable depth testing for 2D
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendEquation(GL_FUNC_ADD);
-    glLineWidth(1.0f);
-    
-    // Unbind any active shader program
-    glUseProgram(0);
-    
-    // Clear any active texture bindings
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    
-    std::cout << "CoordinateSystem: OpenGL state reset to UI defaults" << std::endl;
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
-void CoordinateSystem::saveOpenGLState() {
-    if (!initialized) return;
-    
-    // Save current OpenGL state
-    savedState.depthTest = glIsEnabled(GL_DEPTH_TEST);
-    savedState.blend = glIsEnabled(GL_BLEND);
-    
-    glGetIntegerv(GL_BLEND_SRC_RGB, &savedState.blendSrcRGB);
-    glGetIntegerv(GL_BLEND_DST_RGB, &savedState.blendDstRGB);
-    glGetIntegerv(GL_BLEND_SRC_ALPHA, &savedState.blendSrcAlpha);
-    glGetIntegerv(GL_BLEND_DST_ALPHA, &savedState.blendDstAlpha);
-    glGetIntegerv(GL_BLEND_EQUATION_RGB, &savedState.blendEquationRGB);
-    glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &savedState.blendEquationAlpha);
-    
-    glGetFloatv(GL_LINE_WIDTH, &savedState.lineWidth);
-    glGetIntegerv(GL_VIEWPORT, savedState.viewport);
+bool CoordinateSystem::initialize(GLFWwindow* win) {
+    window = win;
+    return window != nullptr;
 }
 
-void CoordinateSystem::restoreOpenGLState() const {
-    if (!initialized) return;
-    
-    // Restore saved OpenGL state
-    if (savedState.depthTest) {
-        glEnable(GL_DEPTH_TEST);
-    } else {
-        glDisable(GL_DEPTH_TEST);
+void CoordinateSystem::setFullViewport() const {
+    // IMPORTANT: glViewport needs PHYSICAL pixels (framebuffer size), not logical pixels!
+    // This is the only place where we use framebuffer size instead of window size.
+    if (window) {
+        int width, height;
+        glfwGetFramebufferSize(window, &width, &height);
+        glViewport(0, 0, width, height);
+    }
+}
+
+void CoordinateSystem::updateWindowSize(int width, int height) {
+    // Window size is tracked by GLFW, nothing to store here
+    // This method exists for API compatibility
+    // Mark pixel ratio as dirty so it gets recalculated
+    pixelRatioDirty = true;
+}
+
+float CoordinateSystem::getPixelRatio() const {
+    // Calculate and cache the pixel ratio for performance
+    if (pixelRatioDirty && window) {
+        int windowWidth, windowHeight;
+        int framebufferWidth, framebufferHeight;
+        
+        glfwGetWindowSize(window, &windowWidth, &windowHeight);
+        glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
+        
+        // Use the width ratio (should be same as height ratio)
+        if (windowWidth > 0) {
+            cachedPixelRatio = static_cast<float>(framebufferWidth) / static_cast<float>(windowWidth);
+        } else {
+            cachedPixelRatio = 1.0f;
+        }
+        
+        pixelRatioDirty = false;
     }
     
-    if (savedState.blend) {
-        glEnable(GL_BLEND);
-    } else {
-        glDisable(GL_BLEND);
-    }
-    
-    glBlendFuncSeparate(savedState.blendSrcRGB, savedState.blendDstRGB, 
-                        savedState.blendSrcAlpha, savedState.blendDstAlpha);
-    glBlendEquationSeparate(savedState.blendEquationRGB, savedState.blendEquationAlpha);
-    
-    glLineWidth(savedState.lineWidth);
-    glViewport(savedState.viewport[0], savedState.viewport[1], 
-               savedState.viewport[2], savedState.viewport[3]);
+    return cachedPixelRatio;
+}
+
+glm::vec2 CoordinateSystem::windowToFramebuffer(const glm::vec2& windowCoords) const {
+    // Convert logical pixels to physical pixels
+    float ratio = getPixelRatio();
+    return windowCoords * ratio;
+}
+
+glm::vec2 CoordinateSystem::framebufferToWindow(const glm::vec2& fbCoords) const {
+    // Convert physical pixels to logical pixels
+    float ratio = getPixelRatio();
+    return fbCoords / ratio;
+}
+
+float CoordinateSystem::percentWidth(float percent) const {
+    // Convert percentage to logical pixels
+    glm::vec2 size = getWindowSize();
+    return size.x * (percent / 100.0f);
+}
+
+float CoordinateSystem::percentHeight(float percent) const {
+    // Convert percentage to logical pixels
+    glm::vec2 size = getWindowSize();
+    return size.y * (percent / 100.0f);
+}
+
+glm::vec2 CoordinateSystem::percentSize(float widthPercent, float heightPercent) const {
+    // Convert percentage dimensions to logical pixels
+    glm::vec2 size = getWindowSize();
+    return glm::vec2(
+        size.x * (widthPercent / 100.0f),
+        size.y * (heightPercent / 100.0f)
+    );
+}
+
+glm::vec2 CoordinateSystem::percentPosition(float xPercent, float yPercent) const {
+    // Convert percentage position to logical pixels
+    glm::vec2 size = getWindowSize();
+    return glm::vec2(
+        size.x * (xPercent / 100.0f),
+        size.y * (yPercent / 100.0f)
+    );
 }

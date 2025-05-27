@@ -41,6 +41,20 @@ bool ConfigManager::loadConfig(const std::string& filepath) {
             if (camera.contains("nearPlane")) nearPlane = camera["nearPlane"].get<float>();
             if (camera.contains("farPlane")) farPlane = camera["farPlane"].get<float>();
         }
+        
+        // Load world settings
+        if (config.contains("world")) {
+            const auto& world = config["world"];
+            if (world.contains("chunkSize")) chunkSize = world["chunkSize"].get<int>();
+            if (world.contains("tileSize")) tileSize = world["tileSize"].get<float>();
+            if (world.contains("tilesPerMeter")) tilesPerMeter = world["tilesPerMeter"].get<float>();
+            if (world.contains("preloadRadius")) preloadRadius = world["preloadRadius"].get<int>();
+            if (world.contains("unloadRadius")) unloadRadius = world["unloadRadius"].get<int>();
+            if (world.contains("maxLoadedChunks")) maxLoadedChunks = world["maxLoadedChunks"].get<int>();
+            if (world.contains("maxNewTilesPerFrame")) maxNewTilesPerFrame = world["maxNewTilesPerFrame"].get<int>();
+            if (world.contains("tileCullingOverscan")) tileCullingOverscan = world["tileCullingOverscan"].get<int>();
+        }
+        
         configLoaded = true;
         return true;
     }

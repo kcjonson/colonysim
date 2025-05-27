@@ -17,6 +17,16 @@ public:
     float getViewHeight() const { return viewHeight; }
     float getNearPlane() const { return nearPlane; }
     float getFarPlane() const { return farPlane; }
+    
+    // World settings
+    int getChunkSize() const { return chunkSize; }
+    float getTileSize() const { return tileSize; }
+    float getTilesPerMeter() const { return tilesPerMeter; }
+    int getPreloadRadius() const { return preloadRadius; }
+    int getUnloadRadius() const { return unloadRadius; }
+    int getMaxLoadedChunks() const { return maxLoadedChunks; }
+    int getMaxNewTilesPerFrame() const { return maxNewTilesPerFrame; }
+    int getTileCullingOverscan() const { return tileCullingOverscan; }
 
 private:
     ConfigManager() = default;
@@ -34,4 +44,14 @@ private:
     float viewHeight = 1000.0f;
     float nearPlane = -1000.0f;
     float farPlane = 1000.0f;
+    
+    // World settings
+    int chunkSize = 1000;
+    float tileSize = 20.0f;
+    float tilesPerMeter = 1.0f;
+    int preloadRadius = 1;
+    int unloadRadius = 2;
+    int maxLoadedChunks = 9;
+    int maxNewTilesPerFrame = 100;
+    int tileCullingOverscan = 3;
 }; 

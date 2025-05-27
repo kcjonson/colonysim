@@ -12,6 +12,12 @@ Rectangle::Rectangle(const Args& args)
 }
 
 void Rectangle::draw() {
+    static int drawCallCount = 0;
+    drawCallCount++;
+    if (drawCallCount < 5) {
+        std::cout << "Rectangle::draw() call " << drawCallCount << " at position (" << position.x << "," << position.y << ") size (" << size.x << "," << size.y << ")" << std::endl;
+    }
+    
     // Convert top-left position to center position for VectorGraphics::drawRectangle
     glm::vec2 centerPosition = position + size / 2.0f;
     

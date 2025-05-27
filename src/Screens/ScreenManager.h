@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <functional>
 #include "Screen.h"
-#include "Game/World.h"  // Include World.h instead of forward declaration
+#include "Game/World.h"  // Include World.h
 
 // Forward declarations
 struct GLFWwindow;  // Changed from class to struct to maintain consistency across the codebase

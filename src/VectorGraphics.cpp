@@ -74,6 +74,13 @@ void VectorGraphics::render(const glm::mat4& viewMatrix, const glm::mat4& projec
         return;
     }
 
+    static int renderCallCount = 0;
+    renderCallCount++;
+    
+    if (renderCallCount < 5) {
+        std::cout << "VectorGraphics::render() call " << renderCallCount << " with " << vertices.size() << " vertices, " << indices.size() << " indices" << std::endl;
+    }
+
     if (!vertices.empty()) {
         // Update buffers if needed
         updateBuffers();

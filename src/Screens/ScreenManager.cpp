@@ -184,22 +184,8 @@ bool ScreenManager::initializeOpenGL() {
         -1000.0f, 1000.0f
     );
     
-    // Initialize world (pass gameState, camera, and window)
-    try {
-        world = std::make_unique<World>(*gameState, "default_seed", camera.get(), window);
-        if (!world) {
-            std::cerr << "ERROR: Failed to create World" << std::endl;
-            return false;
-        }
-        
-        if (!world->initialize()) {
-            std::cerr << "ERROR: World initialization failed!" << std::endl;
-            return false;
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "ERROR: Exception during World initialization: " << e.what() << std::endl;
-        return false;
-    }
+    // Note: World will be created by WorldGen screen
+    // No default world creation needed
     
     // Initialize input manager
     try {

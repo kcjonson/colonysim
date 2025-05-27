@@ -1,9 +1,6 @@
 #include "WorldGen.h"
-#include "../ScreenManager.h"
-#include "../../VectorGraphics.h"
-#include "../../ConfigManager.h"
-#include "../../CoordinateSystem.h"
 #include <iostream>
+#include "../ScreenManager.h"
 #include "../Game/World.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -13,6 +10,7 @@
 #include "Core/Util.h" // Include the new Util.h file
 #include "VectorGraphics.h"
 #include <algorithm> // Keep algorithm include
+#include "../../CoordinateSystem.h"
 
 // Define M_PI if not already defined
 #ifndef M_PI
@@ -222,6 +220,15 @@ bool WorldGenScreen::initialize() {
     
     // Back button event
     m_worldGenUI->addEventListener(WorldGen::UIEvent::Back, [this]() {
+        // Reset OpenGL state before switching screens
+        int width, height;
+        glfwGetWindowSize(m_window, &width, &height);
+        glViewport(0, 0, width, height);  // Reset to full window viewport
+        glDisable(GL_DEPTH_TEST);         // Disable depth testing
+        glEnable(GL_BLEND);               // Ensure blending is enabled
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Set standard alpha blending
+        glLineWidth(1.0f);                // Reset line width to default
+        
         screenManager->switchScreen(ScreenType::MainMenu);
     });
     
@@ -264,11 +271,12 @@ void WorldGenScreen::update(float deltaTime) {
     
     m_viewMatrix = m_viewMatrix * rotationMatrix;
     
-    // Update projection matrix - use coordinate system for proper aspect ratio
-    auto& coordSys = CoordinateSystem::getInstance();
+    // Update projection matrix - use full width for proper aspect ratio
+    int width, height;
+    glfwGetWindowSize(m_window, &width, &height);
     m_projectionMatrix = glm::perspective(
         glm::radians(45.0f),
-        coordSys.getAspectRatio(),
+        static_cast<float>(width) / height,
         0.1f,
         100.0f
     );
@@ -281,12 +289,16 @@ void WorldGenScreen::render() {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    // Get coordinate system for proper viewport management
-    auto& coordSys = CoordinateSystem::getInstance();
-    auto windowSize = coordSys.getWindowSize();
+    // Get window size for UI calculations (logical pixels)
+    int width, height;
+    glfwGetWindowSize(m_window, &width, &height);
+    
+    // Get framebuffer size for viewport (physical pixels)
+    int fbWidth, fbHeight;
+    glfwGetFramebufferSize(m_window, &fbWidth, &fbHeight);
     
     // Use the full window viewport for all rendering
-    coordSys.setFullViewport();
+    glViewport(0, 0, fbWidth, fbHeight);
     
     // --- Render stars (background, always first, blending enabled) ---
     glDisable(GL_DEPTH_TEST);
@@ -301,11 +313,13 @@ void WorldGenScreen::render() {
         
         // Only render in the main area (not over sidebar)
         float sidebarWidth = m_worldGenUI->getSidebarWidth();
-        int renderWidth = static_cast<int>(windowSize.x - sidebarWidth);
-        int renderHeight = static_cast<int>(windowSize.y);
-        
-        // Use coordinate system for proper viewport scaling
-        coordSys.setViewport(static_cast<int>(sidebarWidth), 0, renderWidth, renderHeight);
+        // Convert logical sidebar width to physical pixels using pixel ratio
+        auto& coordSys = CoordinateSystem::getInstance();
+        float pixelRatio = coordSys.getPixelRatio();
+        int fbSidebarWidth = static_cast<int>(sidebarWidth * pixelRatio);
+        int renderWidth = fbWidth - fbSidebarWidth;
+        int renderHeight = fbHeight;
+        glViewport(fbSidebarWidth, 0, renderWidth, renderHeight);
         
         // Calculate correct aspect ratio for the viewport
         float aspectRatio = static_cast<float>(renderWidth) / renderHeight;
@@ -326,7 +340,7 @@ void WorldGenScreen::render() {
         }
         
         // Fully reset OpenGL state for UI rendering
-        coordSys.setFullViewport();
+        glViewport(0, 0, fbWidth, fbHeight);
         glDisable(GL_DEPTH_TEST);
         
         // Make sure blending is properly set up again for UI rendering
@@ -359,8 +373,8 @@ void WorldGenScreen::handleInput(float deltaTime) {
         static bool hasDragged = false;
           // If we have a world and landing location renderer...
         if (m_landingLocation && m_world && worldGenerated) {
-            auto& coordSys = CoordinateSystem::getInstance();
-            auto windowSize = coordSys.getWindowSize();
+            int width, height;
+            glfwGetWindowSize(m_window, &width, &height);
           // Always update landing location based on mouse position
             // if a location hasn't been selected yet
             if (!m_landingLocation->HasLocationSelected()) {                // Adjust mouse coordinates for the sidebar offset
@@ -368,8 +382,8 @@ void WorldGenScreen::handleInput(float deltaTime) {
                 float adjustedMouseX = mouseX - sidebarWidth; // Subtract sidebar width
                 
                 // Calculate viewport dimensions
-                int renderWidth = static_cast<int>(windowSize.x - sidebarWidth);
-                int renderHeight = static_cast<int>(windowSize.y);
+                int renderWidth = width - static_cast<int>(sidebarWidth);
+                int renderHeight = height;
                   // Calculate correct aspect ratio for the viewport
                 float aspectRatio = static_cast<float>(renderWidth) / renderHeight;
                 
@@ -477,11 +491,10 @@ void WorldGenScreen::onResize(int width, int height) {
     // Update UI layout
     m_worldGenUI->onResize(width, height);
     
-    // Update projection matrix using coordinate system
-    auto& coordSys = CoordinateSystem::getInstance();
+    // Update projection matrix
     m_projectionMatrix = glm::perspective(
         glm::radians(45.0f),
-        coordSys.getAspectRatio(),
+        static_cast<float>(width) / height,
         0.1f,
         100.0f
     );
@@ -724,15 +737,21 @@ void WorldGenScreen::gameWorldCreationThreadFunc() {
             return;
         }
         
-        // Create the game world using the utility function
-        // Note: Progress updates happen inside the createGameWorld function via m_progressTracker
-        m_newGameWorld = WorldGen::Core::createGameWorld(
-            *m_world,         // Generator world
+        // Get landing location from the landing location renderer
+        glm::vec3 landingLocation = m_landingLocation->GetSelectedLocation();
+        
+        // Generate initial chunk at landing location
+        auto initialChunk = WorldGen::Core::generateInitialChunk(*m_world, landingLocation);
+        
+        // Create the new World with chunked loading
+        m_newWorld = std::make_unique<World>(
             *gameState,       // Game state
-            sampleRate,       // Sample rate
+            seed,             // Seed
             camera,           // Camera
             window,           // Window
-            seed              // Seed
+            m_world.get(),    // Spherical world reference
+            std::move(initialChunk), // Initial chunk
+            landingLocation   // Landing location
         );
         
         // Check if we should stop
@@ -742,12 +761,12 @@ void WorldGenScreen::gameWorldCreationThreadFunc() {
             m_latestProgress.message = "Game world creation canceled";
             m_latestProgress.hasUpdate = true;
             m_isCreatingGameWorld = false;
-            m_newGameWorld = nullptr; // Clean up if we're stopping
+            m_newWorld = nullptr; // Clean up if we're stopping
             return;
         }
         
         // Check if game world creation was successful
-        if (!m_newGameWorld) {
+        if (!m_newWorld) {
             std::lock_guard<std::mutex> lock(m_progressMutex);
             m_latestProgress.progress = 0.0f;
             m_latestProgress.message = "Failed to create game world";
@@ -799,7 +818,7 @@ void WorldGenScreen::processProgressMessages() {
             m_latestProgress.hasUpdate = false; // Reset the flag
             
             // Check if game world creation is complete
-            if (progress == 1.0f && m_isCreatingGameWorld == false && m_newGameWorld != nullptr) {
+            if (progress == 1.0f && m_isCreatingGameWorld == false && m_newWorld != nullptr) {
                 gameWorldComplete = true;
             }
         }
@@ -832,12 +851,22 @@ void WorldGenScreen::processProgressMessages() {
             
             // Replace the existing world in the screen manager with our new world
             try {
-                screenManager->setWorld(std::move(m_newGameWorld));
+                screenManager->setWorld(std::move(m_newWorld));
                 
                 // Let the game state know we're using a custom world
                 gameState->set("custom_world", "true");
                 gameState->set("world_sample_rate", std::to_string(m_gameWorldParams.sampleRate));
                 gameState->set("world_seed", m_gameWorldParams.seed);
+                
+                // Reset OpenGL state before switching to Game screen
+                // This is critical to ensure the Game screen gets the correct viewport and rendering state
+                int width, height;
+                glfwGetWindowSize(m_window, &width, &height);
+                glViewport(0, 0, width, height);  // Reset to full window viewport
+                glDisable(GL_DEPTH_TEST);         // Disable depth testing which Game screen doesn't use
+                glEnable(GL_BLEND);               // Ensure blending is enabled
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Set standard alpha blending
+                glLineWidth(1.0f);                // Reset line width to default
                 
                 std::cout << "================= PRE-SCREEN TRANSITION DIAGNOSTICS ===================" << std::endl;
                 std::cout << "Generator world tiles: " << m_world->GetTiles().size() << std::endl;

@@ -6,7 +6,10 @@
 #include <vector>
 #include <glm/gtx/norm.hpp>
 #include "../../Game/Tile.h"
+#include "../../Game/World.h"
 #include "TerrainTypes.h"
+#include "ChunkGenerator.h"
+#include "../../../ConfigManager.h"
 
 // Define M_PI if not defined
 #ifndef M_PI
@@ -92,8 +95,11 @@ int findNearestTile(const glm::vec3& point, const std::vector<WorldGen::Generato
     return nearestIndex;
 }
 
+// DEPRECATED: This function is deprecated. Use the new World constructor with generateInitialChunk instead.
+// The new World class uses chunked loading for better performance and memory usage.
+/*
 std::unique_ptr<World> createGameWorld(
-    const WorldGen::Generators::World& generatorWorld,
+    const WorldGen::Generators::World& worldGenerator,
     GameState& gameState,
     float sampleRate,
     Camera* camera,
@@ -119,7 +125,7 @@ std::unique_ptr<World> createGameWorld(
         std::unique_ptr<World> gameWorld = std::make_unique<World>(gameState, seed, camera, window);
         
         // Get generator tiles
-        const std::vector<WorldGen::Generators::Tile>& generatorTiles = generatorWorld.GetTiles();
+        const std::vector<WorldGen::Generators::Tile>& generatorTiles = worldGenerator.GetTiles();
         
         // Safety check for empty tiles
         if (generatorTiles.empty()) {
@@ -150,7 +156,8 @@ std::unique_ptr<World> createGameWorld(
     
     std::cout << "Creating game world with dimensions: " << 
                  static_cast<int>(mapWidth) << "x" << static_cast<int>(mapHeight) << 
-                 " tiles (sample rate: " << sampleRate << ")" << std::endl;    // Sample the sphere surface to generate square game tiles
+                 " tiles (sample rate: " << sampleRate << ")" << std::endl;
+    std::cout << "Source world has " << generatorTiles.size() << " tiles" << std::endl;    // Sample the sphere surface to generate square game tiles
     int tilesProcessed = 0;
     int maxTilesToProcess = 1048576; // Set a reasonable maximum number of tiles (1024*1024)
     
@@ -307,6 +314,16 @@ std::unique_ptr<World> createGameWorld(
         std::cerr << "ERROR: Exception during game world creation: " << e.what() << std::endl;
         return nullptr;
     }
+}
+*/
+
+std::unique_ptr<ChunkData> generateInitialChunk(
+    const WorldGen::Generators::World& worldGenerator,
+    const glm::vec3& landingLocation
+) {
+    // Simply delegate to the ChunkGenerator
+    // The initial chunk is centered at the landing location
+    return ChunkGenerator::generateChunk(worldGenerator, landingLocation);
 }
 
 } // namespace Core
