@@ -16,7 +16,6 @@
         "preloadRadius": 1,
         "unloadRadius": 2,
         "maxLoadedChunks": 9,
-        "maxNewTilesPerFrame": 100,
         "tileCullingOverscan": 3,
         "tileSampleRate": 4
     }

@@ -435,8 +435,6 @@ void World::integrateLoadedChunks() {
     auto& config = ConfigManager::getInstance();
     const float tileSize = config.getTileSize();
     const int chunkSize = config.getChunkSize();
-    const int maxNewTilesPerFrame = config.getMaxNewTilesPerFrame();
-    
     std::vector<WorldGen::Core::ChunkCoord> toIntegrate;
     
     // Find chunks ready to integrate
@@ -471,9 +469,6 @@ void World::integrateLoadedChunks() {
             const auto& chunkData = chunks[coord];
             
             for (const auto& [localCoord, terrainData] : chunkData->tiles) {
-                if (tilesCreated >= maxNewTilesPerFrame) {
-                    break; // Limit tiles per frame
-                }
                 
                 // COORDINATE FIX: Position tiles relative to current chunk center
                 // Calculate offset from each chunk's center and position relative to current chunk
@@ -481,28 +476,34 @@ void World::integrateLoadedChunks() {
                 glm::vec2 currentChunkWorld = sphereToWorld(currentChunk.centerOnSphere);
                 glm::vec2 tilePos = worldPos - currentChunkWorld;
                 
-                // Create tile
+                // Convert to pixel coordinates for storage (consistent with createInitialTiles)
+                const float tilesPerMeter = config.getTilesPerMeter();
+                glm::vec2 tilePosPixels = tilePos * tilesPerMeter;
+                
+                // Snap to tile grid (tiles are spaced by tileSize pixels)
+                int pixelX = static_cast<int>(std::round(tilePosPixels.x / tileSize)) * static_cast<int>(tileSize);
+                int pixelY = static_cast<int>(std::round(tilePosPixels.y / tileSize)) * static_cast<int>(tileSize);
+                
+                WorldGen::TileCoord pixelCoord{pixelX, pixelY};
+                
+                // Check if tile already exists
+                if (tiles.count(pixelCoord) > 0) {
+                    continue; // Skip duplicate
+                }
+                
+                // Create tile at pixel position
+                glm::vec2 tilePosForRendering(pixelX, pixelY);
                 auto tile = std::make_shared<Rendering::Tile>(
-                    tilePos, terrainData.height, terrainData.resource, 
+                    tilePosForRendering, terrainData.height, terrainData.resource, 
                     terrainData.type
                 );
                 
-                // Store tiles using meter coordinates
-                WorldGen::TileCoord relativeCoord{
-                    static_cast<int>(tilePos.x),
-                    static_cast<int>(tilePos.y)
-                };
-                
-                tiles[relativeCoord] = tile;
+                tiles[pixelCoord] = tile;
                 worldLayer->addItem(tile);
                 tile->setVisible(false); // Will be made visible by updateTileVisibility
                 
                 tilesCreated++;
             }
-        }
-        
-        if (tilesCreated >= maxNewTilesPerFrame) {
-            break; // Process remaining chunks next frame
         }
     }
     
@@ -561,8 +562,8 @@ void World::updateTileVisibility() {
     for (int y = minY; y <= maxY; y += static_cast<int>(tileSize)) {
         for (int x = minX; x <= maxX; x += static_cast<int>(tileSize)) {
             WorldGen::TileCoord coord{x, y};
+            newVisibleTiles.insert(coord);
             if (tiles.count(coord) > 0) {
-                newVisibleTiles.insert(coord);
                 tilesFound++;
             }
         }
@@ -587,22 +588,47 @@ void World::updateTileVisibility() {
     }
     
     // Create and show newly visible tiles (on-demand creation)
-    const int maxNewTilesPerFrame = config.getMaxNewTilesPerFrame();
     int newTilesCreated = 0;
+    int tilesNotFound = 0;
+    int tilesAlreadyExist = 0;
     
     for (const auto& coord : newVisibleTiles) {
         if (visibleTiles.count(coord) == 0) {
             auto it = tiles.find(coord);
             if (it == tiles.end()) {
-                // Tile doesn't exist - create it on-demand (if we haven't hit the limit)
-                if (newTilesCreated < maxNewTilesPerFrame) {
-                    if (createTileFromData(coord)) {
-                        newTilesCreated++;
+                // Tile doesn't exist - create it on-demand
+                if (createTileFromData(coord)) {
+                    newTilesCreated++;
+                } else {
+                    tilesNotFound++;
+                    if (tilesNotFound <= 5) {
+                        std::cout << "Failed to create tile at (" << coord.x << ", " << coord.y << ")" << std::endl;
                     }
                 }
             } else if (it->second) {
                 // Tile exists - just show it
                 it->second->setVisible(true);
+                tilesAlreadyExist++;
+            }
+        }
+    }
+    
+    if (newTilesCreated > 0 || tilesNotFound > 0) {
+        std::cout << "Visibility update: created=" << newTilesCreated 
+                  << ", not_found=" << tilesNotFound 
+                  << ", already_exist=" << tilesAlreadyExist 
+                  << ", chunks_loaded=" << chunks.size() << std::endl;
+                  
+        // Debug: show some of the tiles that weren't found
+        if (tilesNotFound > 0) {
+            int debugShown = 0;
+            std::cout << "Sample of tiles not found:" << std::endl;
+            for (const auto& coord : newVisibleTiles) {
+                if (debugShown >= 5) break;
+                if (visibleTiles.count(coord) == 0 && tiles.count(coord) == 0) {
+                    std::cout << "  Missing tile at (" << coord.x << ", " << coord.y << ")" << std::endl;
+                    debugShown++;
+                }
             }
         }
     }
@@ -652,21 +678,16 @@ glm::vec4 World::getCameraBounds() const {
         return glm::vec4(-10.0f, 10.0f, -10.0f, 10.0f);
     }
     
-    auto& config = ConfigManager::getInstance();
-    const float tileSize = config.getTileSize();
-    
-    // COORDINATE FIX: Camera and tiles are both in local coordinates now
-    // No need to subtract playerPosition since both are relative to chunk center
+    // COORDINATE FIX: Return bounds in pixel coordinates to match tile storage
+    // Camera and tiles are both in local coordinates relative to chunk center
     glm::vec3 cameraPos = camera->getPosition();
     
-    // Convert pixel bounds to meter coordinates  
-    // camera->getProjectionLeft() etc. return pixel values
-    // We need to divide by tileSize to get meter coordinates
+    // Return pixel bounds directly since tiles are stored in pixel coordinates
     return glm::vec4(
-        cameraPos.x + camera->getProjectionLeft() / tileSize,
-        cameraPos.x + camera->getProjectionRight() / tileSize,
-        cameraPos.y + camera->getProjectionBottom() / tileSize,
-        cameraPos.y + camera->getProjectionTop() / tileSize
+        cameraPos.x + camera->getProjectionLeft(),
+        cameraPos.x + camera->getProjectionRight(),
+        cameraPos.y + camera->getProjectionBottom(),
+        cameraPos.y + camera->getProjectionTop()
     );
 }
 
@@ -683,12 +704,14 @@ std::tuple<int, int, int, int> World::getVisibleTileRange(int overscan) const {
     
     glm::vec4 bounds = getCameraBounds();
     
-    // COORDINATE FIX: Convert camera bounds to pixel coordinates to match tile storage
-    // Camera bounds are in "tile units" but tiles are stored in pixel coordinates
-    int minX = static_cast<int>(std::floor(bounds.x * tileSize)) - overscan;
-    int maxX = static_cast<int>(std::ceil(bounds.y * tileSize)) + overscan;
-    int minY = static_cast<int>(std::floor(bounds.z * tileSize)) - overscan;
-    int maxY = static_cast<int>(std::ceil(bounds.w * tileSize)) + overscan;
+    // COORDINATE FIX: bounds are now in pixel coordinates, snap to tile grid
+    // Tiles are spaced by tileSize pixels, so snap bounds to tileSize grid
+    // overscan is in tile units, so multiply by tileSize to get pixels
+    int overscanPixels = overscan * static_cast<int>(tileSize);
+    int minX = static_cast<int>(std::floor(bounds.x / tileSize)) * static_cast<int>(tileSize) - overscanPixels;
+    int maxX = static_cast<int>(std::ceil(bounds.y / tileSize)) * static_cast<int>(tileSize) + overscanPixels;
+    int minY = static_cast<int>(std::floor(bounds.z / tileSize)) * static_cast<int>(tileSize) - overscanPixels;
+    int maxY = static_cast<int>(std::ceil(bounds.w / tileSize)) * static_cast<int>(tileSize) + overscanPixels;
     
     return {minX, maxX, minY, maxY};
 }
@@ -733,6 +756,13 @@ bool World::createTileFromData(const WorldGen::TileCoord& coord) {
     // Instead of searching all chunks, calculate which chunk should contain this coordinate
     // and only look in that chunk + immediate neighbors
     
+    static int debugCount = 0;
+    bool showDebug = debugCount < 20;
+    if (showDebug) {
+        std::cout << "createTileFromData: Looking for tile at pixel coord (" << coord.x << ", " << coord.y << ")" << std::endl;
+        debugCount++;
+    }
+    
     // Find terrain data for this coordinate from loaded chunks
     for (const auto& [chunkCoord, chunkData] : chunks) {
         if (!chunkData) continue;
@@ -742,18 +772,30 @@ bool World::createTileFromData(const WorldGen::TileCoord& coord) {
         const int chunkSize = config.getChunkSize();
         const float tileSize = config.getTileSize();
         
-        // Calculate the chunk center in pixel coordinates
-        float chunkCenterX = 0.0f; // For now, assume current chunk is at origin
-        float chunkCenterY = 0.0f;
+        // Calculate this chunk's offset from the current chunk
+        glm::vec2 thisChunkWorld = sphereToWorld(chunkCoord.centerOnSphere);
+        glm::vec2 currentChunkWorld = sphereToWorld(currentChunk.centerOnSphere);
+        glm::vec2 chunkOffset = thisChunkWorld - currentChunkWorld;
+        
+        // Convert chunk offset from meters to pixels
+        const float tilesPerMeter = config.getTilesPerMeter();
+        glm::vec2 chunkOffsetPixels = chunkOffset * tilesPerMeter;
         
         // Convert pixel coordinate to local coordinate within this chunk
-        int localX = static_cast<int>((coord.x - chunkCenterX) / tileSize + chunkSize * 0.5f);
-        int localY = static_cast<int>((coord.y - chunkCenterY) / tileSize + chunkSize * 0.5f);
+        int localX = static_cast<int>((coord.x - chunkOffsetPixels.x) / tileSize + chunkSize * 0.5f);
+        int localY = static_cast<int>((coord.y - chunkOffsetPixels.y) / tileSize + chunkSize * 0.5f);
         
         // Check if this coordinate is within this chunk
         if (localX >= 0 && localX < chunkSize && localY >= 0 && localY < chunkSize) {
             WorldGen::TileCoord localCoord{localX, localY};
             auto terrainIt = chunkData->tiles.find(localCoord);
+            
+            if (showDebug) {
+                std::cout << "  Checking chunk at offset (" << chunkOffset.x << ", " << chunkOffset.y 
+                         << "), pixel offset (" << chunkOffsetPixels.x << ", " << chunkOffsetPixels.y
+                         << "), local coord (" << localX << ", " << localY << ")"
+                         << " - Found: " << (terrainIt != chunkData->tiles.end() ? "YES" : "NO") << std::endl;
+            }
             
             if (terrainIt != chunkData->tiles.end()) {
                 // Found terrain data - create the tile
@@ -767,6 +809,10 @@ bool World::createTileFromData(const WorldGen::TileCoord& coord) {
                 tiles[coord] = tile;
                 worldLayer->addItem(tile);
                 tile->setVisible(true);
+                
+                if (showDebug) {
+                    std::cout << "  SUCCESS: Created and stored tile at pixel coord (" << coord.x << ", " << coord.y << ")" << std::endl;
+                }
                 
                 return true;  // Successfully created
             }
