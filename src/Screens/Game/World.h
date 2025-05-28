@@ -55,6 +55,12 @@ private:
     std::unordered_map<WorldGen::TileCoord, std::shared_ptr<Rendering::Tile>> tiles;
     std::unordered_set<WorldGen::TileCoord> visibleTiles;
     
+    // Track which chunks have visible tiles (chunk coord -> visible tile count)
+    std::unordered_map<WorldGen::Core::ChunkCoord, int> chunksWithVisibleTiles;
+    
+    // Track which chunk each tile belongs to
+    std::unordered_map<WorldGen::TileCoord, WorldGen::Core::ChunkCoord> tileToChunkMap;
+    
     // World configuration
     
     /**
@@ -116,6 +122,8 @@ private:
     void generateChunk(const WorldGen::Core::ChunkCoord& coord);
     void generateChunkAsync(const WorldGen::Core::ChunkCoord& coord);
     void chunkGeneratorThreadFunc();
+    
+    void checkAndLoadNearbyChunks();
     
     void updateTileVisibility();
     bool cameraViewChanged() const;

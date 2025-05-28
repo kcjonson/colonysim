@@ -117,10 +117,7 @@ void World::update(float deltaTime) {
     // Update tile visibility
     static bool firstUpdate = true;
     if (cameraViewChanged() || firstUpdate) {
-        if (firstUpdate) {
-            std::cout << "First update - forcing tile visibility update" << std::endl;
-            firstUpdate = false;
-        }
+        firstUpdate = false;
         updateTileVisibility();
     }
     
@@ -241,8 +238,6 @@ void World::updateCurrentChunk() {
         glm::vec2 oldChunkWorld = sphereToWorld(currentChunk.centerOnSphere);
         glm::vec2 newChunkWorld = sphereToWorld(newChunk.centerOnSphere);
         
-        std::cout << "Moving from chunk at world pos (" << oldChunkWorld.x << ", " << oldChunkWorld.y 
-                  << ") to chunk at world pos (" << newChunkWorld.x << ", " << newChunkWorld.y << ")" << std::endl;
         
         currentChunk = newChunk;
         
@@ -330,7 +325,6 @@ void World::unloadDistantChunks() {
     // Unload chunks and their tiles
     for (const auto& coord : toUnload) {
         glm::vec2 chunkWorld = sphereToWorld(coord.centerOnSphere);
-        std::cout << "Unloading chunk at world pos: (" << chunkWorld.x << ", " << chunkWorld.y << ")" << std::endl;
         
         // Remove tiles from rendering
         // We need to find all tiles that belong to this chunk
@@ -358,6 +352,10 @@ void World::unloadDistantChunks() {
             if (tileIt != tiles.end()) {
                 worldLayer->removeItem(tileIt->second);
                 tiles.erase(tileIt);
+                
+                // Also remove from tracking maps
+                tileToChunkMap.erase(tileCoord);
+                visibleTiles.erase(tileCoord);
             }
         }
         
@@ -476,6 +474,15 @@ void World::integrateLoadedChunks() {
                 glm::vec2 currentChunkWorld = sphereToWorld(currentChunk.centerOnSphere);
                 glm::vec2 tilePos = worldPos - currentChunkWorld;
                 
+                // CRITICAL: Coordinate system fix for multi-chunk rendering
+                // 
+                // Tiles must be stored in pixel coordinates, not meter coordinates.
+                // Previously, tiles were stored using meter coordinates but looked up using pixel
+                // coordinates, causing tiles to not be found when panning. The fix:
+                // 1. Convert tile positions from meters to pixels using tilesPerMeter
+                // 2. Snap to tile grid to ensure consistent positioning
+                // This must match the coordinate system used in createTileFromData()
+                
                 // Convert to pixel coordinates for storage (consistent with createInitialTiles)
                 const float tilesPerMeter = config.getTilesPerMeter();
                 glm::vec2 tilePosPixels = tilePos * tilesPerMeter;
@@ -502,14 +509,15 @@ void World::integrateLoadedChunks() {
                 worldLayer->addItem(tile);
                 tile->setVisible(false); // Will be made visible by updateTileVisibility
                 
+                // Track which chunk this tile belongs to
+                tileToChunkMap[pixelCoord] = coord;
+                
                 tilesCreated++;
             }
         }
     }
     
-    if (tilesCreated > 0) {
-        std::cout << "Integrated " << tilesCreated << " tiles from new chunks" << std::endl;
-    }
+    // Tiles are integrated silently now that multi-chunk loading is working
 }
 
 void World::updateTileVisibility() {
@@ -519,40 +527,10 @@ void World::updateTileVisibility() {
     
     glm::vec4 bounds = getCameraBounds();
     
-    // Debug output first time
-    static bool debugPrinted = false;
-    if (!debugPrinted) {
-        glm::vec3 camPos = camera->getPosition();
-        std::cout << "\n=== TILE VISIBILITY DEBUG ===" << std::endl;
-        std::cout << "Camera position: (" << camPos.x << ", " << camPos.y << ", " << camPos.z << ")" << std::endl;
-        std::cout << "Camera bounds: [" << bounds.x << ", " << bounds.y << "] x [" << bounds.z << ", " << bounds.w << "]" << std::endl;
-        std::cout << "Player position: (" << playerPosition.x << ", " << playerPosition.y << ")" << std::endl;
-        std::cout << "Tile size: " << tileSize << std::endl;
-        std::cout << "Total tiles available: " << tiles.size() << std::endl;
-    }
     
     // Get the range of tiles that should be visible
     auto [minX, maxX, minY, maxY] = getVisibleTileRange(overscan);
     
-    // Debug output first time
-    if (!debugPrinted) {
-        std::cout << "Visible tile range: X[" << minX << ", " << maxX << "] Y[" << minY << ", " << maxY << "]" << std::endl;
-        
-        // Show first few actual tile coordinates
-        std::cout << "First 10 tile coordinates in storage:" << std::endl;
-        int count = 0;
-        for (const auto& [coord, tile] : tiles) {
-            if (count++ < 10) {
-                std::cout << "  Tile at (" << coord.x << ", " << coord.y << ")" << std::endl;
-            }
-        }
-        
-        // Show what coordinates we're searching in
-        std::cout << "Looking for tiles in range:" << std::endl;
-        std::cout << "  X: " << minX << " to " << maxX << std::endl;
-        std::cout << "  Y: " << minY << " to " << maxY << std::endl;
-        std::cout << "=============================\n" << std::endl;
-    }
     
     std::unordered_set<WorldGen::TileCoord> newVisibleTiles;
     
@@ -569,13 +547,9 @@ void World::updateTileVisibility() {
         }
     }
     
-    if (!debugPrinted) {
-        int totalPositions = ((maxX-minX)/static_cast<int>(tileSize) + 1) * ((maxY-minY)/static_cast<int>(tileSize) + 1);
-        std::cout << "Found " << tilesFound << " visible tiles out of " << totalPositions << " checked positions" << std::endl;
-        if (tilesFound > 0) {
-            std::cout << "Making " << tilesFound << " tiles visible!" << std::endl;
-        }
-    }
+    
+    // Reset chunk visibility tracking
+    chunksWithVisibleTiles.clear();
     
     // Hide tiles no longer visible
     for (const auto& coord : visibleTiles) {
@@ -601,44 +575,35 @@ void World::updateTileVisibility() {
                     newTilesCreated++;
                 } else {
                     tilesNotFound++;
-                    if (tilesNotFound <= 5) {
-                        std::cout << "Failed to create tile at (" << coord.x << ", " << coord.y << ")" << std::endl;
-                    }
                 }
             } else if (it->second) {
                 // Tile exists - just show it
                 it->second->setVisible(true);
                 tilesAlreadyExist++;
-            }
-        }
-    }
-    
-    if (newTilesCreated > 0 || tilesNotFound > 0) {
-        std::cout << "Visibility update: created=" << newTilesCreated 
-                  << ", not_found=" << tilesNotFound 
-                  << ", already_exist=" << tilesAlreadyExist 
-                  << ", chunks_loaded=" << chunks.size() << std::endl;
-                  
-        // Debug: show some of the tiles that weren't found
-        if (tilesNotFound > 0) {
-            int debugShown = 0;
-            std::cout << "Sample of tiles not found:" << std::endl;
-            for (const auto& coord : newVisibleTiles) {
-                if (debugShown >= 5) break;
-                if (visibleTiles.count(coord) == 0 && tiles.count(coord) == 0) {
-                    std::cout << "  Missing tile at (" << coord.x << ", " << coord.y << ")" << std::endl;
-                    debugShown++;
+                
+                // Track which chunk this visible tile belongs to
+                auto chunkIt = tileToChunkMap.find(coord);
+                if (chunkIt != tileToChunkMap.end()) {
+                    chunksWithVisibleTiles[chunkIt->second]++;
                 }
             }
         }
     }
     
+    // Also track chunks for newly created tiles
+    for (const auto& coord : newVisibleTiles) {
+        if (tiles.count(coord) > 0) {
+            auto chunkIt = tileToChunkMap.find(coord);
+            if (chunkIt != tileToChunkMap.end()) {
+                chunksWithVisibleTiles[chunkIt->second]++;
+            }
+        }
+    }
+    
+    // Visibility updates are performed silently
+    
     visibleTiles = std::move(newVisibleTiles);
     
-    if (!debugPrinted) {
-        std::cout << "Setting " << visibleTiles.size() << " tiles as visible" << std::endl;
-        debugPrinted = true;
-    }
     
     // Update camera state
     lastCameraPos = camera->getPosition();
@@ -648,6 +613,34 @@ void World::updateTileVisibility() {
         camera->getProjectionBottom(),
         camera->getProjectionTop()
     );
+    
+    // Check if we need to load adjacent chunks
+    checkAndLoadNearbyChunks();
+    
+    // Update current chunk to the one with the most visible tiles
+    if (!chunksWithVisibleTiles.empty()) {
+        WorldGen::Core::ChunkCoord newCurrentChunk = currentChunk;
+        int maxVisibleTiles = 0;
+        
+        for (const auto& [chunkCoord, visibleCount] : chunksWithVisibleTiles) {
+            if (visibleCount > maxVisibleTiles) {
+                maxVisibleTiles = visibleCount;
+                newCurrentChunk = chunkCoord;
+            }
+        }
+        
+        if (!(newCurrentChunk == currentChunk)) {
+            glm::vec2 oldChunkWorld = sphereToWorld(currentChunk.centerOnSphere);
+            glm::vec2 newChunkWorld = sphereToWorld(newCurrentChunk.centerOnSphere);
+            
+                     
+            currentChunk = newCurrentChunk;
+            
+            // Trigger loading of new adjacent chunks and unloading of distant ones
+            loadAdjacentChunks();
+            unloadDistantChunks();
+        }
+    }
 }
 
 bool World::cameraViewChanged() const {
@@ -727,7 +720,8 @@ void World::createInitialTiles() {
     
     auto [minX, maxX, minY, maxY] = getVisibleTileRange(overscan);
     
-    std::cout << "Creating initial tiles for range: X[" << minX << ", " << maxX << "] Y[" << minY << ", " << maxY << "]" << std::endl;
+    
+    const int chunkSize = config.getChunkSize();
     
     // Create tiles for the visible area, but space them by tileSize (not every pixel!)
     const float tileSize = config.getTileSize();
@@ -742,7 +736,6 @@ void World::createInitialTiles() {
         }
     }
     
-    std::cout << "Created " << tilesCreated << " initial tiles" << std::endl;
 }
 
 /**
@@ -756,14 +749,11 @@ bool World::createTileFromData(const WorldGen::TileCoord& coord) {
     // Instead of searching all chunks, calculate which chunk should contain this coordinate
     // and only look in that chunk + immediate neighbors
     
-    static int debugCount = 0;
-    bool showDebug = debugCount < 20;
-    if (showDebug) {
-        std::cout << "createTileFromData: Looking for tile at pixel coord (" << coord.x << ", " << coord.y << ")" << std::endl;
-        debugCount++;
-    }
+    // Find terrain data for this coordinate from ALL loaded chunks
+    // The tile could be in any chunk, not just the current one
+    std::lock_guard<std::mutex> lock(chunkMutex);
     
-    // Find terrain data for this coordinate from loaded chunks
+    
     for (const auto& [chunkCoord, chunkData] : chunks) {
         if (!chunkData) continue;
         
@@ -772,7 +762,7 @@ bool World::createTileFromData(const WorldGen::TileCoord& coord) {
         const int chunkSize = config.getChunkSize();
         const float tileSize = config.getTileSize();
         
-        // Calculate this chunk's offset from the current chunk
+        // Calculate this chunk's position in world coordinates
         glm::vec2 thisChunkWorld = sphereToWorld(chunkCoord.centerOnSphere);
         glm::vec2 currentChunkWorld = sphereToWorld(currentChunk.centerOnSphere);
         glm::vec2 chunkOffset = thisChunkWorld - currentChunkWorld;
@@ -790,12 +780,6 @@ bool World::createTileFromData(const WorldGen::TileCoord& coord) {
             WorldGen::TileCoord localCoord{localX, localY};
             auto terrainIt = chunkData->tiles.find(localCoord);
             
-            if (showDebug) {
-                std::cout << "  Checking chunk at offset (" << chunkOffset.x << ", " << chunkOffset.y 
-                         << "), pixel offset (" << chunkOffsetPixels.x << ", " << chunkOffsetPixels.y
-                         << "), local coord (" << localX << ", " << localY << ")"
-                         << " - Found: " << (terrainIt != chunkData->tiles.end() ? "YES" : "NO") << std::endl;
-            }
             
             if (terrainIt != chunkData->tiles.end()) {
                 // Found terrain data - create the tile
@@ -810,9 +794,9 @@ bool World::createTileFromData(const WorldGen::TileCoord& coord) {
                 worldLayer->addItem(tile);
                 tile->setVisible(true);
                 
-                if (showDebug) {
-                    std::cout << "  SUCCESS: Created and stored tile at pixel coord (" << coord.x << ", " << coord.y << ")" << std::endl;
-                }
+                // Track which chunk this tile belongs to
+                tileToChunkMap[coord] = chunkCoord;
+                
                 
                 return true;  // Successfully created
             }
@@ -888,4 +872,119 @@ glm::vec2 World::sphereToWorld(const glm::vec3& spherePos) const {
         theta * PLANET_RADIUS,  // X: east/west distance
         phi * PLANET_RADIUS     // Y: north/south distance
     );
+}
+
+void World::checkAndLoadNearbyChunks() {
+    /**
+     * Check if the viewport is approaching chunk edges and trigger loading of adjacent chunks.
+     * 
+     * NOTE: Chunks are designed to be ~10x larger than the viewport, so players can pan 
+     * around their starting location extensively before reaching chunk boundaries.
+     * This is intended behavior - edge detection should only trigger after significant panning.
+     */
+    auto& config = ConfigManager::getInstance();
+    const int chunkSize = config.getChunkSize();
+    const float tileSize = config.getTileSize();
+    const int edgeTriggerDistance = config.getChunkEdgeTriggerDistance();
+    
+    // Get visible tile range
+    auto [minX, maxX, minY, maxY] = getVisibleTileRange(0); // No overscan
+    
+    // Convert to local tile coordinates within current chunk
+    glm::vec2 currentChunkWorld = sphereToWorld(currentChunk.centerOnSphere);
+    const float tilesPerMeter = config.getTilesPerMeter();
+    
+    // Calculate the bounds of the current chunk in pixel coordinates
+    // The current chunk is centered at (0,0) in our local coordinate system
+    // Tiles are positioned from -chunkSize/2 to chunkSize/2 in tile units
+    // Convert to pixel coordinates by multiplying by tileSize
+    int halfChunkPixels = static_cast<int>((chunkSize * 0.5f) * tileSize);
+    int chunkMinX = -halfChunkPixels;
+    int chunkMaxX = halfChunkPixels;
+    int chunkMinY = -halfChunkPixels;
+    int chunkMaxY = halfChunkPixels;
+    
+    // Calculate trigger distance in pixels
+    int edgeTriggerPixels = edgeTriggerDistance * static_cast<int>(tileSize);
+    
+    // Debug output occasionally (only when needed for debugging)
+    // Static vars commented out to avoid any potential issues
+    // static int debugCounter = 0;
+    // if (++debugCounter % 60 == 0) {
+    //     std::cout << "Edge check: viewport [" << minX << "," << maxX << "] x [" << minY << "," << maxY << "]" << std::endl;
+    // }
+    
+    // Check if viewport is near chunk edges
+    // We need to check if any visible tile is within edgeTriggerDistance tiles of a chunk edge
+    
+    bool needsAdjacent = false;
+    std::vector<glm::ivec2> chunksToLoad;
+    
+    // Check each direction
+    // Left edge: if leftmost visible tile (minX) is within trigger distance of left chunk edge
+    if (minX < chunkMinX + edgeTriggerPixels) {
+        chunksToLoad.push_back(glm::ivec2(-1, 0)); // Left
+        needsAdjacent = true;
+    }
+    // Right edge: if rightmost visible tile (maxX) is within trigger distance of right chunk edge
+    if (maxX > chunkMaxX - edgeTriggerPixels) {
+        chunksToLoad.push_back(glm::ivec2(1, 0)); // Right
+        needsAdjacent = true;
+    }
+    // Bottom edge: if bottommost visible tile (minY) is within trigger distance of bottom chunk edge
+    if (minY < chunkMinY + edgeTriggerPixels) {
+        chunksToLoad.push_back(glm::ivec2(0, -1)); // Bottom
+        needsAdjacent = true;
+    }
+    // Top edge: if topmost visible tile (maxY) is within trigger distance of top chunk edge
+    if (maxY > chunkMaxY - edgeTriggerPixels) {
+        chunksToLoad.push_back(glm::ivec2(0, 1)); // Top
+        needsAdjacent = true;
+    }
+    
+    // Check corners if we're near two edges
+    bool nearLeft = minX < chunkMinX + edgeTriggerPixels;
+    bool nearRight = maxX > chunkMaxX - edgeTriggerPixels;
+    bool nearBottom = minY < chunkMinY + edgeTriggerPixels;
+    bool nearTop = maxY > chunkMaxY - edgeTriggerPixels;
+    
+    if (nearLeft && nearBottom) {
+        chunksToLoad.push_back(glm::ivec2(-1, -1)); // Bottom-left
+    }
+    if (nearRight && nearBottom) {
+        chunksToLoad.push_back(glm::ivec2(1, -1)); // Bottom-right
+    }
+    if (nearLeft && nearTop) {
+        chunksToLoad.push_back(glm::ivec2(-1, 1)); // Top-left
+    }
+    if (nearRight && nearTop) {
+        chunksToLoad.push_back(glm::ivec2(1, 1)); // Top-right
+    }
+    
+    if (needsAdjacent) {
+        // Load the needed chunks
+        const float chunkSizeMeters = chunkSize / tilesPerMeter;
+        
+        for (const auto& offset : chunksToLoad) {
+            // Calculate neighbor chunk center in world coordinates
+            glm::vec2 neighborWorld = currentChunkWorld + glm::vec2(offset.x * chunkSizeMeters, offset.y * chunkSizeMeters);
+            
+            // Convert to sphere coordinates
+            glm::vec3 neighborSphere = worldToSphere(neighborWorld);
+            WorldGen::Core::ChunkCoord neighborCoord(neighborSphere);
+            
+            
+            // Check if chunk is already loaded or being generated
+            bool needsLoading = false;
+            {
+                std::lock_guard<std::mutex> lock(chunkMutex);
+                needsLoading = chunks.count(neighborCoord) == 0 && 
+                              pendingChunks.count(neighborCoord) == 0;
+            }
+            
+            if (needsLoading) {
+                generateChunkAsync(neighborCoord);
+            }
+        }
+    }
 }

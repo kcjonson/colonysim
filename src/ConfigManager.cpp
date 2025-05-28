@@ -54,6 +54,7 @@ bool ConfigManager::loadConfig(const std::string& filepath) {
             if (world.contains("maxNewTilesPerFrame")) maxNewTilesPerFrame = world["maxNewTilesPerFrame"].get<int>();
             if (world.contains("tileCullingOverscan")) tileCullingOverscan = world["tileCullingOverscan"].get<int>();
             if (world.contains("tileSampleRate")) tileSampleRate = world["tileSampleRate"].get<int>();
+            if (world.contains("chunkEdgeTriggerDistance")) chunkEdgeTriggerDistance = world["chunkEdgeTriggerDistance"].get<int>();
         }
         
         configLoaded = true;

@@ -28,6 +28,7 @@ public:
     int getMaxNewTilesPerFrame() const { return maxNewTilesPerFrame; }
     int getTileCullingOverscan() const { return tileCullingOverscan; }
     int getTileSampleRate() const { return tileSampleRate; }
+    int getChunkEdgeTriggerDistance() const { return chunkEdgeTriggerDistance; }
 
 private:
     ConfigManager() = default;
@@ -56,4 +57,5 @@ private:
     int maxNewTilesPerFrame = 100;
     int tileCullingOverscan = 3;
     int tileSampleRate = 4;
+    int chunkEdgeTriggerDistance = 10;
 }; 

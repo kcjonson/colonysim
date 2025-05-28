@@ -17,6 +17,7 @@
         "unloadRadius": 2,
         "maxLoadedChunks": 9,
         "tileCullingOverscan": 3,
-        "tileSampleRate": 4
+        "tileSampleRate": 4,
+        "chunkEdgeTriggerDistance": 10
     }
 }

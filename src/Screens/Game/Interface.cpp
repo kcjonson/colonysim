@@ -12,7 +12,7 @@
 const std::vector<std::string> Interface::GAME_STATE_PROPERTIES = {
     "world.totalTiles",
     "world.shownTiles",
-    "world.totalShapes",
+    "world.loadedChunks",
     "world.tileMemKB",
     "world.shapeMemKB",
     "world.totalMemKB",

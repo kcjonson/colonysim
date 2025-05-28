@@ -31,9 +31,24 @@ struct ChunkCoord {
     explicit ChunkCoord(const glm::vec3& center) : centerOnSphere(glm::normalize(center)) {}
     
     bool operator==(const ChunkCoord& other) const {
-        // Consider chunks equal if their centers are very close
-        // Using dot product: 1.0 = identical, 0.0 = perpendicular
-        return glm::dot(centerOnSphere, other.centerOnSphere) > 0.9999f;
+        // CRITICAL: Chunk equality comparison precision issue
+        // 
+        // Using dot product for comparison has precision issues:
+        // - Adjacent 400m chunks can be incorrectly considered equal
+        // - Dot product of normalized vectors sometimes exceeds 1.0 due to float precision
+        // - This causes the multi-chunk system to fail - chunks load but are considered
+        //   the same chunk, so tiles from adjacent chunks cannot be found
+        //
+        // Solution: Use squared distance with a very small threshold
+        // This avoids the numerical instability of dot product near 1.0
+        
+        // TODO: This threshold should be dynamically calculated based on chunk size
+        // For now, use a threshold that's smaller than the minimum chunk spacing
+        // For 400m chunks on sphere radius 1: distance ≈ 2*sin(200m/6371000m) ≈ 0.0000628
+        const float distanceSquaredThreshold = 0.000001f * 0.000001f;  // ~6m on unit sphere
+        
+        glm::vec3 diff = centerOnSphere - other.centerOnSphere;
+        return glm::dot(diff, diff) < distanceSquaredThreshold;
     }
 };
 
