@@ -15,8 +15,7 @@ public:
     Tile(const glm::vec2& position = glm::vec2(0.0f),
          float height = 0.0f,
          float resource = 0.0f,
-         WorldGen::TerrainType type = WorldGen::TerrainType::Lowland, // Change to enum
-         const glm::vec4& color = glm::vec4(0.0f, 0.5f, 0.0f, 1.0f),
+         WorldGen::TerrainType type = WorldGen::TerrainType::Lowland,
          bool visible = true);
     ~Tile() override = default;
 

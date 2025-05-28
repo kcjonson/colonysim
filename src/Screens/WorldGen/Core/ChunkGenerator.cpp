@@ -18,6 +18,7 @@ std::unique_ptr<ChunkData> ChunkGenerator::generateChunk(
     const auto& config = ConfigManager::getInstance();
     const int chunkSize = config.getChunkSize();
     const float tilesPerMeter = config.getTilesPerMeter();
+    const int tileSampleRate = config.getTileSampleRate();
     
     // Create local tangent basis for this chunk
     chunk->localTangentBasis = createLocalTangentBasis(chunkCenter);
@@ -35,86 +36,189 @@ std::unique_ptr<ChunkData> ChunkGenerator::generateChunk(
     std::cout << "Generating " << chunkSize << "x" << chunkSize << " chunk (" 
               << (chunkSize * chunkSize) << " tiles)..." << std::endl;
     
-    // Generate tiles by sampling the sphere
+    // OPTIMIZATION: Track the current world tile as we sample to avoid repeated searches
+    // Since we sample in a spatial pattern (left-to-right, top-to-bottom), 
+    // adjacent samples are likely in the same world tile or immediate neighbors
+    int currentWorldTileIndex = -1;
+    
+    // Helper lambda to sample a single tile
+    auto sampleTile = [&](int dx, int dy) -> TerrainData {
+        float localX = (dx - chunkSize * 0.5f) / tilesPerMeter;
+        float localY = (dy - chunkSize * 0.5f) / tilesPerMeter;
+        
+        glm::vec2 localPoint(localX, localY);
+        glm::vec3 spherePoint = projectToSphere(localPoint, chunkCenter, chunk->localTangentBasis);
+        
+        // Use optimized local search starting from the previous tile
+        // This reduces search from O(n) where n = total world tiles to O(k) where k ≈ 6-12 neighbors
+        currentWorldTileIndex = worldGenerator.FindTileContainingPoint(spherePoint, currentWorldTileIndex);
+        
+        if (currentWorldTileIndex < 0 || currentWorldTileIndex >= static_cast<int>(worldTiles.size())) {
+            // Return default ocean tile
+            TerrainData defaultData;
+            defaultData.type = TerrainType::Ocean;
+            defaultData.height = 0.0f;
+            defaultData.resource = 0.0f;
+            defaultData.sourceWorldTileIndex = -1;
+            return defaultData;
+        }
+        
+        const auto& sourceTile = worldTiles[currentWorldTileIndex];
+        
+        TerrainData terrainData;
+        terrainData.elevation = sourceTile.GetElevation();
+        terrainData.humidity = sourceTile.GetMoisture();
+        terrainData.temperature = sourceTile.GetTemperature();
+        terrainData.type = sourceTile.GetTerrainType();
+        terrainData.sourceWorldTileIndex = currentWorldTileIndex;  // Store the reference
+        
+        // Set height based on terrain type
+        if (terrainData.type == TerrainType::Ocean || 
+            terrainData.type == TerrainType::Shallow) {
+            terrainData.height = 0.0f + (0.1f * terrainData.elevation);
+        } else {
+            terrainData.height = 0.2f + (0.8f * terrainData.elevation);
+        }
+        
+        // Calculate resource value based on biome type
+        float resourceMultiplier = 0.5f;
+        switch (sourceTile.GetBiomeType()) {
+            case BiomeType::TropicalRainforest:
+            case BiomeType::TemperateRainforest:
+            case BiomeType::BorealForest:
+                resourceMultiplier = 1.0f;
+                break;
+            case BiomeType::TemperateGrassland:
+            case BiomeType::TropicalSavanna:
+                resourceMultiplier = 0.7f;
+                break;
+            case BiomeType::HotDesert:
+            case BiomeType::ColdDesert:
+                resourceMultiplier = 0.2f;
+                break;
+            default:
+                resourceMultiplier = 0.5f;
+        }
+        terrainData.resource = resourceMultiplier * terrainData.humidity;
+        
+        return terrainData;
+    };
+    
     int tilesProcessed = 0;
-    for (int dy = 0; dy < chunkSize; dy++) {
-        if (dy % 10 == 0) {
-            std::cout << "  Processing row " << dy << "/" << chunkSize << std::endl;
+    int samplesPerformed = 0;
+    
+    // OPTIMIZATION: Sample perimeter first to detect homogeneous chunks
+    // If all perimeter samples map to the same world tile, we can fill the interior
+    // without sampling every game tile (massive speedup for ocean/desert/forest chunks)
+    std::vector<std::pair<TileCoord, TerrainData>> perimeterSamples;
+    bool allSameWorldTile = true;
+    int firstWorldTileIndex = -1;
+    bool firstSample = true;
+    
+    // Sample corners first (always sampled)
+    std::vector<TileCoord> corners = {
+        {0, 0}, {chunkSize-1, 0}, {chunkSize-1, chunkSize-1}, {0, chunkSize-1}
+    };
+    
+    for (const auto& corner : corners) {
+        TerrainData data = sampleTile(corner.x, corner.y);
+        samplesPerformed++;
+        perimeterSamples.push_back({corner, data});
+        
+        if (firstSample) {
+            firstWorldTileIndex = data.sourceWorldTileIndex;
+            firstSample = false;
+        } else if (data.sourceWorldTileIndex != firstWorldTileIndex) {
+            allSameWorldTile = false;
         }
-        for (int dx = 0; dx < chunkSize; dx++) {
-            tilesProcessed++;
-            // Calculate position relative to chunk center
-            // Tiles are arranged with (0,0) at the bottom-left corner
-            // So the center is at (chunkSize/2, chunkSize/2)
-            float localX = (dx - chunkSize * 0.5f) / tilesPerMeter;
-            float localY = (dy - chunkSize * 0.5f) / tilesPerMeter;
-            
-            // Project this local point onto the sphere
-            glm::vec2 localPoint(localX, localY);
-            glm::vec3 spherePoint = projectToSphere(localPoint, chunkCenter, chunk->localTangentBasis);
-            
-            // Find the nearest tile on the sphere
-            int nearestIndex = findNearestTile(spherePoint, worldTiles);
-            if (nearestIndex < 0 || nearestIndex >= static_cast<int>(worldTiles.size())) {
-                continue;
+    }
+    
+    // Sample edges (with sampling rate)
+    // Top edge
+    for (int x = tileSampleRate; x < chunkSize - 1; x += tileSampleRate) {
+        TerrainData data = sampleTile(x, 0);
+        samplesPerformed++;
+        perimeterSamples.push_back({{x, 0}, data});
+        if (data.sourceWorldTileIndex != firstWorldTileIndex) allSameWorldTile = false;
+    }
+    
+    // Right edge
+    for (int y = tileSampleRate; y < chunkSize - 1; y += tileSampleRate) {
+        TerrainData data = sampleTile(chunkSize - 1, y);
+        samplesPerformed++;
+        perimeterSamples.push_back({{chunkSize - 1, y}, data});
+        if (data.sourceWorldTileIndex != firstWorldTileIndex) allSameWorldTile = false;
+    }
+    
+    // Bottom edge
+    for (int x = chunkSize - 1 - tileSampleRate; x > 0; x -= tileSampleRate) {
+        TerrainData data = sampleTile(x, chunkSize - 1);
+        samplesPerformed++;
+        perimeterSamples.push_back({{x, chunkSize - 1}, data});
+        if (data.sourceWorldTileIndex != firstWorldTileIndex) allSameWorldTile = false;
+    }
+    
+    // Left edge
+    for (int y = chunkSize - 1 - tileSampleRate; y > 0; y -= tileSampleRate) {
+        TerrainData data = sampleTile(0, y);
+        samplesPerformed++;
+        perimeterSamples.push_back({{0, y}, data});
+        if (data.sourceWorldTileIndex != firstWorldTileIndex) allSameWorldTile = false;
+    }
+    
+    // Store perimeter samples
+    for (const auto& [coord, data] : perimeterSamples) {
+        chunk->tiles[coord] = data;
+        tilesProcessed++;
+    }
+    
+    if (allSameWorldTile && !perimeterSamples.empty()) {
+        // Chunk is homogeneous - fill interior with the same terrain
+        std::cout << "  Homogeneous chunk detected (world tile: " << firstWorldTileIndex 
+                  << "), filling interior..." << std::endl;
+        
+        // Use the first sample as template (they're all the same type anyway)
+        TerrainData templateData = perimeterSamples[0].second;
+        
+        // Fill interior
+        for (int dy = 1; dy < chunkSize - 1; dy++) {
+            for (int dx = 1; dx < chunkSize - 1; dx++) {
+                // Skip if already sampled (shouldn't happen with current logic)
+                if (chunk->tiles.count({dx, dy}) == 0) {
+                    chunk->tiles[{dx, dy}] = templateData;
+                    tilesProcessed++;
+                }
             }
-            
-            const auto& sourceTile = worldTiles[nearestIndex];
-            
-            // Create terrain data from the spherical tile
-            TerrainData terrainData;
-            terrainData.elevation = sourceTile.GetElevation();
-            terrainData.humidity = sourceTile.GetMoisture();
-            terrainData.temperature = sourceTile.GetTemperature();
-            terrainData.type = sourceTile.GetTerrainType();
-            
-            // Set height based on terrain type
-            if (terrainData.type == TerrainType::Ocean || 
-                terrainData.type == TerrainType::Shallow) {
-                terrainData.height = 0.0f + (0.1f * terrainData.elevation);
-            } else {
-                terrainData.height = 0.2f + (0.8f * terrainData.elevation);
-            }
-            
-            // Calculate resource value based on biome type
-            float resourceMultiplier = 0.5f;
-            switch (sourceTile.GetBiomeType()) {
-                case BiomeType::TropicalRainforest:
-                case BiomeType::TemperateRainforest:
-                case BiomeType::BorealForest:
-                    resourceMultiplier = 1.0f;
-                    break;
-                case BiomeType::TemperateGrassland:
-                case BiomeType::TropicalSavanna:
-                    resourceMultiplier = 0.7f;
-                    break;
-                case BiomeType::HotDesert:
-                case BiomeType::ColdDesert:
-                    resourceMultiplier = 0.2f;
-                    break;
-                default:
-                    resourceMultiplier = 0.5f;
-            }
-            terrainData.resource = resourceMultiplier * terrainData.humidity;
-            
-            // Set color based on terrain type
-            auto colorIt = TerrainColors.find(terrainData.type);
-            if (colorIt != TerrainColors.end()) {
-                terrainData.color = colorIt->second;
-            } else {
-                terrainData.color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
-            }
-            
-            // Store in chunk using local tile coordinates
-            chunk->tiles[TileCoord{dx, dy}] = terrainData;
         }
+        
+        std::cout << "  Optimized generation: " << samplesPerformed << " samples for " 
+                  << tilesProcessed << " tiles" << std::endl;
+    } else {
+        // Chunk is heterogeneous - need to sample interior
+        std::cout << "  Heterogeneous chunk detected, sampling interior..." << std::endl;
+        
+        // Sample interior tiles
+        for (int dy = 1; dy < chunkSize - 1; dy++) {
+            for (int dx = 1; dx < chunkSize - 1; dx++) {
+                // Skip if already sampled
+                if (chunk->tiles.count({dx, dy}) == 0) {
+                    TerrainData data = sampleTile(dx, dy);
+                    samplesPerformed++;
+                    chunk->tiles[{dx, dy}] = data;
+                    tilesProcessed++;
+                }
+            }
+        }
+        
+        std::cout << "  Full sampling: " << samplesPerformed << " samples for " 
+                  << tilesProcessed << " tiles" << std::endl;
     }
     
     chunk->isLoaded = true;
     chunk->isGenerating = false;
     
     std::cout << "Chunk generation complete! Generated " << tilesProcessed 
-              << " tiles with " << chunk->tiles.size() << " stored." << std::endl;
+              << " tiles with " << samplesPerformed << " sphere samples." << std::endl;
     
     return chunk;
 }

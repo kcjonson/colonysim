@@ -85,6 +85,9 @@ struct TerrainData {
     float elevation = 0.5f;     // Normalized elevation [0.0-1.0]
     float humidity = 0.5f;      // Normalized humidity/moisture [0.0-1.0]
     float temperature = 0.5f;   // Normalized temperature [0.0-1.0]
+    
+    // Reference to the source world tile this was sampled from
+    int sourceWorldTileIndex = -1;  // -1 means no source (e.g., procedural generation)
 };
 
 } // namespace WorldGen

@@ -17,6 +17,7 @@
 // Project headers
 #include "World.h"
 #include "../Core/WorldGenParameters.h"
+#include "../Core/Util.h"
 #include <cmath>
 #include <random>
 #include <unordered_set>
@@ -642,6 +643,80 @@ void World::SmoothTerrainData() {
         // Set the terrain type
         m_tiles[i].SetTerrainType(terrainType);
     }
+}
+
+int World::FindTileContainingPoint(const glm::vec3& point, int previousTileIndex) const {
+    // Normalize the point to ensure it's on the unit sphere
+    glm::vec3 normalizedPoint = glm::normalize(point);
+    
+    // If no previous tile provided, fall back to global search
+    if (previousTileIndex < 0 || previousTileIndex >= m_tiles.size()) {
+        return Core::findNearestTile(normalizedPoint, m_tiles);
+    }
+    
+    // LOCAL SEARCH OPTIMIZATION:
+    // Since chunks are small relative to world tiles, sequential sample points
+    // are likely to be in the same tile or an immediate neighbor.
+    // This reduces search from O(80,000) to O(6-12) tiles.
+    
+    // First, check if the point is still in the previous tile
+    if (isPointInTile(normalizedPoint, previousTileIndex)) {
+        return previousTileIndex;
+    }
+    
+    // Search the immediate neighbors of the previous tile (typically 5-6 tiles)
+    const auto& neighbors = m_tiles[previousTileIndex].GetNeighbors();
+    for (int neighborIdx : neighbors) {
+        if (isPointInTile(normalizedPoint, neighborIdx)) {
+            return neighborIdx;
+        }
+    }
+    
+    // If we're sampling at chunk boundaries, we might need to search 2 tiles away
+    // This tracks which tiles we've already checked to avoid duplicates
+    std::unordered_set<int> searched;
+    searched.insert(previousTileIndex);
+    for (int neighborIdx : neighbors) {
+        searched.insert(neighborIdx);
+    }
+    
+    // Search neighbors-of-neighbors (2 hops from previous tile)
+    for (int neighborIdx : neighbors) {
+        const auto& secondNeighbors = m_tiles[neighborIdx].GetNeighbors();
+        for (int secondNeighborIdx : secondNeighbors) {
+            if (searched.find(secondNeighborIdx) == searched.end()) {
+                if (isPointInTile(normalizedPoint, secondNeighborIdx)) {
+                    return secondNeighborIdx;
+                }
+                searched.insert(secondNeighborIdx);
+            }
+        }
+    }
+    
+    // If local search fails (shouldn't happen with proper chunk sizes),
+    // fall back to global search
+    std::cerr << "WARNING: Local tile search failed, falling back to global search" << std::endl;
+    return Core::findNearestTile(normalizedPoint, m_tiles);
+}
+
+bool World::isPointInTile(const glm::vec3& point, int tileIndex) const {
+    // Simple Voronoi cell test: A point belongs to a tile if that tile's
+    // center is closer than any neighboring tile's center.
+    // This works because our tiles form a Voronoi diagram on the sphere.
+    
+    const auto& tileCenter = m_tiles[tileIndex].GetCenter();
+    float distToCenter = glm::distance2(point, tileCenter);  // squared distance for efficiency
+    
+    // Check if any neighbor is closer
+    const auto& neighbors = m_tiles[tileIndex].GetNeighbors();
+    for (int neighborIdx : neighbors) {
+        float distToNeighbor = glm::distance2(point, m_tiles[neighborIdx].GetCenter());
+        if (distToNeighbor < distToCenter) {
+            return false;  // Neighbor is closer, point belongs to neighbor
+        }
+    }
+    
+    return true;  // This tile's center is closest, point belongs here
 }
 
 } // namespace Generators

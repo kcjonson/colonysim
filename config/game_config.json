@@ -10,13 +10,14 @@
         "farPlane": 1000.0
     },
     "world": {
-        "chunkSize": 100,
-        "tileSize": 50.0,
+        "chunkSize": 400,
+        "tileSize": 10.0,
         "tilesPerMeter": 1.0,
         "preloadRadius": 1,
         "unloadRadius": 2,
         "maxLoadedChunks": 9,
         "maxNewTilesPerFrame": 100,
-        "tileCullingOverscan": 3
+        "tileCullingOverscan": 3,
+        "tileSampleRate": 4
     }
-} 
+}

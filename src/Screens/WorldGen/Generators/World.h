@@ -94,6 +94,26 @@ public:
      * @param radius The new world radius.
      */
     void SetRadius(float radius) { m_radius = radius; }
+    
+    /**
+     * @brief Find which tile contains a given point on the sphere.
+     * 
+     * This method can start from a previously known tile and search locally through 
+     * its neighbors. This is much more efficient than a global search when sampling 
+     * sequential points that are near each other (like when generating a chunk).
+     * 
+     * Example usage:
+     *   int currentTile = -1;  // Start with no knowledge
+     *   for each sample point in chunk:
+     *     currentTile = FindTileContainingPoint(point, currentTile);
+     *     // currentTile now holds the tile containing this point
+     *     // and will be used as the starting point for the next search
+     * 
+     * @param point Point on the unit sphere to test
+     * @param previousTileIndex Index of a nearby tile to start search from (-1 for global search)
+     * @return Index of the tile containing the point, or -1 if not found
+     */
+    int FindTileContainingPoint(const glm::vec3& point, int previousTileIndex = -1) const;
 
 private:
     /**
@@ -161,6 +181,18 @@ private:
      * @return glm::vec3 The distorted point.
      */
     glm::vec3 ApplyDistortion(const glm::vec3& point, float magnitude);
+    
+    /**
+     * @brief Check if a point on the sphere belongs to a specific tile.
+     * 
+     * Uses a Voronoi cell test: the point belongs to this tile if the tile's
+     * center is closer than any neighboring tile's center.
+     * 
+     * @param point Point on the unit sphere
+     * @param tileIndex Index of the tile to test
+     * @return true if the point is inside this tile's region
+     */
+    bool isPointInTile(const glm::vec3& point, int tileIndex) const;
 
     std::vector<Tile> m_tiles;                     ///< All tiles in the world
     std::vector<glm::vec3> m_icosahedronVertices;  ///< Original icosahedron vertices

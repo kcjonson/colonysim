@@ -27,6 +27,7 @@ public:
     int getMaxLoadedChunks() const { return maxLoadedChunks; }
     int getMaxNewTilesPerFrame() const { return maxNewTilesPerFrame; }
     int getTileCullingOverscan() const { return tileCullingOverscan; }
+    int getTileSampleRate() const { return tileSampleRate; }
 
 private:
     ConfigManager() = default;
@@ -54,4 +55,5 @@ private:
     int maxLoadedChunks = 9;
     int maxNewTilesPerFrame = 100;
     int tileCullingOverscan = 3;
+    int tileSampleRate = 4;
 }; 

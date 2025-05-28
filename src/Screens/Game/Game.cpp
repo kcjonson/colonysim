@@ -108,6 +108,13 @@ void GameScreen::update(float deltaTime) {
 
 void GameScreen::render() {
     try {
+        // Get framebuffer size for viewport (physical pixels)
+        int fbWidth, fbHeight;
+        glfwGetFramebufferSize(window_, &fbWidth, &fbHeight);
+        
+        // Set viewport to full framebuffer size
+        glViewport(0, 0, fbWidth, fbHeight);
+        
         // Clear screen with black background
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -180,7 +187,8 @@ void GameScreen::handleInput(float deltaTime) {
 }
 
 void GameScreen::onResize(int width, int height) {
-    // Handle resize events from the original Game class
+    // Handle resize events
+    // Note: width and height are in logical pixels (window coordinates)
     if (camera_) {
         camera_->setOrthographicProjection(
             -width / 2.0f, width / 2.0f,
@@ -188,6 +196,8 @@ void GameScreen::onResize(int width, int height) {
             -1000.0f, 1000.0f
         );
     }
+    
+    // The viewport is set in render() using framebuffer size
 }
 
 // Static callback for GLFW that was in the original Game class

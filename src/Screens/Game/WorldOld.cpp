@@ -226,7 +226,7 @@ void WorldOld::updateTileVisibility() {
                         glm::vec2 tilePosition(coord.x * TILE_SIZE, coord.y * TILE_SIZE); // Use coord.x, coord.y
                         
                         auto tile = std::make_shared<Rendering::Tile>(
-                            tilePosition, data.height, data.resource, data.type, data.color
+                            tilePosition, data.height, data.resource, data.type
                         );
                         
                         tiles[coord] = tile;

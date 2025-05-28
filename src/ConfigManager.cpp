@@ -53,6 +53,7 @@ bool ConfigManager::loadConfig(const std::string& filepath) {
             if (world.contains("maxLoadedChunks")) maxLoadedChunks = world["maxLoadedChunks"].get<int>();
             if (world.contains("maxNewTilesPerFrame")) maxNewTilesPerFrame = world["maxNewTilesPerFrame"].get<int>();
             if (world.contains("tileCullingOverscan")) tileCullingOverscan = world["tileCullingOverscan"].get<int>();
+            if (world.contains("tileSampleRate")) tileSampleRate = world["tileSampleRate"].get<int>();
         }
         
         configLoaded = true;

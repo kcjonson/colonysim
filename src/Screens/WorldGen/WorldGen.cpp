@@ -775,6 +775,17 @@ void WorldGenScreen::gameWorldCreationThreadFunc() {
             return;
         }
         
+        // Initialize the world (loads tiles into rendering system)
+        if (!m_newWorld->initialize()) {
+            std::lock_guard<std::mutex> lock(m_progressMutex);
+            m_latestProgress.progress = 0.0f;
+            m_latestProgress.message = "Failed to initialize game world";
+            m_latestProgress.hasUpdate = true;
+            m_isCreatingGameWorld = false;
+            m_newWorld = nullptr;
+            return;
+        }
+        
         // Signal completion
         m_progressTracker->CompletePhase();
         m_progressTracker->StartPhase("Finalizing");

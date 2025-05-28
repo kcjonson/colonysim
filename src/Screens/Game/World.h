@@ -123,6 +123,26 @@ private:
     
     void logMemoryUsage() const;
     
+    /**
+     * Calculate the range of tile coordinates that should be visible on screen.
+     * @param overscan Additional tiles to include beyond the visible area (for preloading)
+     * @return Tuple of (minX, maxX, minY, maxY) in pixel coordinates
+     */
+    std::tuple<int, int, int, int> getVisibleTileRange(int overscan) const;
+    
+    /**
+     * Create the initial set of tiles needed to fill the window plus preload radius.
+     * This ensures tiles are ready for rendering before the first frame.
+     */
+    void createInitialTiles();
+    
+    /**
+     * Create a tile instance from terrain data for the given coordinate.
+     * @param coord Tile coordinate in pixel space
+     * @return true if tile was successfully created, false if no terrain data found
+     */
+    bool createTileFromData(const WorldGen::TileCoord& coord);
+    
     // Coordinate system conversions
     // All methods clearly document their input/output coordinate systems
     

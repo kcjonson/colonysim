@@ -41,9 +41,22 @@ World::World(GameState& gameState,
         chunks[currentChunk] = std::move(initialChunk);
     }
     
-    // Position camera at player location
+    // COORDINATE SYSTEM FIX: Multi-chunk rendering coordinate system
+    // 
+    // PROBLEM: Camera was positioned at huge world coordinates (~10 million meters)
+    // but tiles were positioned in small local coordinates (-83 to +83), causing
+    // a coordinate system mismatch where tiles were invisible.
+    //
+    // SOLUTION: Use a local coordinate system for rendering:
+    // - Camera positioned at (0,0,0) 
+    // - All tiles positioned relative to current chunk center
+    // - playerPosition tracks actual world coordinates for chunk management
+    // - Camera movements are in local coordinates relative to current chunk
+    // - When moving between chunks, tiles from multiple chunks are positioned
+    //   correctly relative to each other using world coordinate differences
     if (camera) {
-        camera->setPosition(glm::vec3(playerPosition.x, playerPosition.y, 0.0f));
+        camera->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+        std::cout << "Camera positioned at origin (0,0,0) for local tile coordinate system" << std::endl;
     }
 }
 
@@ -64,80 +77,23 @@ bool World::initialize() {
     // Start the background chunk generation thread
     chunkGeneratorThread = std::thread(&World::chunkGeneratorThreadFunc, this);
     
-    // Initialize tiles from the initial chunk
+    // TILE SYSTEM: Create initial tiles to fill window + preload radius
     auto& config = ConfigManager::getInstance();
     const float tileSize = config.getTileSize();
     
+    // Position camera at origin to start
+    if (camera) {
+        camera->setPosition(glm::vec3(0.0f, 0.0f, 5.0f));
+        camera->setTarget(glm::vec3(0.0f, 0.0f, 0.0f));
+        std::cout << "Camera positioned at (0,0,5) looking at (0,0,0)" << std::endl;
+    }
+    
     if (chunks.count(currentChunk) > 0) {
         const auto& chunkData = chunks[currentChunk];
-        std::cout << "Initializing " << chunkData->tiles.size() << " tiles from initial chunk" << std::endl;
-        int tileCount = 0;
-        for (const auto& [localCoord, terrainData] : chunkData->tiles) {
-            // Calculate tile position directly relative to player (center chunk at player position)
-            auto& config = ConfigManager::getInstance();
-            const int chunkSize = config.getChunkSize();
-            const float tilesPerMeter = config.getTilesPerMeter();
-            
-            // Calculate tile offset from chunk center (localCoord ranges 0 to chunkSize-1)
-            float offsetX = (localCoord.x - chunkSize * 0.5f) / tilesPerMeter;
-            float offsetY = (localCoord.y - chunkSize * 0.5f) / tilesPerMeter;
-            
-            glm::vec2 relativePos(offsetX, offsetY);
-            glm::vec2 tilePos(relativePos.x * tileSize, relativePos.y * tileSize);
-            
-            tileCount++;
-            
-            // Create tile with forced bright colors for testing
-            glm::vec4 testColor = terrainData.color;
-            if (tileCount < 25) {
-                // Force first 25 tiles to be bright colors for visibility testing
-                testColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f); // Bright red
-                if (tileCount % 2 == 0) {
-                    testColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f); // Bright green
-                }
-            }
-            
-            auto tile = std::make_shared<Rendering::Tile>(
-                tilePos, terrainData.height, terrainData.resource, 
-                terrainData.type, testColor
-            );
-            
-            // Store tiles using meter coordinates (centered around 0,0)
-            WorldGen::TileCoord relativeCoord{
-                static_cast<int>(relativePos.x),
-                static_cast<int>(relativePos.y)
-            };
-            
-            // TEMPORARY FIX: Force first few tiles to be at visible coordinates for testing
-            if (tileCount < 25) {
-                relativeCoord.x = (tileCount % 5) - 2;  // -2, -1, 0, 1, 2
-                relativeCoord.y = (tileCount / 5) - 2;  // -2, -1, 0, 1, 2
-                // Recalculate tile position for these forced coordinates
-                tilePos = glm::vec2(relativeCoord.x * tileSize, relativeCoord.y * tileSize);
-            }
-            
-            if (tileCount < 5) {
-                std::cout << "  tile offset (" << offsetX << "," << offsetY << ") -> relative (" << relativePos.x << "," << relativePos.y << ")" << std::endl;
-                std::cout << "  -> relative coord (" << relativeCoord.x << "," << relativeCoord.y << ")" << std::endl;
-                std::cout << "  color: (" << terrainData.color.r << "," << terrainData.color.g << "," << terrainData.color.b << "," << terrainData.color.a << ")" << std::endl;
-            }
-            
-            tiles[relativeCoord] = tile;
-            worldLayer->addItem(tile);
-            
-            // BYPASS VISIBILITY SYSTEM - Force all tiles visible for testing
-            tile->setVisible(true);
-            
-            if (tileCount < 5) {
-                std::cout << "  -> Tile added to worldLayer and set VISIBLE" << std::endl;
-            }
-            
-            if (tileCount < 5) {
-                std::cout << "Tile " << tileCount << " at relative (" << relativeCoord.x << "," << relativeCoord.y 
-                          << ") screen (" << tilePos.x << "," << tilePos.y << ")" << std::endl;
-            }
-        }
-        std::cout << "Total tiles added to worldLayer: " << tileCount << std::endl;
+        std::cout << "Chunk loaded with " << chunkData->tiles.size() << " tile data entries" << std::endl;
+        
+        // Create initial tiles that fill the window plus preload radius
+        createInitialTiles();
     } else {
         std::cout << "ERROR: No initial chunk found in chunks map!" << std::endl;
     }
@@ -268,9 +224,14 @@ glm::vec2 World::tileToWorld(const WorldGen::Core::ChunkCoord& chunk,
 void World::updateCurrentChunk() {
     if (!camera) return;
     
-    // Update player position based on camera
+    // COORDINATE FIX: Camera position is now in local coordinates (relative to current chunk)
+    // Convert camera position back to world coordinates for chunk management
     glm::vec3 cameraPos = camera->getPosition();
-    playerPosition = glm::vec2(cameraPos.x, cameraPos.y);
+    glm::vec2 cameraLocalPos(cameraPos.x, cameraPos.y);
+    
+    // Add camera offset to player's base world position to get current world position
+    glm::vec2 currentChunkWorld = sphereToWorld(currentChunk.centerOnSphere);
+    playerPosition = currentChunkWorld + cameraLocalPos;
     
     // Determine which chunk the player is in
     WorldGen::Core::ChunkCoord newChunk = worldToChunk(playerPosition);
@@ -514,22 +475,22 @@ void World::integrateLoadedChunks() {
                     break; // Limit tiles per frame
                 }
                 
-                // Calculate global position
+                // COORDINATE FIX: Position tiles relative to current chunk center
+                // Calculate offset from each chunk's center and position relative to current chunk
                 glm::vec2 worldPos = tileToWorld(coord, localCoord);
-                // Make tile position relative to player starting position
-                glm::vec2 relativePos = worldPos - playerPosition;
-                glm::vec2 tilePos(relativePos.x * tileSize, relativePos.y * tileSize);
+                glm::vec2 currentChunkWorld = sphereToWorld(currentChunk.centerOnSphere);
+                glm::vec2 tilePos = worldPos - currentChunkWorld;
                 
                 // Create tile
                 auto tile = std::make_shared<Rendering::Tile>(
                     tilePos, terrainData.height, terrainData.resource, 
-                    terrainData.type, terrainData.color
+                    terrainData.type
                 );
                 
                 // Store tiles using meter coordinates
                 WorldGen::TileCoord relativeCoord{
-                    static_cast<int>(relativePos.x),
-                    static_cast<int>(relativePos.y)
+                    static_cast<int>(tilePos.x),
+                    static_cast<int>(tilePos.y)
                 };
                 
                 tiles[relativeCoord] = tile;
@@ -567,14 +528,10 @@ void World::updateTileVisibility() {
         std::cout << "Player position: (" << playerPosition.x << ", " << playerPosition.y << ")" << std::endl;
         std::cout << "Tile size: " << tileSize << std::endl;
         std::cout << "Total tiles available: " << tiles.size() << std::endl;
-        debugPrinted = true;
     }
     
-    // Calculate visible range in meter coordinates (not tile coordinates)
-    int minX = static_cast<int>(std::floor(bounds.x)) - overscan;
-    int maxX = static_cast<int>(std::ceil(bounds.y)) + overscan;
-    int minY = static_cast<int>(std::floor(bounds.z)) - overscan;
-    int maxY = static_cast<int>(std::ceil(bounds.w)) + overscan;
+    // Get the range of tiles that should be visible
+    auto [minX, maxX, minY, maxY] = getVisibleTileRange(overscan);
     
     // Debug output first time
     if (!debugPrinted) {
@@ -598,10 +555,11 @@ void World::updateTileVisibility() {
     
     std::unordered_set<WorldGen::TileCoord> newVisibleTiles;
     
-    // Find tiles that should be visible
+    // Find tiles that should be visible (space by tileSize, not every pixel!)
+    
     int tilesFound = 0;
-    for (int y = minY; y <= maxY; y++) {
-        for (int x = minX; x <= maxX; x++) {
+    for (int y = minY; y <= maxY; y += static_cast<int>(tileSize)) {
+        for (int x = minX; x <= maxX; x += static_cast<int>(tileSize)) {
             WorldGen::TileCoord coord{x, y};
             if (tiles.count(coord) > 0) {
                 newVisibleTiles.insert(coord);
@@ -611,7 +569,8 @@ void World::updateTileVisibility() {
     }
     
     if (!debugPrinted) {
-        std::cout << "Found " << tilesFound << " visible tiles out of " << ((maxX-minX+1) * (maxY-minY+1)) << " checked positions" << std::endl;
+        int totalPositions = ((maxX-minX)/static_cast<int>(tileSize) + 1) * ((maxY-minY)/static_cast<int>(tileSize) + 1);
+        std::cout << "Found " << tilesFound << " visible tiles out of " << totalPositions << " checked positions" << std::endl;
         if (tilesFound > 0) {
             std::cout << "Making " << tilesFound << " tiles visible!" << std::endl;
         }
@@ -627,11 +586,22 @@ void World::updateTileVisibility() {
         }
     }
     
-    // Show newly visible tiles
+    // Create and show newly visible tiles (on-demand creation)
+    const int maxNewTilesPerFrame = config.getMaxNewTilesPerFrame();
+    int newTilesCreated = 0;
+    
     for (const auto& coord : newVisibleTiles) {
         if (visibleTiles.count(coord) == 0) {
             auto it = tiles.find(coord);
-            if (it != tiles.end() && it->second) {
+            if (it == tiles.end()) {
+                // Tile doesn't exist - create it on-demand (if we haven't hit the limit)
+                if (newTilesCreated < maxNewTilesPerFrame) {
+                    if (createTileFromData(coord)) {
+                        newTilesCreated++;
+                    }
+                }
+            } else if (it->second) {
+                // Tile exists - just show it
                 it->second->setVisible(true);
             }
         }
@@ -682,16 +652,128 @@ glm::vec4 World::getCameraBounds() const {
         return glm::vec4(-10.0f, 10.0f, -10.0f, 10.0f);
     }
     
-    // Get camera bounds relative to player position (since tiles are stored relative to player)
-    glm::vec3 cameraPos = camera->getPosition();
-    glm::vec2 cameraRelativePos = glm::vec2(cameraPos.x, cameraPos.y) - playerPosition;
+    auto& config = ConfigManager::getInstance();
+    const float tileSize = config.getTileSize();
     
+    // COORDINATE FIX: Camera and tiles are both in local coordinates now
+    // No need to subtract playerPosition since both are relative to chunk center
+    glm::vec3 cameraPos = camera->getPosition();
+    
+    // Convert pixel bounds to meter coordinates  
+    // camera->getProjectionLeft() etc. return pixel values
+    // We need to divide by tileSize to get meter coordinates
     return glm::vec4(
-        cameraRelativePos.x + camera->getProjectionLeft(),
-        cameraRelativePos.x + camera->getProjectionRight(),
-        cameraRelativePos.y + camera->getProjectionBottom(),
-        cameraRelativePos.y + camera->getProjectionTop()
+        cameraPos.x + camera->getProjectionLeft() / tileSize,
+        cameraPos.x + camera->getProjectionRight() / tileSize,
+        cameraPos.y + camera->getProjectionBottom() / tileSize,
+        cameraPos.y + camera->getProjectionTop() / tileSize
     );
+}
+
+/**
+ * Calculate the range of tile coordinates that should be visible on screen.
+ * @param overscan Additional tiles to include beyond the visible area (for preloading)
+ * @return Tuple of (minX, maxX, minY, maxY) in pixel coordinates
+ */
+std::tuple<int, int, int, int> World::getVisibleTileRange(int overscan) const {
+    if (!camera) return {0, 0, 0, 0};
+    
+    auto& config = ConfigManager::getInstance();
+    const float tileSize = config.getTileSize();
+    
+    glm::vec4 bounds = getCameraBounds();
+    
+    // COORDINATE FIX: Convert camera bounds to pixel coordinates to match tile storage
+    // Camera bounds are in "tile units" but tiles are stored in pixel coordinates
+    int minX = static_cast<int>(std::floor(bounds.x * tileSize)) - overscan;
+    int maxX = static_cast<int>(std::ceil(bounds.y * tileSize)) + overscan;
+    int minY = static_cast<int>(std::floor(bounds.z * tileSize)) - overscan;
+    int maxY = static_cast<int>(std::ceil(bounds.w * tileSize)) + overscan;
+    
+    return {minX, maxX, minY, maxY};
+}
+
+/**
+ * Create the initial set of tiles needed to fill the window plus preload radius.
+ * This ensures tiles are ready for rendering before the first frame.
+ */
+void World::createInitialTiles() {
+    // Use the same logic as updateTileVisibility to determine which tiles should exist initially
+    auto& config = ConfigManager::getInstance();
+    const int overscan = config.getTileCullingOverscan();
+    
+    auto [minX, maxX, minY, maxY] = getVisibleTileRange(overscan);
+    
+    std::cout << "Creating initial tiles for range: X[" << minX << ", " << maxX << "] Y[" << minY << ", " << maxY << "]" << std::endl;
+    
+    // Create tiles for the visible area, but space them by tileSize (not every pixel!)
+    const float tileSize = config.getTileSize();
+    
+    int tilesCreated = 0;
+    for (int y = minY; y <= maxY; y += static_cast<int>(tileSize)) {
+        for (int x = minX; x <= maxX; x += static_cast<int>(tileSize)) {
+            WorldGen::TileCoord coord{x, y};
+            if (createTileFromData(coord)) {
+                tilesCreated++;
+            }
+        }
+    }
+    
+    std::cout << "Created " << tilesCreated << " initial tiles" << std::endl;
+}
+
+/**
+ * Create a tile instance from terrain data for the given coordinate.
+ * Searches through loaded chunks to find terrain data and creates a renderable tile.
+ * @param coord Tile coordinate in pixel space
+ * @return true if tile was successfully created, false if no terrain data found
+ */
+bool World::createTileFromData(const WorldGen::TileCoord& coord) {
+    // TODO: Optimize chunk lookup for performance with many chunks
+    // Instead of searching all chunks, calculate which chunk should contain this coordinate
+    // and only look in that chunk + immediate neighbors
+    
+    // Find terrain data for this coordinate from loaded chunks
+    for (const auto& [chunkCoord, chunkData] : chunks) {
+        if (!chunkData) continue;
+        
+        // Convert pixel coordinate back to local chunk coordinate
+        auto& config = ConfigManager::getInstance();
+        const int chunkSize = config.getChunkSize();
+        const float tileSize = config.getTileSize();
+        
+        // Calculate the chunk center in pixel coordinates
+        float chunkCenterX = 0.0f; // For now, assume current chunk is at origin
+        float chunkCenterY = 0.0f;
+        
+        // Convert pixel coordinate to local coordinate within this chunk
+        int localX = static_cast<int>((coord.x - chunkCenterX) / tileSize + chunkSize * 0.5f);
+        int localY = static_cast<int>((coord.y - chunkCenterY) / tileSize + chunkSize * 0.5f);
+        
+        // Check if this coordinate is within this chunk
+        if (localX >= 0 && localX < chunkSize && localY >= 0 && localY < chunkSize) {
+            WorldGen::TileCoord localCoord{localX, localY};
+            auto terrainIt = chunkData->tiles.find(localCoord);
+            
+            if (terrainIt != chunkData->tiles.end()) {
+                // Found terrain data - create the tile
+                const auto& terrainData = terrainIt->second;
+                glm::vec2 tilePos(coord.x, coord.y);  // Position in pixel coordinates
+                
+                auto tile = std::make_shared<Rendering::Tile>(
+                    tilePos, terrainData.height, terrainData.resource, terrainData.type
+                );
+                
+                tiles[coord] = tile;
+                worldLayer->addItem(tile);
+                tile->setVisible(true);
+                
+                return true;  // Successfully created
+            }
+        }
+    }
+    
+    return false;  // No terrain data found
 }
 
 void World::logMemoryUsage() const {
@@ -706,7 +788,7 @@ void World::logMemoryUsage() const {
     
     gameState.set("world.chunks", std::to_string(totalChunks));
     gameState.set("world.totalTiles", std::to_string(totalTiles));
-    gameState.set("world.visibleTiles", std::to_string(visibleTileCount));
+    gameState.set("world.shownTiles", std::to_string(visibleTileCount));
     gameState.set("world.chunkMemKB", std::to_string(static_cast<int>(chunkMemoryKB)) + " KB");
     gameState.set("world.tileMemKB", std::to_string(static_cast<int>(tileMemoryKB)) + " KB");
     gameState.set("world.totalMemKB", std::to_string(static_cast<int>(totalMemoryKB)) + " KB");

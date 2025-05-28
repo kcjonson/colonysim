@@ -62,10 +62,14 @@ bool ScreenManager::initialize() {
     glfwWindowHint(GLFW_GREEN_BITS, 8);
     glfwWindowHint(GLFW_BLUE_BITS, 8);
 
-    // Load configuration
+    // Load configuration - exit if it fails
     if (!ConfigManager::getInstance().loadConfig("config/game_config.json")) {
-        std::cerr << "Failed to load configuration, using defaults" << std::endl;
+        std::cerr << "FATAL ERROR: Failed to load configuration file 'config/game_config.json'" << std::endl;
+        std::cerr << "Game cannot continue without valid configuration." << std::endl;
+        glfwTerminate();
+        return false;
     }
+    std::cout << "Configuration loaded successfully" << std::endl;
 
     // Create window using config settings
     window = glfwCreateWindow(

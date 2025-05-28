@@ -3,37 +3,61 @@
 #include "../../Rendering/Shapes/Circle.h"
 #include <glm/glm.hpp>
 #include "World.h"
+#include "../../ConfigManager.h"
 #include <iostream>
 
 namespace Rendering {
 
-// Match the tile size used in World.h (20.0f)
-constexpr float TILE_SIZE = 20.0f;
-
 // Default colors for different terrain types
-const glm::vec4 WATER_COLOR = glm::vec4(0.0f, 0.0f, 0.8f, 1.0f);  // Dark blue for water
-const glm::vec4 GRASS_COLOR = glm::vec4(0.0f, 0.5f, 0.0f, 1.0f);  // Green for grass
-const glm::vec4 MOUNTAIN_COLOR = glm::vec4(0.5f, 0.35f, 0.05f, 1.0f); // Brown for mountains
+namespace {
+    glm::vec4 getColorForTerrainType(WorldGen::TerrainType type) {
+        switch (type) {
+            case WorldGen::TerrainType::Ocean:
+                return glm::vec4(0.0f, 0.2f, 0.5f, 1.0f);  // Deep blue
+            case WorldGen::TerrainType::Shallow:
+                return glm::vec4(0.0f, 0.5f, 0.8f, 1.0f);  // Light blue
+            case WorldGen::TerrainType::Beach:
+                return glm::vec4(0.9f, 0.9f, 0.6f, 1.0f);  // Sandy
+            case WorldGen::TerrainType::Lowland:
+                return glm::vec4(0.0f, 0.6f, 0.0f, 1.0f);  // Green
+            case WorldGen::TerrainType::Highland:
+                return glm::vec4(0.2f, 0.5f, 0.2f, 1.0f);  // Dark green
+            case WorldGen::TerrainType::Mountain:
+                return glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);  // Gray
+            case WorldGen::TerrainType::Peak:
+                return glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);  // Light gray/white
+            case WorldGen::TerrainType::Volcano:
+                return glm::vec4(0.6f, 0.3f, 0.3f, 1.0f);  // Reddish
+            default:
+                return glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);  // Magenta for unknown
+        }
+    }
+}
 
-Tile::Tile(const glm::vec2& position, float height, float resource, WorldGen::TerrainType type, const glm::vec4& color, bool visible)
+Tile::Tile(const glm::vec2& position, float height, float resource, WorldGen::TerrainType type, bool visible)
     : Layer(0.1f) // Default z-index for tiles
     , height(height)
     , resource(resource)
     , type(type)
-    , color(color) {
+    , color(getColorForTerrainType(type)) {  // Determine color based on terrain type
     setVisible(visible);
     initializeDefaultShape();
     updatePosition(position);
 }
 
 void Tile::initializeDefaultShape() {
-    // Create a 20x20 rectangle with the tile's color (top-left positioned)
+    // Get tile size from config
+    float tileSize = ConfigManager::getInstance().getTileSize();
+    
+    // Create a rectangle with the tile's color and a purple border
     auto rect = std::make_shared<Shapes::Rectangle>(
         Shapes::Rectangle::Args{
             .position = glm::vec2(0, 0),  // Position will be set by updatePosition
-            .size = glm::vec2(20, 20), // Default tile size
+            .size = glm::vec2(tileSize, tileSize), // Use config tile size
             .style = Styles::Rectangle({
                 .color = color, // Use the tile's color
+                .borderColor = glm::vec4(0.5f, 0.0f, 0.5f, 1.0f), // Purple border
+                .borderWidth = 1.0f, // 1 pixel border
             })
         }
     );
