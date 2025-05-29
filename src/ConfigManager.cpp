@@ -1,16 +1,51 @@
 #include "ConfigManager.h"
 #include <fstream>
 #include <iostream>
+#include <cstring>
+#include <sstream>
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
+
+// Template function to parse string values to different types
+template<typename T>
+T parseValue(const std::string& value) {
+    if constexpr (std::is_same_v<T, int>) {
+        return std::stoi(value);
+    } else if constexpr (std::is_same_v<T, float>) {
+        return std::stof(value);
+    } else if constexpr (std::is_same_v<T, unsigned int>) {
+        return static_cast<unsigned int>(std::stoul(value));
+    } else if constexpr (std::is_same_v<T, std::string>) {
+        return value;
+    } else {
+        static_assert(false, "Unsupported type for parseValue");
+    }
+}
 
 ConfigManager& ConfigManager::getInstance() {
     static ConfigManager instance;
     return instance;
 }
 
+// Helper function to parse nested JSON path (e.g., "window.width")
+json getValue(const json& config, const std::string& path) {
+    std::istringstream iss(path);
+    std::string token;
+    json current = config;
+    
+    while (std::getline(iss, token, '.')) {
+        if (current.contains(token)) {
+            current = current[token];
+        } else {
+            return json(); // Return null if path doesn't exist
+        }
+    }
+    return current;
+}
+
 bool ConfigManager::loadConfig(const std::string& filepath) {
     if (configLoaded) return true;
+    
     try {
         std::ifstream file(filepath);
         if (!file.is_open()) {
@@ -26,38 +61,41 @@ bool ConfigManager::loadConfig(const std::string& filepath) {
             return false;
         }
 
-        // Load window settings
-        if (config.contains("window")) {
-            const auto& window = config["window"];
-            if (window.contains("width")) windowWidth = window["width"].get<int>();
-            if (window.contains("height")) windowHeight = window["height"].get<int>();
-            if (window.contains("title")) windowTitle = window["title"].get<std::string>();
+        // Load all config properties dynamically
+#define CONFIG_PROP(type, name, defaultValue, path) \
+        { \
+            auto value = getValue(config, path); \
+            if (!value.is_null()) { \
+                try { \
+                    name##_ = value.get<type>(); \
+                    std::cout << "Loaded " << #name << " = " << name##_ << std::endl; \
+                } catch (const std::exception& e) { \
+                    std::cerr << "Error parsing " << path << ": " << e.what() << std::endl; \
+                } \
+            } \
         }
 
-        // Load camera settings
-        if (config.contains("camera")) {
-            const auto& camera = config["camera"];
-            if (camera.contains("viewHeight")) viewHeight = camera["viewHeight"].get<float>();
-            if (camera.contains("nearPlane")) nearPlane = camera["nearPlane"].get<float>();
-            if (camera.contains("farPlane")) farPlane = camera["farPlane"].get<float>();
+#define CONFIG_PROP_OPTIONAL(type, name, path) \
+        { \
+            auto value = getValue(config, path); \
+            if (!value.is_null()) { \
+                try { \
+                    name##_ = value.get<type>(); \
+                    std::cout << "Loaded " << #name << " = " << *name##_ << std::endl; \
+                } catch (const std::exception& e) { \
+                    std::cerr << "Error parsing " << path << ": " << e.what() << std::endl; \
+                } \
+            } else { \
+                name##_ = std::nullopt; \
+                std::cout << "Loaded " << #name << " = null (will use random)" << std::endl; \
+            } \
         }
-        
-        // Load world settings
-        if (config.contains("world")) {
-            const auto& world = config["world"];
-            if (world.contains("chunkSize")) chunkSize = world["chunkSize"].get<int>();
-            if (world.contains("tileSize")) tileSize = world["tileSize"].get<float>();
-            if (world.contains("tilesPerMeter")) tilesPerMeter = world["tilesPerMeter"].get<float>();
-            if (world.contains("preloadRadius")) preloadRadius = world["preloadRadius"].get<int>();
-            if (world.contains("unloadRadius")) unloadRadius = world["unloadRadius"].get<int>();
-            if (world.contains("maxLoadedChunks")) maxLoadedChunks = world["maxLoadedChunks"].get<int>();
-            if (world.contains("maxNewTilesPerFrame")) maxNewTilesPerFrame = world["maxNewTilesPerFrame"].get<int>();
-            if (world.contains("tileCullingOverscan")) tileCullingOverscan = world["tileCullingOverscan"].get<int>();
-            if (world.contains("tileSampleRate")) tileSampleRate = world["tileSampleRate"].get<int>();
-            if (world.contains("chunkEdgeTriggerDistance")) chunkEdgeTriggerDistance = world["chunkEdgeTriggerDistance"].get<int>();
-            if (world.contains("numChunksToKeep")) numChunksToKeep = world["numChunksToKeep"].get<int>();
-        }
-        
+
+        CONFIG_PROPERTIES
+
+#undef CONFIG_PROP
+#undef CONFIG_PROP_OPTIONAL
+
         configLoaded = true;
         return true;
     }
@@ -65,5 +103,43 @@ bool ConfigManager::loadConfig(const std::string& filepath) {
         std::cerr << "Error loading config file: " << e.what() << std::endl;
         return false;
     }
-    
+}
+
+void ConfigManager::applyCommandLineOverrides(int argc, char* argv[]) {
+    for (int i = 1; i < argc; i++) {
+        if (argv[i][0] == '-' && argv[i][1] == '-' && i + 1 < argc) {
+            std::string option = argv[i] + 2; // Skip the "--"
+            std::string value = argv[i + 1];
+            
+            // Apply overrides dynamically
+#define CONFIG_PROP(type, name, defaultValue, path) \
+            if (option == #name) { \
+                try { \
+                    name##_ = parseValue<type>(value); \
+                    std::cout << "Command line override: " << #name << " = " << name##_ << std::endl; \
+                } catch (const std::exception& e) { \
+                    std::cerr << "Error parsing command line value for " << #name << ": " << e.what() << std::endl; \
+                } \
+                i++; \
+                continue; \
+            }
+
+#define CONFIG_PROP_OPTIONAL(type, name, path) \
+            if (option == #name) { \
+                try { \
+                    name##_ = parseValue<type>(value); \
+                    std::cout << "Command line override: " << #name << " = " << *name##_ << std::endl; \
+                } catch (const std::exception& e) { \
+                    std::cerr << "Error parsing command line value for " << #name << ": " << e.what() << std::endl; \
+                } \
+                i++; \
+                continue; \
+            }
+
+            CONFIG_PROPERTIES
+
+#undef CONFIG_PROP
+#undef CONFIG_PROP_OPTIONAL
+        }
+    }
 }

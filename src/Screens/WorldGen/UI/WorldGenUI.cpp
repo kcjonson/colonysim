@@ -1,11 +1,14 @@
 #include "WorldGenUI.h"
-#include "../../../VectorGraphics.h"
 #include "../../../ConfigManager.h"
+#include "../../../VectorGraphics.h"
 #include "../../../CoordinateSystem.h"
 #include "Camera.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <random>
+#include <limits>
+#include <cctype>
 #include "Rendering/Components/Button.h"
 
 namespace WorldGen {
@@ -138,18 +141,46 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
     );
     sidebarLayer->addItem(seedLabel);
     
-    seedValue = std::make_shared<Rendering::Shapes::Text>(
-        Rendering::Shapes::Text::Args{
-            .text = "0", // Will be updated in layoutUI
+    seedInput = std::make_shared<Rendering::Components::Form::Text>(
+        Rendering::Components::Form::Text::Args{
+            .placeholder = "1-999999999",
+            .value = "",
             .position = glm::vec2(valueX, startY + 3 * lineHeight),
-            .style = Rendering::Shapes::Text::Styles({
-                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                .fontSize = 1.0f
+            .size = glm::vec2(80.0f, 25.0f),
+            .style = Rendering::Components::Form::Text::Styles({
+                .color = glm::vec4(0.95f, 0.95f, 0.95f, 1.0f),
+                .textColor = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f),
+                .placeholderColor = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f),
+                .borderColor = glm::vec4(0.7f, 0.7f, 0.7f, 1.0f),
+                .borderWidth = 1.0f,
+                .cornerRadius = 3.0f
             }),
-            .zIndex = 150.0f
+            .zIndex = 150.0f,
+            .onChange = [this](const std::string& value) {
+                // Filter out non-numeric characters and validate
+                std::string filteredValue = filterSeedInput(value);
+                if (filteredValue != value) {
+                    // Update the input with filtered value
+                    seedInput->setValue(filteredValue);
+                }
+                validateSeedInput(filteredValue);
+            }
         }
     );
-    sidebarLayer->addItem(seedValue);
+    sidebarLayer->addItem(seedInput);
+    
+    // Initialize with config defaultSeed if provided, otherwise random seed
+    auto& config = ConfigManager::getInstance();
+    auto defaultSeed = config.getDefaultSeed();
+    if (defaultSeed.has_value()) {
+        std::string seedStr = std::to_string(defaultSeed.value());
+        std::cout << "Setting WorldGen UI seed from config: " << seedStr << std::endl;
+        seedInput->setValue(seedStr);
+        validateSeedInput(seedStr);
+    } else {
+        std::cout << "No default seed in config, generating random seed" << std::endl;
+        randomizeSeed();
+    }
     
     generateButton = std::make_shared<Rendering::Components::Button>(
         Rendering::Components::Button::Args{
@@ -326,7 +357,7 @@ void WorldGenUI::setPlanetParameters(const PlanetParameters& params) {
     radiusValue->setText(std::to_string(params.radius));
     massValue->setText(std::to_string(params.mass));
     waterValue->setText(std::to_string(params.waterAmount));
-    seedValue->setText(std::to_string(params.seed));
+    seedInput->setValue(std::to_string(params.seed));
 }
 
 void WorldGenUI::setProgress(float progress, const std::string& message) {
@@ -390,6 +421,142 @@ void WorldGenUI::update(float /*deltaTime*/) {
 void WorldGenUI::handleInput(float deltaTime) {
     sidebarLayer->handleInput(deltaTime);
     infoLayer->handleInput(deltaTime);
+}
+
+void WorldGenUI::validateSeedInput(const std::string& value) {
+    // Real-time validation feedback
+    if (value.empty()) {
+        // Empty is valid - will use random seed
+        seedInput->setStyle(seedInput->getStyle()); // Reset to normal style
+        return;
+    }
+    
+    // Check for non-numeric characters
+    bool hasInvalidChars = false;
+    for (char c : value) {
+        if (!std::isdigit(c) && c != ' ' && c != '\t') {
+            hasInvalidChars = true;
+            break;
+        }
+    }
+    
+    if (hasInvalidChars) {
+        // Visual feedback for invalid input
+        auto style = seedInput->getStyle();
+        style.borderColor = glm::vec4(1.0f, 0.3f, 0.3f, 1.0f); // Red border
+        style.borderWidth = 2.0f;
+        seedInput->setStyle(style);
+        return;
+    }
+    
+    // Check if the number is too large
+    try {
+        unsigned long long numValue = std::stoull(value);
+        if (numValue > std::numeric_limits<unsigned int>::max()) {
+            // Visual feedback for too large value
+            auto style = seedInput->getStyle();
+            style.borderColor = glm::vec4(1.0f, 0.7f, 0.0f, 1.0f); // Orange border
+            style.borderWidth = 2.0f;
+            seedInput->setStyle(style);
+            return;
+        }
+    } catch (...) {
+        // Visual feedback for invalid number
+        auto style = seedInput->getStyle();
+        style.borderColor = glm::vec4(1.0f, 0.3f, 0.3f, 1.0f); // Red border
+        style.borderWidth = 2.0f;
+        seedInput->setStyle(style);
+        return;
+    }
+    
+    // Valid input - reset to normal style
+    auto style = seedInput->getStyle();
+    style.borderColor = glm::vec4(0.7f, 0.7f, 0.7f, 1.0f); // Normal gray border
+    style.borderWidth = 1.0f;
+    seedInput->setStyle(style);
+}
+
+std::string WorldGenUI::filterSeedInput(const std::string& value) {
+    std::string filtered;
+    filtered.reserve(value.length());
+    
+    for (char c : value) {
+        // Allow only digits and space characters
+        if (std::isdigit(c)) {
+            filtered += c;
+        }
+        // Skip all other characters (including letters, symbols, etc.)
+    }
+    
+    // Limit length to prevent extremely long numbers
+    if (filtered.length() > 10) { // unsigned int max is ~4.3 billion (10 digits)
+        filtered = filtered.substr(0, 10);
+    }
+    
+    return filtered;
+}
+
+void WorldGenUI::randomizeSeed() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<unsigned int> dis(1, 999999);
+    
+    unsigned int newSeed = dis(gen);
+    seedInput->setValue(std::to_string(newSeed));
+}
+
+unsigned int WorldGenUI::getCurrentSeed() const {
+    std::string seedText = seedInput->getValue();
+    
+    // Trim whitespace
+    seedText.erase(0, seedText.find_first_not_of(" \t\n\r"));
+    seedText.erase(seedText.find_last_not_of(" \t\n\r") + 1);
+    
+    if (seedText.empty()) {
+        // Generate a random seed if none provided
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<unsigned int> dis(1, 999999);
+        return dis(gen);
+    }
+    
+    // Validate that the string contains only digits (and optional leading/trailing spaces)
+    for (char c : seedText) {
+        if (!std::isdigit(c)) {
+            // Invalid character found, return default seed
+            std::cout << "Warning: Invalid seed input '" << seedText << "' contains non-numeric characters. Using default seed 12345." << std::endl;
+            return 12345;
+        }
+    }
+    
+    try {
+        // Check for reasonable range
+        unsigned long long value = std::stoull(seedText);
+        
+        // Ensure it fits in unsigned int range
+        if (value > std::numeric_limits<unsigned int>::max()) {
+            std::cout << "Warning: Seed value " << value << " is too large. Using maximum value " << std::numeric_limits<unsigned int>::max() << "." << std::endl;
+            return std::numeric_limits<unsigned int>::max();
+        }
+        
+        // Ensure it's not zero (use 1 instead)
+        if (value == 0) {
+            std::cout << "Warning: Seed value 0 is not recommended. Using seed 1 instead." << std::endl;
+            return 1;
+        }
+        
+        return static_cast<unsigned int>(value);
+        
+    } catch (const std::out_of_range&) {
+        std::cout << "Warning: Seed value '" << seedText << "' is out of range. Using default seed 12345." << std::endl;
+        return 12345;
+    } catch (const std::invalid_argument&) {
+        std::cout << "Warning: Seed value '" << seedText << "' is not a valid number. Using default seed 12345." << std::endl;
+        return 12345;
+    } catch (const std::exception& e) {
+        std::cout << "Warning: Unexpected error parsing seed '" << seedText << "': " << e.what() << ". Using default seed 12345." << std::endl;
+        return 12345;
+    }
 }
 
 }

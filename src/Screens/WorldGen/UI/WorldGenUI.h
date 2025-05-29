@@ -9,12 +9,14 @@
 #include "../../../Rendering/Layer.h"
 #include "../../../Rendering/Shapes/Rectangle.h"
 #include "../../../Rendering/Shapes/Text.h"
+#include "../../../Rendering/Components/Form/Text.h"
 #include "../Generators/TerrainGenerator.h" // Updated path to Generators directory
 #include "../../MainMenu/MainMenu.h" // Updated path to MainMenu.h
 #include "../Core/WorldGenParameters.h" // Updated path to Core directory
 
 struct GLFWwindow;
 class Camera;
+struct GameState;
 
 namespace WorldGen {
 
@@ -86,7 +88,7 @@ private:
     std::shared_ptr<Rendering::Shapes::Text> waterLabel;
     std::shared_ptr<Rendering::Shapes::Text> waterValue;
     std::shared_ptr<Rendering::Shapes::Text> seedLabel;
-    std::shared_ptr<Rendering::Shapes::Text> seedValue;
+    std::shared_ptr<Rendering::Components::Form::Text> seedInput;
 
     // Buttons
     std::shared_ptr<Rendering::Components::Button> generateButton;
@@ -113,6 +115,16 @@ private:
     
     // UI state
     UIState state;
+    
+public:
+    // Seed management
+    void randomizeSeed();
+    unsigned int getCurrentSeed() const;
+
+private:
+    // Input validation
+    void validateSeedInput(const std::string& value);
+    std::string filterSeedInput(const std::string& value);
 };
 
 } // namespace WorldGen

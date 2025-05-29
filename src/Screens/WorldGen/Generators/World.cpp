@@ -282,8 +282,9 @@ glm::vec3 World::GetMidPoint(const glm::vec3& v1, const glm::vec3& v2, float dis
     return glm::normalize(midPoint);
 }
 
-glm::vec3 World::ApplyDistortion(const glm::vec3& point, float magnitude) {    // Create a random number generator with the seed
-    static std::mt19937 rng(static_cast<unsigned int>(m_seed & 0xFFFFFFFF));
+glm::vec3 World::ApplyDistortion(const glm::vec3& point, float magnitude) {
+    // Create a random number generator with the seed (non-static so it's re-seeded each time)
+    std::mt19937 rng(static_cast<unsigned int>(m_seed & 0xFFFFFFFF));
     std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
     
     // Calculate a random offset vector
@@ -481,9 +482,14 @@ void World::GenerateTerrainData() {
     // Use a simple noise-based approach for terrain generation
     // In a real implementation, this would be much more sophisticated
     
-    // Random number generator with seed
-    static std::mt19937 rng(static_cast<unsigned int>(m_seed & 0xFFFFFFFF));
+    // Random number generator with seed (non-static so it's re-seeded each time)
+    std::mt19937 rng(static_cast<unsigned int>(m_seed & 0xFFFFFFFF));
     std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+    
+    // Create seed-based offsets for noise functions to ensure different results per seed
+    float seedOffsetX = static_cast<float>((m_seed * 1337) % 10000) / 1000.0f;
+    float seedOffsetY = static_cast<float>((m_seed * 7919) % 10000) / 1000.0f;
+    float seedOffsetZ = static_cast<float>((m_seed * 2333) % 10000) / 1000.0f;
     
     // Water level constant for terrain type determination
     const float waterLevel = 0.4f;
@@ -495,11 +501,11 @@ void World::GenerateTerrainData() {
     for (size_t i = 0; i < m_tiles.size(); i++) {
         glm::vec3 pos = m_tiles[i].GetCenter();
         
-        // Simple elevation based on position
-        // This creates a simple pattern of high and low points
-        float elevation = 0.5f + 0.2f * glm::simplex(glm::vec2(pos.x * 3.0f, pos.z * 3.0f));
-        elevation += 0.1f * glm::simplex(glm::vec2(pos.x * 6.0f, pos.z * 6.0f));
-        elevation += 0.05f * glm::simplex(glm::vec2(pos.x * 12.0f, pos.z * 12.0f));
+        // Simple elevation based on position with seed-based offsets
+        // This creates a simple pattern of high and low points that varies with seed
+        float elevation = 0.5f + 0.2f * glm::simplex(glm::vec2(pos.x * 3.0f + seedOffsetX, pos.z * 3.0f + seedOffsetY));
+        elevation += 0.1f * glm::simplex(glm::vec2(pos.x * 6.0f + seedOffsetY, pos.z * 6.0f + seedOffsetZ));
+        elevation += 0.05f * glm::simplex(glm::vec2(pos.x * 12.0f + seedOffsetZ, pos.z * 12.0f + seedOffsetX));
         
         // Clamp to valid range
         elevation = glm::clamp(elevation, 0.0f, 1.0f);
@@ -530,10 +536,10 @@ void World::GenerateTerrainData() {
         // Count terrain types for debugging
         terrainTypeCounts[terrainType]++;
         
-        // Simple moisture based on elevation and position
+        // Simple moisture based on elevation and position with seed-based offset
         // Higher elevations are typically drier
         float moisture = 0.7f - (elevation - 0.5f) * 0.4f;
-        moisture += 0.15f * glm::simplex(glm::vec2(pos.z * 4.0f, pos.y * 4.0f));
+        moisture += 0.15f * glm::simplex(glm::vec2(pos.z * 4.0f + seedOffsetZ, pos.y * 4.0f + seedOffsetY));
         moisture = glm::clamp(moisture, 0.0f, 1.0f);
         
         m_tiles[i].SetMoisture(moisture);
@@ -547,8 +553,8 @@ void World::GenerateTerrainData() {
         // Temperature also decreases with elevation
         temperature -= elevation * 0.2f;
         
-        // Add some noise for variety
-        temperature += 0.05f * glm::simplex(glm::vec2(pos.x * 5.0f, pos.z * 5.0f));
+        // Add some noise for variety with seed-based offset
+        temperature += 0.05f * glm::simplex(glm::vec2(pos.x * 5.0f + seedOffsetX, pos.z * 5.0f + seedOffsetZ));
         temperature = glm::clamp(temperature, 0.0f, 1.0f);
         
         m_tiles[i].SetTemperature(temperature);

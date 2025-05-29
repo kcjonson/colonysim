@@ -130,7 +130,7 @@ bool WorldGenScreen::initialize() {
         m_worldGenUI->setState(WorldGen::UIState::Generating);
         
         // Update seed from UI
-        m_planetParams.seed = seed;
+        m_planetParams.seed = m_worldGenUI->getCurrentSeed();
         
         // Reset the progress tracker
         m_progressTracker->Reset();
