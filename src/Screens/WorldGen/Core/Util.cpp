@@ -9,6 +9,7 @@
 #include "../../Game/World.h"
 #include "TerrainTypes.h"
 #include "ChunkGenerator.h"
+#include "WorldGenParameters.h"
 #include "../../../ConfigManager.h"
 
 // Define M_PI if not defined
@@ -22,6 +23,9 @@ constexpr float M_PIf = 3.14159265358979323846f;
 namespace WorldGen {
 namespace Core {
 
+/*
+// DEPRECATED: This function is unused and deprecated. 
+// It was part of the old world generation system that has been replaced by chunked generation.
 // Helper function to convert 3D spherical coordinates to 2D tile coordinates
 TileCoord sphericalToTileCoord(const glm::vec3& spherePoint, float sampleRate) {
     // Convert from 3D sphere point to 2D map coordinates using an equirectangular projection
@@ -62,6 +66,7 @@ TileCoord sphericalToTileCoord(const glm::vec3& spherePoint, float sampleRate) {
     
     return {x, y};
 }
+*/
 
 // Public helper function to find the nearest tile in the generator world to a given point
 int findNearestTile(const glm::vec3& point, const std::vector<WorldGen::Generators::Tile>& tiles) {
@@ -95,9 +100,21 @@ int findNearestTile(const glm::vec3& point, const std::vector<WorldGen::Generato
     return nearestIndex;
 }
 
-// DEPRECATED: This function is deprecated. Use the new World constructor with generateInitialChunk instead.
-// The new World class uses chunked loading for better performance and memory usage.
 /*
+// ============================================================================
+// DEPRECATED WORLD GENERATION CODE
+// ============================================================================
+// 
+// This entire block is deprecated and unused. It was part of the original
+// world generation system that created a single large 2D map of the entire
+// sphere. This has been replaced by the chunked generation system which:
+// - Generates small chunks on-demand
+// - Uses less memory
+// - Supports infinite world exploration
+// - Has better performance
+//
+// This code is kept commented out for reference but should not be used.
+// ============================================================================
 std::unique_ptr<World> createGameWorld(
     const WorldGen::Generators::World& worldGenerator,
     GameState& gameState,
@@ -324,6 +341,108 @@ std::unique_ptr<ChunkData> generateInitialChunk(
     // Simply delegate to the ChunkGenerator
     // The initial chunk is centered at the landing location
     return ChunkGenerator::generateChunk(worldGenerator, landingLocation);
+}
+
+glm::vec2 sphereToLatLong(const glm::vec3& spherePos) {
+    /**
+     * COORDINATE TRANSFORMATION FOUNDATION
+     * 
+     * ⚠️  CRITICAL: This function is the cornerstone of all coordinate conversions.
+     *     See docs/ChunkedWorldImplementation.md for complete system documentation.
+     *     Every coordinate transformation should use this for consistency.
+     * 
+     * This function is the cornerstone of all coordinate conversions in the system.
+     * Every other coordinate transformation should use this function to ensure consistency.
+     * 
+     * MATHEMATICAL DETAILS:
+     * - Input: 3D Cartesian coordinates on unit sphere (x,y,z where x²+y²+z² = 1)
+     * - Output: Spherical coordinates (longitude, latitude) in radians
+     * 
+     * CONVERSION FORMULAS:
+     * - Longitude = atan2(z, x)    [Range: -π to +π]
+     * - Latitude = asin(y)         [Range: -π/2 to +π/2]
+     * 
+     * COORDINATE CONVENTIONS:
+     * - Longitude: East is positive, West is negative
+     * - Latitude: North is positive, South is negative
+     * - Prime meridian (0° longitude) = sphere position (1,0,0)
+     * - Equator (0° latitude) = y = 0
+     * - North pole (+90° latitude) = sphere position (0,1,0)
+     */
+    
+    // Calculate longitude using atan2 for proper quadrant handling
+    // atan2(z,x) gives angle from positive X-axis toward positive Z-axis
+    float longitude = std::atan2(spherePos.z, spherePos.x);
+    
+    // Calculate latitude using asin, with clamping to handle floating-point precision issues
+    // asin(y) gives angle from XZ-plane toward positive Y-axis (north)
+    float latitude = std::asin(glm::clamp(spherePos.y, -1.0f, 1.0f));
+    
+    return glm::vec2(longitude, latitude);
+}
+
+glm::vec2 sphereToWorld(const glm::vec3& spherePos) {
+    /**
+     * WORLD COORDINATE SYSTEM CONVERSION
+     * 
+     * Converts from 3D sphere position to 2D world coordinates in meters.
+     * This is the intermediate coordinate system used for chunk positioning.
+     * 
+     * COORDINATE SYSTEM DEFINITION:
+     * - Origin (0,0) = Prime meridian and Equator = sphere position (1,0,0)
+     * - X-axis = Longitude in meters (positive = East, negative = West)
+     * - Y-axis = Latitude in meters (positive = North, negative = South)
+     * 
+     * CONVERSION PROCESS:
+     * 1. Extract longitude/latitude in radians using shared function
+     * 2. Convert angular measurements to linear distance using planet radius
+     * 3. Formula: distance = angle_in_radians * planet_radius_in_meters
+     */
+    
+    // Step 1: Get longitude and latitude in radians
+    glm::vec2 latLong = sphereToLatLong(spherePos);
+    float longitude = latLong.x;
+    float latitude = latLong.y;
+    
+    // Step 2: Convert to world coordinates using planet radius
+    PlanetParameters planetParams; // Use default Earth parameters
+    glm::vec2 worldPos;
+    worldPos.x = longitude * planetParams.physicalRadiusMeters;  // Longitude -> X (east/west)
+    worldPos.y = latitude * planetParams.physicalRadiusMeters;   // Latitude -> Y (north/south)
+    
+    return worldPos;
+}
+
+glm::vec2 worldToGame(const glm::vec2& worldPos) {
+    /**
+     * GAME COORDINATE SYSTEM CONVERSION
+     * 
+     * Converts from world coordinates (meters) to game coordinates (pixels).
+     * This is the final coordinate system used for tile rendering and camera positioning.
+     * 
+     * COORDINATE SYSTEM PROPERTIES:
+     * - Units: Pixels
+     * - Origin: Same as world origin (prime meridian/equator)
+     * - Scale: Determined by tile size and tile density configurations
+     * 
+     * CONVERSION FORMULA:
+     * pixels = meters * (tiles_per_meter * pixels_per_tile)
+     * 
+     * DEFAULT CONFIGURATION:
+     * - Tile size: 10 pixels per tile
+     * - Tile density: 1.0 tiles per meter
+     * - Result: 1 meter = 10 pixels
+     */
+    
+    // Get configuration values
+    const auto& config = ConfigManager::getInstance();
+    const float tileSize = config.getTileSize();           // pixels per tile (default: 10)
+    const float tilesPerMeter = config.getTilesPerMeter(); // tiles per meter (default: 1.0)
+    
+    // Calculate meters to pixels conversion factor
+    const float metersToPixels = tilesPerMeter * tileSize;  // 1.0 * 10 = 10 pixels per meter
+    
+    return worldPos * metersToPixels;
 }
 
 } // namespace Core

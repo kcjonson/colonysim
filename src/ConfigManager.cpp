@@ -55,6 +55,7 @@ bool ConfigManager::loadConfig(const std::string& filepath) {
             if (world.contains("tileCullingOverscan")) tileCullingOverscan = world["tileCullingOverscan"].get<int>();
             if (world.contains("tileSampleRate")) tileSampleRate = world["tileSampleRate"].get<int>();
             if (world.contains("chunkEdgeTriggerDistance")) chunkEdgeTriggerDistance = world["chunkEdgeTriggerDistance"].get<int>();
+            if (world.contains("numChunksToKeep")) numChunksToKeep = world["numChunksToKeep"].get<int>();
         }
         
         configLoaded = true;

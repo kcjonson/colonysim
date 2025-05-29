@@ -1,8 +1,11 @@
 #include "ChunkGenerator.h"
 #include "Util.h"
+#include "WorldGenParameters.h"
 #include "../../../ConfigManager.h"
 #include <iostream>
 #include <cmath>
+#include <chrono>
+#include <iomanip>
 
 namespace WorldGen {
 namespace Core {
@@ -33,8 +36,21 @@ std::unique_ptr<ChunkData> ChunkGenerator::generateChunk(
     // Calculate the size of the chunk in meters
     const float chunkSizeMeters = chunkSize / tilesPerMeter;
     
-    std::cout << "Generating " << chunkSize << "x" << chunkSize << " chunk (" 
-              << (chunkSize * chunkSize) << " tiles)..." << std::endl;
+    // Get current time for logging
+    auto now = std::chrono::system_clock::now();
+    auto time_t = std::chrono::system_clock::to_time_t(now);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+    
+    // Convert chunk center to world coordinates for logging
+    PlanetParameters planetParams;
+    float theta = std::atan2(chunkCenter.z, chunkCenter.x);
+    float phi = std::asin(glm::clamp(chunkCenter.y, -1.0f, 1.0f));
+    glm::vec2 chunkWorldPos(theta * planetParams.physicalRadiusMeters, phi * planetParams.physicalRadiusMeters);
+    
+    std::cout << "[" << std::put_time(std::localtime(&time_t), "%H:%M:%S") 
+              << "." << std::setfill('0') << std::setw(3) << ms.count() << "] "
+              << "Generating " << chunkSize << "x" << chunkSize << " chunk at world pos ("
+              << static_cast<int>(chunkWorldPos.x) << ", " << static_cast<int>(chunkWorldPos.y) << ")" << std::endl;
     
     // OPTIMIZATION: Track the current world tile as we sample to avoid repeated searches
     // Since we sample in a spatial pattern (left-to-right, top-to-bottom), 
@@ -100,6 +116,16 @@ std::unique_ptr<ChunkData> ChunkGenerator::generateChunk(
                 resourceMultiplier = 0.5f;
         }
         terrainData.resource = resourceMultiplier * terrainData.humidity;
+        
+        // COORDINATE SYSTEM: Calculate final game position for this tile
+        // This eliminates the need for complex coordinate transformation in World class
+        // See docs/ChunkedWorldImplementation.md for complete coordinate system documentation
+        
+        // Step 1: Convert sphere position to world coordinates (meters from origin)
+        glm::vec2 worldPos = sphereToWorld(spherePoint);
+        
+        // Step 2: Convert world coordinates to game coordinates (pixels)
+        terrainData.gamePosition = worldToGame(worldPos);
         
         return terrainData;
     };
@@ -217,8 +243,16 @@ std::unique_ptr<ChunkData> ChunkGenerator::generateChunk(
     chunk->isLoaded = true;
     chunk->isGenerating = false;
     
-    std::cout << "Chunk generation complete! Generated " << tilesProcessed 
-              << " tiles with " << samplesPerformed << " sphere samples." << std::endl;
+    // Log completion with timestamp
+    auto endTime = std::chrono::system_clock::now();
+    auto endTime_t = std::chrono::system_clock::to_time_t(endTime);
+    auto endMs = std::chrono::duration_cast<std::chrono::milliseconds>(endTime.time_since_epoch()) % 1000;
+    
+    std::cout << "[" << std::put_time(std::localtime(&endTime_t), "%H:%M:%S") 
+              << "." << std::setfill('0') << std::setw(3) << endMs.count() << "] "
+              << "Chunk complete at (" << static_cast<int>(chunkWorldPos.x) << ", " 
+              << static_cast<int>(chunkWorldPos.y) << ") - " 
+              << tilesProcessed << " tiles, " << samplesPerformed << " samples" << std::endl;
     
     return chunk;
 }
@@ -256,8 +290,9 @@ glm::vec3 ChunkGenerator::projectToSphere(
     // This minimizes distortion for small areas and preserves straight lines.
     
     // Convert local meters to angular displacement
-    float angularX = localPoint.x / PLANET_RADIUS;
-    float angularY = localPoint.y / PLANET_RADIUS;
+    PlanetParameters planetParams;
+    float angularX = localPoint.x / planetParams.physicalRadiusMeters;
+    float angularY = localPoint.y / planetParams.physicalRadiusMeters;
     
     // For small angles, we can use the approximation:
     // The projection of a point (x,y) on the tangent plane is approximately
@@ -267,7 +302,7 @@ glm::vec3 ChunkGenerator::projectToSphere(
     glm::vec3 tangentPoint = 
         tangentBasis[0] * localPoint.x +  // East component
         tangentBasis[1] * localPoint.y +  // North component
-        tangentBasis[2] * PLANET_RADIUS;   // Up component (at planet radius)
+        tangentBasis[2] * planetParams.physicalRadiusMeters;   // Up component (at planet radius)
     
     // Project back onto the unit sphere
     // This accounts for the curvature of the Earth
@@ -286,7 +321,8 @@ std::vector<glm::vec3> getNeighboringChunkCenters(const glm::vec3& center, float
     
     // Generate 8 neighbors in a grid pattern
     // Using angular size to determine offset distance
-    const float offsetDistance = angularSize * ChunkGenerator::PLANET_RADIUS;
+    PlanetParameters planetParams;
+    const float offsetDistance = angularSize * planetParams.physicalRadiusMeters;
     
     for (int dy = -1; dy <= 1; dy++) {
         for (int dx = -1; dx <= 1; dx++) {

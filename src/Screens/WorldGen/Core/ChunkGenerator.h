@@ -31,10 +31,11 @@ public:
      * 2. Projects a grid of points onto the sphere
      * 3. Samples the nearest world tile for each point
      * 4. Converts the 3D tile data to 2D terrain data
+     * 5. Calculates game positions for each tile relative to world origin (prime meridian/equator)
      * 
      * @param worldGenerator The spherical world to sample from
      * @param chunkCenter Center position of the chunk on the unit sphere
-     * @return Generated chunk data with tiles filled in
+     * @return Generated chunk data with tiles filled in with world-space coordinates
      */
     static std::unique_ptr<ChunkData> generateChunk(
         const WorldGen::Generators::World& worldGenerator,
@@ -71,9 +72,6 @@ public:
         const glm::vec3& chunkCenter,
         const glm::mat3& tangentBasis
     );
-    
-    // Planet radius in meters (Earth default)
-    static constexpr float PLANET_RADIUS = 6371000.0f;
 };
 
 } // namespace Core

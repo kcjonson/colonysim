@@ -53,23 +53,99 @@ This document describes the chunked world generation system implemented for Colo
 
 ## Coordinate Systems
 
-The implementation uses multiple coordinate systems:
+**CRITICAL DESIGN NOTE**: This is the most complex part of the system and has been a major source of bugs. The coordinate transformations must be used consistently throughout the codebase. See the coordinate conversion functions in `src/Screens/WorldGen/Core/Util.h` for the canonical implementations.
 
-1. **Sphere Coordinates (3D)**
-   - Normalized vectors on unit sphere
-   - Used for chunk indexing and world generation
+The implementation uses a carefully designed 4-tier coordinate system to handle the massive scale of a planet while maintaining precision:
 
-2. **World Coordinates (2D)**
-   - Global 2D coordinates in meters
-   - Origin at equator/prime meridian
-   - Used for player position and distance calculations
+### 1. Sphere Coordinates (3D) - Primary Storage
+- **Format**: Normalized 3D vectors on unit sphere (x,y,z where x²+y²+z² = 1)
+- **Purpose**: Primary storage format for all positions on the planet
+- **Advantages**: 
+  - Mathematically clean (no distortion)
+  - Natural for sphere calculations
+  - Consistent precision everywhere on planet
+- **Usage**: 
+  - Chunk centers (`ChunkCoord.centerOnSphere`)
+  - Landing locations
+  - Any long-term position storage
+- **Coordinate Convention**:
+  - (1,0,0) = Prime meridian (0°) and Equator (0°) - **WORLD ORIGIN**
+  - (0,1,0) = North pole (90° latitude)
+  - (0,0,1) = 90° east longitude on equator
+  - (-1,0,0) = 180° longitude (international date line)
 
-3. **Chunk Local Coordinates**
-   - Tile indices within a chunk (0 to CHUNK_SIZE-1)
-   - Each chunk has its own local projection
+### 2. World Coordinates (2D) - Spatial Calculations
+- **Format**: Linear distances in meters from world origin (x,y)
+- **Purpose**: Intermediate system for spatial calculations and chunk positioning
+- **Conversion**: Longitude/latitude in radians × planet radius (6,371,000m)
+- **Coordinate System**:
+  - Origin (0,0) = Prime meridian and equator (sphere position 1,0,0)
+  - X-axis = East/west distance in meters from prime meridian
+  - Y-axis = North/south distance in meters from equator
+- **Distortion**: Uses equirectangular projection (distortion increases near poles)
+- **Rationale**: 
+  - Avoids floating-point precision issues with planet-scale pixel coordinates
+  - Intuitive for chunk spacing ("chunks are 400 meters apart")
+  - Manageable numbers for spatial calculations
+- **Scale Consideration**: At planet scale, coordinates can reach ±20 million meters (half Earth's circumference)
 
-4. **Screen Coordinates**
-   - Camera-relative coordinates for rendering
+### 3. Game Coordinates (2D) - Local Rendering
+- **Format**: Pixel coordinates relative to current view area
+- **Purpose**: Final coordinates for tile rendering and camera positioning
+- **Conversion**: World meters × (tiles per meter × pixels per tile) = World meters × 10
+- **Local Origin**: Typically centered on current play area to maintain precision
+- **Rationale**:
+  - Prevents trillion-pixel coordinates that would cause floating-point errors
+  - Natural units for rendering system
+  - Allows precise tile positioning and smooth camera movement
+
+### 4. Chunk Local Coordinates - Per-Chunk Indexing
+- **Format**: Integer tile indices within a chunk (0 to chunkSize-1)
+- **Purpose**: Indexing tiles within individual chunks
+- **Size**: 400×400 tiles per chunk (configurable)
+- **Coordinate Range**: (0,0) to (399,399) for default 400×400 chunks
+- **Conversion to World**: Requires chunk center position + local offset calculation
+
+## Coordinate Transformation Chain
+
+The complete transformation chain for positioning a tile:
+
+```
+Sphere Position (storage)
+    ↓ [sphereToWorld()]
+World Coordinates (meters)
+    ↓ [worldToGame()]  
+Game Coordinates (pixels)
+    ↓ [tile rendering]
+Screen Position
+```
+
+**Key Functions** (in `src/Screens/WorldGen/Core/Util.h`):
+- `sphereToLatLong()`: Foundation function, converts sphere→longitude/latitude
+- `sphereToWorld()`: Converts sphere→world coordinates  
+- `worldToGame()`: Converts world→game coordinates
+
+## Critical Design Constraints
+
+### Scale Management
+- **Problem**: Planet-scale worlds create coordinates in trillions of pixels
+- **Solution**: Use world coordinates (meters) as intermediate system
+- **Benefit**: Keeps game coordinates manageable and precise
+
+### Polar Distortion
+- **Problem**: Equirectangular projection distorts distances near poles
+- **Mitigation**: Landing locations restricted to ±60° latitude
+- **Acceptable Trade-off**: Slight distance errors acceptable for gameplay
+
+### Floating-Point Precision
+- **Problem**: Large coordinates lose precision in floating-point arithmetic
+- **Solution**: Multi-tier system keeps each coordinate range reasonable
+- **Implementation**: Game coordinates stay local, world coordinates handle planet scale
+
+### Consistency Requirements
+- **Critical**: All coordinate conversions MUST use the shared utility functions
+- **Enforcement**: Code comments reference this documentation
+- **Testing**: Verify chunk boundaries align perfectly (no gaps or overlaps)
 
 ## Configuration
 

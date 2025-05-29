@@ -16,6 +16,7 @@
         "preloadRadius": 1,
         "unloadRadius": 2,
         "maxLoadedChunks": 9,
+        "numChunksToKeep": 25,
         "tileCullingOverscan": 3,
         "tileSampleRate": 4,
         "chunkEdgeTriggerDistance": 10

@@ -5,6 +5,8 @@
 #include <iostream>
 #include <algorithm>
 #include <cmath>
+#include <chrono>
+#include <iomanip>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -39,6 +41,7 @@ World::World(GameState& gameState,
     if (initialChunk) {
         currentChunk = initialChunk->coord;
         chunks[currentChunk] = std::move(initialChunk);
+        touchChunk(currentChunk);  // Add to LRU cache
     }
     
     // COORDINATE SYSTEM FIX: Multi-chunk rendering coordinate system
@@ -98,8 +101,8 @@ bool World::initialize() {
         std::cout << "ERROR: No initial chunk found in chunks map!" << std::endl;
     }
     
-    // Load adjacent chunks
-    loadAdjacentChunks();
+    // Don't preload adjacent chunks at startup - wait for edge detection
+    // This prevents loading unnecessary chunks when the game starts
     
     return true;
 }
@@ -110,6 +113,17 @@ void World::update(float deltaTime) {
     
     // Update current chunk based on camera position
     updateCurrentChunk();
+    
+    // Update player position for edge detection
+    // Since we're not switching chunks, we need to track player position manually
+    if (camera) {
+        glm::vec3 cameraPos = camera->getPosition();
+        glm::vec2 cameraLocalPos(cameraPos.x, cameraPos.y);
+        
+        // Player position is camera position relative to the fixed current chunk
+        glm::vec2 currentChunkWorld = sphereToWorld(currentChunk.centerOnSphere);
+        playerPosition = currentChunkWorld + cameraLocalPos;
+    }
     
     // Integrate any chunks that finished loading
     integrateLoadedChunks();
@@ -219,32 +233,41 @@ glm::vec2 World::tileToWorld(const WorldGen::Core::ChunkCoord& chunk,
 }
 
 void World::updateCurrentChunk() {
-    if (!camera) return;
+    // DISABLED: Don't automatically switch current chunk
+    // The current chunk defines our coordinate system origin (0,0).
+    // Switching it would invalidate all tile positions since they're relative to current chunk.
+    // All tiles are positioned relative to the initial currentChunk set in initialize().
+    // The edge detection in checkAndLoadNearbyChunks() will handle loading adjacent chunks.
+    return;
     
-    // COORDINATE FIX: Camera position is now in local coordinates (relative to current chunk)
-    // Convert camera position back to world coordinates for chunk management
-    glm::vec3 cameraPos = camera->getPosition();
-    glm::vec2 cameraLocalPos(cameraPos.x, cameraPos.y);
-    
-    // Add camera offset to player's base world position to get current world position
-    glm::vec2 currentChunkWorld = sphereToWorld(currentChunk.centerOnSphere);
-    playerPosition = currentChunkWorld + cameraLocalPos;
-    
-    // Determine which chunk the player is in
-    WorldGen::Core::ChunkCoord newChunk = worldToChunk(playerPosition);
-    
-    // Check if we've moved to a different chunk
-    if (!(newChunk == currentChunk)) {
-        glm::vec2 oldChunkWorld = sphereToWorld(currentChunk.centerOnSphere);
-        glm::vec2 newChunkWorld = sphereToWorld(newChunk.centerOnSphere);
-        
-        
-        currentChunk = newChunk;
-        
-        // Trigger loading of new adjacent chunks and unloading of distant ones
-        loadAdjacentChunks();
-        unloadDistantChunks();
-    }
+    // Original logic kept for reference:
+    // if (!camera) return;
+    // 
+    // // COORDINATE FIX: Camera position is now in local coordinates (relative to current chunk)
+    // // Convert camera position back to world coordinates for chunk management
+    // glm::vec3 cameraPos = camera->getPosition();
+    // glm::vec2 cameraLocalPos(cameraPos.x, cameraPos.y);
+    // 
+    // // Add camera offset to player's base world position to get current world position
+    // glm::vec2 currentChunkWorld = sphereToWorld(currentChunk.centerOnSphere);
+    // playerPosition = currentChunkWorld + cameraLocalPos;
+    // 
+    // // Determine which chunk the player is in
+    // WorldGen::Core::ChunkCoord newChunk = worldToChunk(playerPosition);
+    // 
+    // // Check if we've moved to a different chunk
+    // if (!(newChunk == currentChunk)) {
+    //     glm::vec2 oldChunkWorld = sphereToWorld(currentChunk.centerOnSphere);
+    //     glm::vec2 newChunkWorld = sphereToWorld(newChunk.centerOnSphere);
+    //     
+    //     
+    //     currentChunk = newChunk;
+    //     touchChunk(currentChunk);  // Update LRU for current chunk
+    //     
+    //     // Don't load all adjacent chunks when switching - let edge detection handle it
+    //     // loadAdjacentChunks();  // This was loading too many chunks
+    //     // unloadDistantChunks();  // Replaced by LRU system
+    // }
 }
 
 void World::loadAdjacentChunks() {
@@ -450,6 +473,7 @@ void World::integrateLoadedChunks() {
     // Integrate chunks
     for (const auto& coord : toIntegrate) {
         std::unique_ptr<WorldGen::Core::ChunkData> chunk;
+        bool wasAdded = false;
         
         // Move chunk from pending to active
         {
@@ -458,40 +482,53 @@ void World::integrateLoadedChunks() {
             if (it != pendingChunks.end()) {
                 chunk = std::move(it->second);
                 pendingChunks.erase(it);
-                chunks[coord] = std::move(chunk);
+                
+                // Only add if not already loaded (prevent regeneration)
+                if (chunks.count(coord) == 0) {
+                    chunks[coord] = std::move(chunk);
+                    wasAdded = true;
+                }
             }
+        }
+        
+        // Handle LRU operations outside mutex to avoid deadlock
+        if (wasAdded) {
+            touchChunk(coord);  // Add to LRU cache
         }
         
         // Create tiles for rendering
         if (chunks.count(coord) > 0) {
             const auto& chunkData = chunks[coord];
             
+            std::cout << "DEBUG: Integrating chunk at world pos " << sphereToWorld(coord.centerOnSphere).x 
+                      << ", " << sphereToWorld(coord.centerOnSphere).y 
+                      << " (current chunk at " << sphereToWorld(currentChunk.centerOnSphere).x 
+                      << ", " << sphereToWorld(currentChunk.centerOnSphere).y << ")" << std::endl;
+            
+            int debugCount = 0; // Reset for each chunk
             for (const auto& [localCoord, terrainData] : chunkData->tiles) {
                 
-                // COORDINATE FIX: Position tiles relative to current chunk center
-                // Calculate offset from each chunk's center and position relative to current chunk
-                glm::vec2 worldPos = tileToWorld(coord, localCoord);
-                glm::vec2 currentChunkWorld = sphereToWorld(currentChunk.centerOnSphere);
-                glm::vec2 tilePos = worldPos - currentChunkWorld;
+                // Use pre-calculated game positions from ChunkGenerator
+                // The ChunkGenerator has already calculated the final pixel positions
+                // relative to the world origin. No complex transformations needed here.
+                // See docs/ChunkedWorldImplementation.md for coordinate system details.
                 
-                // CRITICAL: Coordinate system fix for multi-chunk rendering
-                // 
-                // Tiles must be stored in pixel coordinates, not meter coordinates.
-                // Previously, tiles were stored using meter coordinates but looked up using pixel
-                // coordinates, causing tiles to not be found when panning. The fix:
-                // 1. Convert tile positions from meters to pixels using tilesPerMeter
-                // 2. Snap to tile grid to ensure consistent positioning
-                // This must match the coordinate system used in createTileFromData()
+                // Get the pre-calculated game position (in pixels)
+                glm::vec2 gamePos = terrainData.gamePosition;
                 
-                // Convert to pixel coordinates for storage (consistent with createInitialTiles)
-                const float tilesPerMeter = config.getTilesPerMeter();
-                glm::vec2 tilePosPixels = tilePos * tilesPerMeter;
-                
-                // Snap to tile grid (tiles are spaced by tileSize pixels)
-                int pixelX = static_cast<int>(std::round(tilePosPixels.x / tileSize)) * static_cast<int>(tileSize);
-                int pixelY = static_cast<int>(std::round(tilePosPixels.y / tileSize)) * static_cast<int>(tileSize);
+                // Round to tile grid for consistent positioning
+                int pixelX = static_cast<int>(std::round(gamePos.x / tileSize)) * static_cast<int>(tileSize);
+                int pixelY = static_cast<int>(std::round(gamePos.y / tileSize)) * static_cast<int>(tileSize);
                 
                 WorldGen::TileCoord pixelCoord{pixelX, pixelY};
+                
+                // Debug first few tiles from this chunk
+                if (debugCount < 5) {
+                    std::cout << "  Tile " << localCoord.x << "," << localCoord.y 
+                              << " game pos: " << gamePos.x << "," << gamePos.y
+                              << " -> pixel: " << pixelX << "," << pixelY << std::endl;
+                    debugCount++;
+                }
                 
                 // Check if tile already exists
                 if (tiles.count(pixelCoord) > 0) {
@@ -514,10 +551,16 @@ void World::integrateLoadedChunks() {
                 
                 tilesCreated++;
             }
+            
+            std::cout << "DEBUG: Created " << tilesCreated << " tiles from chunk" << std::endl;
         }
     }
     
     // Tiles are integrated silently now that multi-chunk loading is working
+    
+    // Enforce chunk limit after all integrations are complete
+    // This avoids deadlock by being outside the mutex lock
+    enforceChunkLimit();
 }
 
 void World::updateTileVisibility() {
@@ -585,6 +628,7 @@ void World::updateTileVisibility() {
                 auto chunkIt = tileToChunkMap.find(coord);
                 if (chunkIt != tileToChunkMap.end()) {
                     chunksWithVisibleTiles[chunkIt->second]++;
+                    touchChunk(chunkIt->second);  // Update LRU access time
                 }
             }
         }
@@ -617,28 +661,19 @@ void World::updateTileVisibility() {
     // Check if we need to load adjacent chunks
     checkAndLoadNearbyChunks();
     
-    // Update current chunk to the one with the most visible tiles
+    // COORDINATE FIX: Don't automatically switch current chunk
+    // The current chunk defines our coordinate system origin (0,0).
+    // Switching it would invalidate all tile positions since they're relative to current chunk.
+    // Instead, we keep the initial chunk as the reference point and load tiles from
+    // multiple chunks as needed.
+    
+    // Track which chunks have visible tiles for debugging/stats only
     if (!chunksWithVisibleTiles.empty()) {
-        WorldGen::Core::ChunkCoord newCurrentChunk = currentChunk;
-        int maxVisibleTiles = 0;
-        
+        // Just update LRU for chunks with visible tiles
         for (const auto& [chunkCoord, visibleCount] : chunksWithVisibleTiles) {
-            if (visibleCount > maxVisibleTiles) {
-                maxVisibleTiles = visibleCount;
-                newCurrentChunk = chunkCoord;
+            if (visibleCount > 0) {
+                touchChunk(chunkCoord);
             }
-        }
-        
-        if (!(newCurrentChunk == currentChunk)) {
-            glm::vec2 oldChunkWorld = sphereToWorld(currentChunk.centerOnSphere);
-            glm::vec2 newChunkWorld = sphereToWorld(newCurrentChunk.centerOnSphere);
-            
-                     
-            currentChunk = newCurrentChunk;
-            
-            // Trigger loading of new adjacent chunks and unloading of distant ones
-            loadAdjacentChunks();
-            unloadDistantChunks();
         }
     }
 }
@@ -714,28 +749,56 @@ std::tuple<int, int, int, int> World::getVisibleTileRange(int overscan) const {
  * This ensures tiles are ready for rendering before the first frame.
  */
 void World::createInitialTiles() {
-    // Use the same logic as updateTileVisibility to determine which tiles should exist initially
+    // Create tiles from loaded chunk data using pre-calculated positions
+    // This replaces the old grid-based search system with direct position lookup
+    // See docs/ChunkedWorldImplementation.md for coordinate system details
+    
     auto& config = ConfigManager::getInstance();
-    const int overscan = config.getTileCullingOverscan();
-    
-    auto [minX, maxX, minY, maxY] = getVisibleTileRange(overscan);
-    
-    
-    const int chunkSize = config.getChunkSize();
-    
-    // Create tiles for the visible area, but space them by tileSize (not every pixel!)
     const float tileSize = config.getTileSize();
-    
     int tilesCreated = 0;
-    for (int y = minY; y <= maxY; y += static_cast<int>(tileSize)) {
-        for (int x = minX; x <= maxX; x += static_cast<int>(tileSize)) {
-            WorldGen::TileCoord coord{x, y};
-            if (createTileFromData(coord)) {
-                tilesCreated++;
+    
+    // Iterate through all loaded chunks and create tiles from their pre-calculated positions
+    std::lock_guard<std::mutex> lock(chunkMutex);
+    for (const auto& [chunkCoord, chunkData] : chunks) {
+        if (!chunkData || !chunkData->isLoaded) {
+            continue; // Skip unloaded chunks
+        }
+        
+        // Create tiles from this chunk's terrain data
+        for (const auto& [localCoord, terrainData] : chunkData->tiles) {
+            // Use the pre-calculated game position from ChunkGenerator
+            glm::vec2 gamePos = terrainData.gamePosition;
+            
+            // Round to tile grid for consistent positioning
+            int pixelX = static_cast<int>(std::round(gamePos.x / tileSize)) * static_cast<int>(tileSize);
+            int pixelY = static_cast<int>(std::round(gamePos.y / tileSize)) * static_cast<int>(tileSize);
+            
+            WorldGen::TileCoord pixelCoord{pixelX, pixelY};
+            
+            // Check if tile already exists (shouldn't happen during initial load)
+            if (tiles.count(pixelCoord) > 0) {
+                continue;
             }
+            
+            // Create tile at the pre-calculated position
+            glm::vec2 tilePosForRendering(pixelX, pixelY);
+            auto tile = std::make_shared<Rendering::Tile>(
+                tilePosForRendering, terrainData.height, terrainData.resource, 
+                terrainData.type
+            );
+            
+            tiles[pixelCoord] = tile;
+            worldLayer->addItem(tile);
+            tile->setVisible(false); // Will be made visible by updateTileVisibility
+            
+            // Track which chunk this tile belongs to
+            tileToChunkMap[pixelCoord] = chunkCoord;
+            
+            tilesCreated++;
         }
     }
     
+    std::cout << "Created " << tilesCreated << " initial tiles from loaded chunks" << std::endl;
 }
 
 /**
@@ -768,8 +831,10 @@ bool World::createTileFromData(const WorldGen::TileCoord& coord) {
         glm::vec2 chunkOffset = thisChunkWorld - currentChunkWorld;
         
         // Convert chunk offset from meters to pixels
+        // Must match the conversion in integrateLoadedChunks: 1 meter = 10 pixels
         const float tilesPerMeter = config.getTilesPerMeter();
-        glm::vec2 chunkOffsetPixels = chunkOffset * tilesPerMeter;
+        const float metersToPixels = tileSize * tilesPerMeter; // 10 * 1.0 = 10 pixels/meter
+        glm::vec2 chunkOffsetPixels = chunkOffset * metersToPixels;
         
         // Convert pixel coordinate to local coordinate within this chunk
         int localX = static_cast<int>((coord.x - chunkOffsetPixels.x) / tileSize + chunkSize * 0.5f);
@@ -816,12 +881,107 @@ void World::logMemoryUsage() const {
     float tileMemoryKB = totalTiles * sizeof(Rendering::Tile) / 1024.0f;
     float totalMemoryKB = chunkMemoryKB + tileMemoryKB;
     
-    gameState.set("world.chunks", std::to_string(totalChunks));
+    gameState.set("world.loadedChunks", std::to_string(totalChunks));
     gameState.set("world.totalTiles", std::to_string(totalTiles));
     gameState.set("world.shownTiles", std::to_string(visibleTileCount));
     gameState.set("world.chunkMemKB", std::to_string(static_cast<int>(chunkMemoryKB)) + " KB");
     gameState.set("world.tileMemKB", std::to_string(static_cast<int>(tileMemoryKB)) + " KB");
     gameState.set("world.totalMemKB", std::to_string(static_cast<int>(totalMemoryKB)) + " KB");
+}
+
+void World::touchChunk(const WorldGen::Core::ChunkCoord& coord) {
+    /**
+     * Update the LRU access time for a chunk by moving it to the front of the list.
+     * This ensures recently accessed chunks stay in memory.
+     */
+    
+    // Only track chunks that are actually loaded
+    {
+        std::lock_guard<std::mutex> lock(chunkMutex);
+        if (chunks.count(coord) == 0) {
+            return;  // Don't track chunks that aren't loaded
+        }
+    }
+    
+    // If chunk is already tracked, remove it from its current position
+    auto mapIt = chunkAccessMap.find(coord);
+    if (mapIt != chunkAccessMap.end()) {
+        chunkAccessOrder.erase(mapIt->second);
+        chunkAccessMap.erase(mapIt);
+    }
+    
+    // Add to front of list (most recently used)
+    chunkAccessOrder.push_front(coord);
+    chunkAccessMap[coord] = chunkAccessOrder.begin();
+}
+
+void World::enforceChunkLimit() {
+    /**
+     * Remove the oldest chunks if we exceed the configured limit.
+     * This prevents memory from growing unbounded.
+     */
+    
+    auto& config = ConfigManager::getInstance();
+    const int maxChunks = config.getNumChunksToKeep();
+    
+    // Safety check: ensure we have more chunks than the limit
+    if (chunkAccessOrder.size() <= static_cast<size_t>(maxChunks)) {
+        return;
+    }
+    
+    // Remove chunks from the back of the list (least recently used)
+    while (chunkAccessOrder.size() > static_cast<size_t>(maxChunks)) {
+        // Safety check: never remove the last chunk
+        if (chunkAccessOrder.size() <= 1) {
+            break;
+        }
+        
+        WorldGen::Core::ChunkCoord oldestChunk = chunkAccessOrder.back();
+        
+        // Don't unload the current chunk - skip to next oldest
+        if (oldestChunk == currentChunk) {
+            // If we only have current chunk + 1 other, we can't remove anything
+            if (chunkAccessOrder.size() <= 2) {
+                break;
+            }
+            // Move current chunk to front
+            chunkAccessOrder.pop_back();
+            chunkAccessOrder.push_front(oldestChunk);
+            chunkAccessMap[oldestChunk] = chunkAccessOrder.begin();
+            continue;
+        }
+        
+        // Remove from LRU tracking
+        chunkAccessOrder.pop_back();
+        chunkAccessMap.erase(oldestChunk);
+        
+        // Remove all tiles belonging to this chunk
+        std::vector<WorldGen::TileCoord> tilesToRemove;
+        for (const auto& [tileCoord, chunkCoord] : tileToChunkMap) {
+            if (chunkCoord == oldestChunk) {
+                tilesToRemove.push_back(tileCoord);
+            }
+        }
+        
+        for (const auto& tileCoord : tilesToRemove) {
+            auto tileIt = tiles.find(tileCoord);
+            if (tileIt != tiles.end()) {
+                worldLayer->removeItem(tileIt->second);
+                tiles.erase(tileIt);
+                tileToChunkMap.erase(tileCoord);
+                visibleTiles.erase(tileCoord);
+            }
+        }
+        
+        // Remove chunk data
+        {
+            std::lock_guard<std::mutex> lock(chunkMutex);
+            chunks.erase(oldestChunk);
+        }
+        
+        // Remove from visibility tracking
+        chunksWithVisibleTiles.erase(oldestChunk);
+    }
 }
 
 glm::vec3 World::worldToSphere(const glm::vec2& worldPos) const {
@@ -907,6 +1067,19 @@ void World::checkAndLoadNearbyChunks() {
     // Calculate trigger distance in pixels
     int edgeTriggerPixels = edgeTriggerDistance * static_cast<int>(tileSize);
     
+    // DEBUG: Log the coordinate systems
+    static int debugCount = 0;
+    if (debugCount++ < 5) {
+        std::cout << "DEBUG: Current chunk world pos: (" << currentChunkWorld.x 
+                  << ", " << currentChunkWorld.y << ") meters" << std::endl;
+        std::cout << "DEBUG: Camera local pos: (" << camera->getPosition().x 
+                  << ", " << camera->getPosition().y << ") pixels" << std::endl;
+        std::cout << "DEBUG: Viewport range: [" << minX << "," << maxX 
+                  << "] x [" << minY << "," << maxY << "] pixels" << std::endl;
+        std::cout << "DEBUG: Chunk bounds: [" << chunkMinX << "," << chunkMaxX 
+                  << "] x [" << chunkMinY << "," << chunkMaxY << "] pixels" << std::endl;
+    }
+    
     // Debug output occasionally (only when needed for debugging)
     // Static vars commented out to avoid any potential issues
     // static int debugCounter = 0;
@@ -966,7 +1139,9 @@ void World::checkAndLoadNearbyChunks() {
         const float chunkSizeMeters = chunkSize / tilesPerMeter;
         
         for (const auto& offset : chunksToLoad) {
-            // Calculate neighbor chunk center in world coordinates
+            // COORDINATE FIX: Calculate neighbor chunk properly
+            // The offset is in chunk units (-1, 0, 1), multiply by chunk size in meters
+            // to get the actual distance to the neighbor chunk center
             glm::vec2 neighborWorld = currentChunkWorld + glm::vec2(offset.x * chunkSizeMeters, offset.y * chunkSizeMeters);
             
             // Convert to sphere coordinates
@@ -983,6 +1158,17 @@ void World::checkAndLoadNearbyChunks() {
             }
             
             if (needsLoading) {
+                // Get timestamp
+                auto now = std::chrono::system_clock::now();
+                auto time_t = std::chrono::system_clock::to_time_t(now);
+                auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+                
+                std::cout << "[" << std::put_time(std::localtime(&time_t), "%H:%M:%S") 
+                         << "." << std::setfill('0') << std::setw(3) << ms.count() << "] "
+                         << "Edge trigger: Requesting chunk at offset (" << offset.x << ", " << offset.y 
+                         << ") world pos (" << static_cast<int>(neighborWorld.x) << ", " 
+                         << static_cast<int>(neighborWorld.y) << ") - Camera at (" 
+                         << camera->getPosition().x << ", " << camera->getPosition().y << ")" << std::endl;
                 generateChunkAsync(neighborCoord);
             }
         }

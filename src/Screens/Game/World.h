@@ -7,6 +7,7 @@
 #include <queue>
 #include <mutex>
 #include <condition_variable>
+#include <list>
 #include <glm/glm.hpp>
 #include "../../VectorGraphics.h"
 #include "../../Camera.h"
@@ -60,6 +61,12 @@ private:
     
     // Track which chunk each tile belongs to
     std::unordered_map<WorldGen::TileCoord, WorldGen::Core::ChunkCoord> tileToChunkMap;
+    
+    // LRU chunk cache - tracks access order for memory management
+    // Most recently accessed chunks are at the front
+    std::list<WorldGen::Core::ChunkCoord> chunkAccessOrder;
+    // Quick lookup from chunk coord to position in the access list
+    std::unordered_map<WorldGen::Core::ChunkCoord, std::list<WorldGen::Core::ChunkCoord>::iterator> chunkAccessMap;
     
     // World configuration
     
@@ -118,6 +125,8 @@ private:
     void loadAdjacentChunks();
     void unloadDistantChunks();
     void integrateLoadedChunks();
+    void touchChunk(const WorldGen::Core::ChunkCoord& coord);  // Update LRU access time
+    void enforceChunkLimit();  // Remove oldest chunks if over limit
     
     void generateChunk(const WorldGen::Core::ChunkCoord& coord);
     void generateChunkAsync(const WorldGen::Core::ChunkCoord& coord);

@@ -88,6 +88,10 @@ struct TerrainData {
     
     // Reference to the source world tile this was sampled from
     int sourceWorldTileIndex = -1;  // -1 means no source (e.g., procedural generation)
+    
+    // World position in game coordinates (pixels)
+    // This is the final position where this tile should be rendered
+    glm::vec2 gamePosition;  // Position in pixels relative to world origin
 };
 
 } // namespace WorldGen

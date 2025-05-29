@@ -29,6 +29,7 @@ public:
     int getTileCullingOverscan() const { return tileCullingOverscan; }
     int getTileSampleRate() const { return tileSampleRate; }
     int getChunkEdgeTriggerDistance() const { return chunkEdgeTriggerDistance; }
+    int getNumChunksToKeep() const { return numChunksToKeep; }
 
 private:
     ConfigManager() = default;
@@ -54,6 +55,7 @@ private:
     int preloadRadius = 1;
     int unloadRadius = 2;
     int maxLoadedChunks = 9;
+    int numChunksToKeep = 25;
     int maxNewTilesPerFrame = 100;
     int tileCullingOverscan = 3;
     int tileSampleRate = 4;

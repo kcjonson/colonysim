@@ -129,9 +129,9 @@ void GameScreen::render() {
         // First batch: Render world (background layer)
         if (world) {
             try {
-                std::cout << "Rendering world..." << std::endl;
+                // std::cout << "Rendering world..." << std::endl;
                 world->render();
-                std::cout << "World rendered successfully" << std::endl;
+                // std::cout << "World rendered successfully" << std::endl;
             } catch (const std::exception& e) {
                 std::cerr << "ERROR: Exception during world rendering: " << e.what() << std::endl;
             } catch (...) {
