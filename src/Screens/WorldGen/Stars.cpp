@@ -8,15 +8,15 @@
 namespace WorldGen {
 
 Stars::Stars(Camera* camera, GLFWwindow* window)
-    : m_camera(camera), m_window(window) {
+    : camera(camera), window(window) {
     
     // Initialize star layer at z-index -100.0f for background
-    m_starLayer = std::make_shared<Rendering::Layer>(-100.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
+    starLayer = std::make_shared<Rendering::Layer>(-100.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
 }
 
 void Stars::generate(int width, int height) {
     // Clear the star layer
-    m_starLayer->clearItems();
+    starLayer->clearItems();
     
     // Create star background
     std::random_device rd;
@@ -42,13 +42,13 @@ void Stars::generate(int width, int height) {
                 .zIndex = -100.0f  // Z-index matching starLayer
             }
         );
-        m_starLayer->addItem(star);
+        starLayer->addItem(star);
     }
 }
 
 void Stars::render() {
     // Render the star layer
-    m_starLayer->render();
+    starLayer->render();
 }
 
 } // namespace WorldGen

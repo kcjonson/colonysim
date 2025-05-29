@@ -5,8 +5,8 @@
 namespace WorldGen {
 
 ProgressTracker::ProgressTracker()
-    : m_currentPhaseIndex(-1)
-    , m_startTime(std::chrono::steady_clock::now())
+    : currentPhaseIndex(-1)
+    , startTime(std::chrono::steady_clock::now())
 {
 }
 
@@ -16,65 +16,65 @@ ProgressTracker::~ProgressTracker()
 
 void ProgressTracker::SetCallback(ProgressCallback callback)
 {
-    m_callback = callback;
+    this->callback = callback;
 }
 
 void ProgressTracker::AddPhase(const std::string& name, float weight)
 {
-    m_phases.push_back({name, weight, 0.0f});
+    phases.push_back({name, weight, 0.0f});
 }
 
 void ProgressTracker::StartPhase(const std::string& phaseName)
 {
     // Find the phase by name
-    auto it = std::find_if(m_phases.begin(), m_phases.end(),
+    auto it = std::find_if(phases.begin(), phases.end(),
         [&phaseName](const PhaseInfo& phase) { return phase.name == phaseName; });
     
-    if (it != m_phases.end()) {
-        m_currentPhaseIndex = std::distance(m_phases.begin(), it);
-        m_phases[m_currentPhaseIndex].progress = 0.0f;
-        m_currentMessage = "Starting " + phaseName;
+    if (it != phases.end()) {
+        currentPhaseIndex = std::distance(phases.begin(), it);
+        phases[currentPhaseIndex].progress = 0.0f;
+        currentMessage = "Starting " + phaseName;
         
-        if (m_callback) {
-            m_callback(GetOverallProgress(), m_currentMessage);
+        if (callback) {
+            callback(GetOverallProgress(), currentMessage);
         }
     }
 }
 
 void ProgressTracker::UpdateProgress(float progress, const std::string& message)
 {
-    if (m_currentPhaseIndex >= 0 && m_currentPhaseIndex < m_phases.size()) {
-        m_phases[m_currentPhaseIndex].progress = std::clamp(progress, 0.0f, 1.0f);
-        m_currentMessage = message;
+    if (currentPhaseIndex >= 0 && currentPhaseIndex < phases.size()) {
+        phases[currentPhaseIndex].progress = std::clamp(progress, 0.0f, 1.0f);
+        currentMessage = message;
 
         // std::cout << message << std::endl; // Debug output
         
-        if (m_callback) {
-            m_callback(GetOverallProgress(), m_currentMessage);
+        if (callback) {
+            callback(GetOverallProgress(), currentMessage);
         }
     }
 }
 
 void ProgressTracker::CompletePhase()
 {
-    if (m_currentPhaseIndex >= 0 && m_currentPhaseIndex < m_phases.size()) {
-        m_phases[m_currentPhaseIndex].progress = 1.0f;
-        m_currentMessage = "Completed " + m_phases[m_currentPhaseIndex].name;
+    if (currentPhaseIndex >= 0 && currentPhaseIndex < phases.size()) {
+        phases[currentPhaseIndex].progress = 1.0f;
+        currentMessage = "Completed " + phases[currentPhaseIndex].name;
         
-        if (m_callback) {
-            m_callback(GetOverallProgress(), m_currentMessage);
+        if (callback) {
+            callback(GetOverallProgress(), currentMessage);
         }
     }
 }
 
 float ProgressTracker::GetOverallProgress() const
 {
-    if (m_phases.empty()) return 0.0f;
+    if (phases.empty()) return 0.0f;
     
     float totalWeight = 0.0f;
     float weightedProgress = 0.0f;
     
-    for (const auto& phase : m_phases) {
+    for (const auto& phase : phases) {
         totalWeight += phase.weight;
         weightedProgress += phase.weight * phase.progress;
     }
@@ -84,10 +84,10 @@ float ProgressTracker::GetOverallProgress() const
 
 int ProgressTracker::GetEstimatedSecondsRemaining() const
 {
-    if (m_phases.empty() || m_currentPhaseIndex < 0) return 0;
+    if (phases.empty() || currentPhaseIndex < 0) return 0;
     
     auto now = std::chrono::steady_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - m_startTime).count();
+    auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count();
     
     float progress = GetOverallProgress();
     if (progress <= 0.0f) return 0;
@@ -98,8 +98,8 @@ int ProgressTracker::GetEstimatedSecondsRemaining() const
 
 const std::string& ProgressTracker::GetCurrentPhase() const
 {
-    if (m_currentPhaseIndex >= 0 && m_currentPhaseIndex < m_phases.size()) {
-        return m_phases[m_currentPhaseIndex].name;
+    if (currentPhaseIndex >= 0 && currentPhaseIndex < phases.size()) {
+        return phases[currentPhaseIndex].name;
     }
     static const std::string empty;
     return empty;
@@ -107,15 +107,15 @@ const std::string& ProgressTracker::GetCurrentPhase() const
 
 const std::string& ProgressTracker::GetCurrentMessage() const
 {
-    return m_currentMessage;
+    return currentMessage;
 }
 
 void ProgressTracker::Reset()
 {
-    m_phases.clear();
-    m_currentPhaseIndex = -1;
-    m_currentMessage.clear();
-    m_startTime = std::chrono::steady_clock::now();
+    phases.clear();
+    currentPhaseIndex = -1;
+    currentMessage.clear();
+    startTime = std::chrono::steady_clock::now();
 }
 
 } // namespace WorldGen 

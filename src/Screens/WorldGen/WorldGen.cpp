@@ -18,7 +18,7 @@
 #endif
 
 // Initialize the static instances map
-std::unordered_map<GLFWwindow*, WorldGenScreen*> WorldGenScreen::s_instances;
+std::unordered_map<GLFWwindow*, WorldGenScreen*> WorldGenScreen::instances;
 
 // Update constructor definition to accept Camera* and GLFWwindow*
 WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window): 
@@ -28,23 +28,23 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window):
     , worldHeight(256)
     , waterLevel(0.4f)
     , worldGenerated(false)
-    , m_cameraDistance(5.0f)
-    , m_rotationAngle(0.0f)
-    , m_isDragging(false)
-    , m_window(window) {
+    , cameraDistance(5.0f)
+    , rotationAngle(0.0f)
+    , isDragging(false)
+    , window(window) {
     
     // Register this instance in the static map
-    s_instances[window] = this;
+    instances[window] = this;
       // Create a central progress tracker with a callback to update the UI
-    m_progressTracker = std::make_shared<WorldGen::ProgressTracker>();
+    progressTracker = std::make_shared<WorldGen::ProgressTracker>();
     
     // Initialize Stars
-    m_stars = std::make_unique<WorldGen::Stars>(camera, window);
+    stars = std::make_unique<WorldGen::Stars>(camera, window);
     
     // Initialize WorldGenUI
-    m_worldGenUI = std::make_unique<WorldGen::WorldGenUI>(camera, window);
+    worldGenUI = std::make_unique<WorldGen::WorldGenUI>(camera, window);
 
-    m_planetParams = WorldGen::PlanetParameters();
+    planetParams = WorldGen::PlanetParameters();
 
     // Planet parameters are initialized with defaults
     // Seed is now managed separately through the UI
@@ -52,39 +52,39 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window):
 
 WorldGenScreen::~WorldGenScreen() {
     // Signal threads to stop
-    m_shouldStopGeneration = true;
-    m_shouldStopGameWorldCreation = true;
+    shouldStopGeneration = true;
+    shouldStopGameWorldCreation = true;
     
     // Wait for threads to finish
-    if (m_generationThread.joinable()) {
-        m_generationThread.join();
+    if (generationThread.joinable()) {
+        generationThread.join();
     }
     
-    if (m_gameWorldThread.joinable()) {
-        m_gameWorldThread.join();
+    if (gameWorldThread.joinable()) {
+        gameWorldThread.join();
     }
     
     // Remove scroll callback
-    if (m_window) {
-        glfwSetScrollCallback(m_window, nullptr);
+    if (window) {
+        glfwSetScrollCallback(window, nullptr);
         // Remove this instance from the static map
-        s_instances.erase(m_window);
+        instances.erase(window);
     }
 }
 
 bool WorldGenScreen::initialize() {
     // Initialize UI
-    if (!m_worldGenUI->initialize()) {
+    if (!worldGenUI->initialize()) {
         std::cerr << "Failed to initialize world gen UI" << std::endl;
         return false;
     }
     
     // Set up the progress tracker callback now that UI is initialized
-    m_progressTracker->SetCallback([this](float progress, const std::string& message) {
-        std::lock_guard<std::mutex> lock(m_progressMutex);
-        m_latestProgress.progress = progress;
-        m_latestProgress.message = message;
-        m_latestProgress.hasUpdate = true;
+    progressTracker->SetCallback([this](float progress, const std::string& message) {
+        std::lock_guard<std::mutex> lock(progressMutex);
+        latestProgress.progress = progress;
+        latestProgress.message = message;
+        latestProgress.hasUpdate = true;
     });
     
     // Set up OpenGL blending for transparency
@@ -92,83 +92,83 @@ bool WorldGenScreen::initialize() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     // Set up scroll callback without overriding window user pointer
-    glfwSetScrollCallback(m_window, scrollCallback);    // Initialize world object and renderer, but don't generate the world yet
-    m_world = std::make_unique<WorldGen::Generators::World>(m_planetParams, 12345, m_progressTracker);
-    m_worldRenderer = std::make_unique<WorldGen::Renderers::World>();
-    m_landingLocation = std::make_unique<WorldGen::Renderers::LandingLocation>(m_worldRenderer.get());
+    glfwSetScrollCallback(window, scrollCallback);    // Initialize world object and renderer, but don't generate the world yet
+    world = std::make_unique<WorldGen::Generators::World>(planetParams, 12345, progressTracker);
+    worldRenderer = std::make_unique<WorldGen::Renderers::World>();
+    landingLocation = std::make_unique<WorldGen::Renderers::LandingLocation>(worldRenderer.get());
     
     std::cout << "Initializing world renderer and landing location..." << std::endl;
-      m_worldRenderer->SetWorld(m_world.get());
-    m_landingLocation->SetWorld(m_world.get());
+      worldRenderer->SetWorld(world.get());
+    landingLocation->SetWorld(world.get());
     
     // No longer generate a dummy location - we'll use the cursor
-    // m_landingLocation->GenerateDummyLocation();
+    // landingLocation->GenerateDummyLocation();
     
     std::cout << "World renderer and landing location initialized" << std::endl;
 
     // Initialize the projection matrix
     int windowWidth, windowHeight;
-    glfwGetWindowSize(m_window, &windowWidth, &windowHeight);
-    m_projectionMatrix = glm::perspective(glm::radians(45.0f), static_cast<float>(windowWidth) / windowHeight, 0.1f, 100.0f);
+    glfwGetWindowSize(window, &windowWidth, &windowHeight);
+    projectionMatrix = glm::perspective(glm::radians(45.0f), static_cast<float>(windowWidth) / windowHeight, 0.1f, 100.0f);
       // Initialize the view matrix
     // Adjust camera distance based on world radius (if world is generated)
-    m_cameraDistance = 2.5f; // Default camera distance
-    m_viewMatrix = glm::lookAt(
-        glm::vec3(0.0f, 0.0f, m_cameraDistance),  // Camera position
+    cameraDistance = 2.5f; // Default camera distance
+    viewMatrix = glm::lookAt(
+        glm::vec3(0.0f, 0.0f, cameraDistance),  // Camera position
         glm::vec3(0.0f, 0.0f, 0.0f),              // Look at origin
         glm::vec3(0.0f, 1.0f, 0.0f)               // Up vector
     );      // Register event handlers for UI events
 
     // Generate World button event
-    m_worldGenUI->addEventListener(WorldGen::UIEvent::GenerateWorld, [this]() {
+    worldGenUI->addEventListener(WorldGen::UIEvent::GenerateWorld, [this]() {
         std::cout << "Generate World button clicked" << std::endl;
         // Switch to generating state
-        m_worldGenUI->setState(WorldGen::UIState::Generating);
+        worldGenUI->setState(WorldGen::UIState::Generating);
         
         // Get seed from UI (seed is no longer part of PlanetParameters)
-        m_currentSeed = m_worldGenUI->getCurrentSeed();
+        currentSeed = worldGenUI->getCurrentSeed();
         
         // Reset the progress tracker
-        m_progressTracker->Reset();
+        progressTracker->Reset();
         
         // Stop any existing generation thread
-        if (m_isGenerating) {
-            m_shouldStopGeneration = true;
-            if (m_generationThread.joinable()) {
-                m_generationThread.join();
+        if (isGenerating) {
+            shouldStopGeneration = true;
+            if (generationThread.joinable()) {
+                generationThread.join();
             }
-            m_shouldStopGeneration = false;
+            shouldStopGeneration = false;
         }
         
         // Start a new generation thread
-        m_isGenerating = true;
-        m_generationThread = std::thread(&WorldGenScreen::worldGenerationThreadFunc, this);
+        isGenerating = true;
+        generationThread = std::thread(&WorldGenScreen::worldGenerationThreadFunc, this);
     });
     
     // Land button event
-    m_worldGenUI->addEventListener(WorldGen::UIEvent::GoToLand, [this]() {
+    worldGenUI->addEventListener(WorldGen::UIEvent::GoToLand, [this]() {
         if (!worldGenerated) {
             // If world is not generated, log an error message and return early
             std::cerr << "ERROR: World must be generated before proceeding to land view" << std::endl;
-            m_worldGenUI->setState(WorldGen::UIState::ParameterSetup);
+            worldGenUI->setState(WorldGen::UIState::ParameterSetup);
             return;
         }        std::cout << "Land on World button clicked" << std::endl;
         
         // Don't start a new thread if we're already creating a game world
-        if (m_isCreatingGameWorld) {
+        if (isCreatingGameWorld) {
             std::cout << "Already creating game world, please wait..." << std::endl;
             return;
         }
         
         // Create a new game world from the generator world in a background thread
         // Use the progress tracker directly
-        m_progressTracker->Reset();
-        m_progressTracker->AddPhase("Converting", 0.8f);
-        m_progressTracker->AddPhase("Finalizing", 0.2f);
+        progressTracker->Reset();
+        progressTracker->AddPhase("Converting", 0.8f);
+        progressTracker->AddPhase("Finalizing", 0.2f);
         
         // Calculate sample rate based on world complexity - higher subdivisions need higher sampling
-        float subdivisionLevel = static_cast<float>(m_planetParams.resolution);
-        float worldRadius = m_world->GetRadius();
+        float subdivisionLevel = static_cast<float>(planetParams.resolution);
+        float worldRadius = world->GetRadius();
         
         // More aggressive clamping of subdivision level
         // A subdivision level of 5 is already quite detailed and produces a high-quality map
@@ -197,28 +197,28 @@ bool WorldGenScreen::initialize() {
         }
         
         // Set up the parameters for the game world creation thread
-        m_gameWorldParams.sampleRate = sampleRate;
-        m_gameWorldParams.camera = camera;
-        m_gameWorldParams.gameState = gameState;
-        m_gameWorldParams.window = m_window;
-        m_gameWorldParams.seed = std::to_string(m_currentSeed);
+        gameWorldParams.sampleRate = sampleRate;
+        gameWorldParams.camera = camera;
+        gameWorldParams.gameState = gameState;
+        gameWorldParams.window = window;
+        gameWorldParams.seed = std::to_string(currentSeed);
         
         // Set flag to indicate we're creating a game world
-        m_isCreatingGameWorld = true;
+        isCreatingGameWorld = true;
         
         // Show loading UI
-        m_worldGenUI->setState(WorldGen::UIState::LoadingGameWorld);
+        worldGenUI->setState(WorldGen::UIState::LoadingGameWorld);
         
         // Start the game world creation thread
         std::cout << "Starting game world creation thread..." << std::endl;
-        m_gameWorldThread = std::thread(&WorldGenScreen::gameWorldCreationThreadFunc, this);
+        gameWorldThread = std::thread(&WorldGenScreen::gameWorldCreationThreadFunc, this);
     });
     
     // Back button event
-    m_worldGenUI->addEventListener(WorldGen::UIEvent::Back, [this]() {
+    worldGenUI->addEventListener(WorldGen::UIEvent::Back, [this]() {
         // Reset OpenGL state before switching screens
         int width, height;
-        glfwGetWindowSize(m_window, &width, &height);
+        glfwGetWindowSize(window, &width, &height);
         glViewport(0, 0, width, height);  // Reset to full window viewport
         glDisable(GL_DEPTH_TEST);         // Disable depth testing
         glEnable(GL_BLEND);               // Ensure blending is enabled
@@ -229,12 +229,12 @@ bool WorldGenScreen::initialize() {
     });
     
     // Set initial UI state
-    m_worldGenUI->setState(WorldGen::UIState::ParameterSetup);
+    worldGenUI->setState(WorldGen::UIState::ParameterSetup);
       // Set initial UI layout
     int width, height;
-    glfwGetWindowSize(m_window, &width, &height);
-    m_stars->generate(width, height);
-    m_worldGenUI->onResize(width, height);
+    glfwGetWindowSize(window, &width, &height);
+    stars->generate(width, height);
+    worldGenUI->onResize(width, height);
     
     return true;
 }
@@ -245,15 +245,15 @@ void WorldGenScreen::update(float deltaTime) {
     
     // Rest of existing update code...
     // If world is generated, adjust camera distance based on world radius
-    if (worldGenerated && m_world) {
+    if (worldGenerated && world) {
         // Set the camera distance based on the world's radius (add a margin for better visibility)
-        float worldRadius = m_world->GetRadius();
-        m_cameraDistance = worldRadius * 2.5f;
+        float worldRadius = world->GetRadius();
+        cameraDistance = worldRadius * 2.5f;
     }
 
     // Update camera matrices
-    m_viewMatrix = glm::lookAt(
-        glm::vec3(0.0f, 0.0f, m_cameraDistance),
+    viewMatrix = glm::lookAt(
+        glm::vec3(0.0f, 0.0f, cameraDistance),
         glm::vec3(0.0f, 0.0f, 0.0f),
         glm::vec3(0.0f, 1.0f, 0.0f)
     );
@@ -261,23 +261,23 @@ void WorldGenScreen::update(float deltaTime) {
     // Update model-view matrix with current rotation
     glm::mat4 rotationMatrix = glm::rotate(
         glm::mat4(1.0f),
-        m_rotationAngle,
+        rotationAngle,
         glm::vec3(0.0f, 1.0f, 0.0f)
     );
     
-    m_viewMatrix = m_viewMatrix * rotationMatrix;
+    viewMatrix = viewMatrix * rotationMatrix;
     
     // Update projection matrix - use full width for proper aspect ratio
     int width, height;
-    glfwGetWindowSize(m_window, &width, &height);
-    m_projectionMatrix = glm::perspective(
+    glfwGetWindowSize(window, &width, &height);
+    projectionMatrix = glm::perspective(
         glm::radians(45.0f),
         static_cast<float>(width) / height,
         0.1f,
         100.0f
     );
 
-    m_worldGenUI->update(deltaTime);
+    worldGenUI->update(deltaTime);
 }
 
 void WorldGenScreen::render() {
@@ -287,11 +287,11 @@ void WorldGenScreen::render() {
     
     // Get window size for UI calculations (logical pixels)
     int width, height;
-    glfwGetWindowSize(m_window, &width, &height);
+    glfwGetWindowSize(window, &width, &height);
     
     // Get framebuffer size for viewport (physical pixels)
     int fbWidth, fbHeight;
-    glfwGetFramebufferSize(m_window, &fbWidth, &fbHeight);
+    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
     
     // Use the full window viewport for all rendering
     glViewport(0, 0, fbWidth, fbHeight);
@@ -300,15 +300,15 @@ void WorldGenScreen::render() {
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    m_stars->render();    // --- Render the icosahedron world if generated ---
+    stars->render();    // --- Render the icosahedron world if generated ---
 
-    if (worldGenerated && m_world && m_worldRenderer) {
+    if (worldGenerated && world && worldRenderer) {
         // Enable depth testing for 3D rendering
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
         
         // Only render in the main area (not over sidebar)
-        float sidebarWidth = m_worldGenUI->getSidebarWidth();
+        float sidebarWidth = worldGenUI->getSidebarWidth();
         // Convert logical sidebar width to physical pixels using pixel ratio
         auto& coordSys = CoordinateSystem::getInstance();
         float pixelRatio = coordSys.getPixelRatio();
@@ -327,12 +327,12 @@ void WorldGenScreen::render() {
             0.1f,                 // Near plane
             100.0f                // Far plane
         );        // Render the world with adjusted projection
-        m_worldRenderer->Render(m_viewMatrix, adjustedProjection);
+        worldRenderer->Render(viewMatrix, adjustedProjection);
         
         // Render the landing location indicator
-        if (m_landingLocation) {
+        if (landingLocation) {
             // std::cout << "Rendering landing location indicator" << std::endl;
-            m_landingLocation->Render(m_viewMatrix, adjustedProjection);
+            landingLocation->Render(viewMatrix, adjustedProjection);
         }
         
         // Fully reset OpenGL state for UI rendering
@@ -349,32 +349,32 @@ void WorldGenScreen::render() {
     }
 
     // --- Render UI layers ---
-    m_worldGenUI->render();
+    worldGenUI->render();
 }
 
 void WorldGenScreen::handleInput(float deltaTime) {
     // Get mouse position
     double xpos, ypos;
-    glfwGetCursorPos(m_window, &xpos, &ypos);
+    glfwGetCursorPos(window, &xpos, &ypos);
     float mouseX = static_cast<float>(xpos);
     float mouseY = static_cast<float>(ypos);
     
     // Only process mouse input if cursor is in the planet view area (right side of screen)
-    if (mouseX > m_worldGenUI->getSidebarWidth()) {
+    if (mouseX > worldGenUI->getSidebarWidth()) {
           // Handle mouse clicks
-        bool isLeftButtonPressed = glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+        bool isLeftButtonPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
         static bool wasLeftButtonPressed = false;
         static float mouseDownX = 0.0f; // Track where the mouse was first pressed
         static float mouseDownY = 0.0f;
         static bool hasDragged = false;
           // If we have a world and landing location renderer...
-        if (m_landingLocation && m_world && worldGenerated) {
+        if (landingLocation && world && worldGenerated) {
             int width, height;
-            glfwGetWindowSize(m_window, &width, &height);
+            glfwGetWindowSize(window, &width, &height);
           // Always update landing location based on mouse position
             // if a location hasn't been selected yet
-            if (!m_landingLocation->HasLocationSelected()) {                // Adjust mouse coordinates for the sidebar offset
-                float sidebarWidth = m_worldGenUI->getSidebarWidth();
+            if (!landingLocation->HasLocationSelected()) {                // Adjust mouse coordinates for the sidebar offset
+                float sidebarWidth = worldGenUI->getSidebarWidth();
                 float adjustedMouseX = mouseX - sidebarWidth; // Subtract sidebar width
                 
                 // Calculate viewport dimensions
@@ -391,9 +391,9 @@ void WorldGenScreen::handleInput(float deltaTime) {
                     100.0f                // Far plane
                 );
                 
-                m_landingLocation->UpdateFromMousePosition(
+                landingLocation->UpdateFromMousePosition(
                     adjustedMouseX, mouseY, 
-                    m_viewMatrix, adjustedProjection, // Use the same adjusted projection as for rendering 
+                    viewMatrix, adjustedProjection, // Use the same adjusted projection as for rendering 
                     renderWidth, renderHeight
                 );
             }
@@ -405,12 +405,12 @@ void WorldGenScreen::handleInput(float deltaTime) {
                 hasDragged = false;
                 
                 // Start potential dragging for planet rotation
-                m_isDragging = true;
+                isDragging = true;
                 lastCursorX = mouseX;
                 lastCursorY = mouseY;
             }
             // If dragging, update rotation
-            else if (isLeftButtonPressed && m_isDragging) {
+            else if (isLeftButtonPressed && isDragging) {
                 float deltaX = mouseX - lastCursorX;
                 float deltaY = mouseY - lastCursorY;
                 
@@ -419,14 +419,14 @@ void WorldGenScreen::handleInput(float deltaTime) {
                     hasDragged = true;
                 }
                 
-                m_rotationAngle += deltaX * 0.01f;
+                rotationAngle += deltaX * 0.01f;
                 lastCursorX = mouseX;
                 lastCursorY = mouseY;
             }
             // If button released, handle click or end dragging
             else if (!isLeftButtonPressed && wasLeftButtonPressed) {
                 // Button has just been released
-                m_isDragging = false;
+                isDragging = false;
                 
                 // Only consider it a click if the mouse hasn't moved much (not a drag)
                 float distMoved = std::sqrt(std::pow(mouseX - mouseDownX, 2) + std::pow(mouseY - mouseDownY, 2));
@@ -435,12 +435,12 @@ void WorldGenScreen::handleInput(float deltaTime) {
                     // It's a click, not a drag
                     
                     // If we already have a location selected, unselect it
-                    if (m_landingLocation->HasLocationSelected()) {
-                        m_landingLocation->Reset();
+                    if (landingLocation->HasLocationSelected()) {
+                        landingLocation->Reset();
                         std::cout << "Landing location unselected!" << std::endl;
                     }
                     // Otherwise try to select a new landing location
-                    else if (m_landingLocation->SelectCurrentLocation()) {
+                    else if (landingLocation->SelectCurrentLocation()) {
                         std::cout << "Landing location selected!" << std::endl;
                     }
                 }
@@ -448,47 +448,47 @@ void WorldGenScreen::handleInput(float deltaTime) {
         }
         // If no world/landing location but mouse pressed, handle just planet rotation
         else if (isLeftButtonPressed) {
-            if (!m_isDragging) {
-                m_isDragging = true;
+            if (!isDragging) {
+                isDragging = true;
                 lastCursorX = mouseX;
                 lastCursorY = mouseY;
             } else {
                 float deltaX = mouseX - lastCursorX;
-                m_rotationAngle += deltaX * 0.01f;
+                rotationAngle += deltaX * 0.01f;
                 lastCursorX = mouseX;
                 lastCursorY = mouseY;
             }
         } else {
-            m_isDragging = false;
+            isDragging = false;
         }
         
         wasLeftButtonPressed = isLeftButtonPressed;
     }
       // Check for ESC key to go back to main menu
-    if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         screenManager->switchScreen(ScreenType::MainMenu);
     }
     
     // Check for 'R' key to reset landing location
     static bool wasRPressed = false;
-    bool isRPressed = glfwGetKey(m_window, GLFW_KEY_R) == GLFW_PRESS;
+    bool isRPressed = glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS;
     if (isRPressed && !wasRPressed) {
-        if (m_landingLocation) {
-            m_landingLocation->Reset();
+        if (landingLocation) {
+            landingLocation->Reset();
             std::cout << "Landing location reset!" << std::endl;
         }
     }
     wasRPressed = isRPressed;
 
-    m_worldGenUI->handleInput(deltaTime);
+    worldGenUI->handleInput(deltaTime);
 }
 
 void WorldGenScreen::onResize(int width, int height) {
     // Update UI layout
-    m_worldGenUI->onResize(width, height);
+    worldGenUI->onResize(width, height);
     
     // Update projection matrix
-    m_projectionMatrix = glm::perspective(
+    projectionMatrix = glm::perspective(
         glm::radians(45.0f),
         static_cast<float>(width) / height,
         0.1f,
@@ -502,23 +502,23 @@ bool WorldGenScreen::isPointInRect(float px, float py, float rx, float ry, float
 
 void WorldGenScreen::handleScroll(double xoffset, double yoffset) {
     // Adjust camera distance with scroll wheel (zoom in/out)
-    m_cameraDistance -= static_cast<float>(yoffset) * 0.5f;
+    cameraDistance -= static_cast<float>(yoffset) * 0.5f;
     
     // Clamp to reasonable limits
-    m_cameraDistance = std::max(1.5f, std::min(10.0f, m_cameraDistance));
+    cameraDistance = std::max(1.5f, std::min(10.0f, cameraDistance));
 }
 
 // Static callback that routes scroll events to the right instance
 void WorldGenScreen::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
-    auto it = s_instances.find(window);
-    if (it != s_instances.end()) {
+    auto it = instances.find(window);
+    if (it != instances.end()) {
         it->second->handleScroll(xoffset, yoffset);
     }
 }
 
 // Convert the icosahedron world to terrain data
 void WorldGenScreen::convertWorldToTerrainData() {
-    if (!m_world) {
+    if (!world) {
         std::cerr << "ERROR: World not initialized for conversion" << std::endl;
         return;
     }
@@ -527,7 +527,7 @@ void WorldGenScreen::convertWorldToTerrainData() {
     generatedTerrainData.clear();
     
     // Get the tiles from the world
-    const auto& tiles = m_world->GetTiles();
+    const auto& tiles = world->GetTiles();
     
     // Counters for terrain types
     int waterTileCount = 0;
@@ -535,8 +535,8 @@ void WorldGenScreen::convertWorldToTerrainData() {
     int totalTileCount = 0;
     
     // Report starting conversion
-    if (m_progressTracker) {
-        m_progressTracker->UpdateProgress(0.1f, "Starting terrain conversion...");
+    if (progressTracker) {
+        progressTracker->UpdateProgress(0.1f, "Starting terrain conversion...");
     }
     
     // Track progress
@@ -549,7 +549,7 @@ void WorldGenScreen::convertWorldToTerrainData() {
         
         // Convert 3D position to longitude/latitude
         float longitude = std::atan2(center.z, center.x);
-        float latitude = std::asin(center.y / m_world->GetRadius());
+        float latitude = std::asin(center.y / world->GetRadius());
         
         // Convert longitude/latitude to grid coordinates
         int x = static_cast<int>((longitude / (2.0f * 3.14159f) + 0.5f) * worldWidth);
@@ -624,18 +624,18 @@ void WorldGenScreen::convertWorldToTerrainData() {
         generatedTerrainData[{x, y}] = terrainData;
         
         // Update progress every 1000 tiles
-        if (m_progressTracker && i % 1000 == 0) {
+        if (progressTracker && i % 1000 == 0) {
             float progress = 0.1f + (static_cast<float>(i) / totalTiles) * 0.8f;
             std::string message = "Converting tiles to terrain data (" + 
                                  std::to_string(i) + " of " + 
                                  std::to_string(totalTiles) + ")";
-            m_progressTracker->UpdateProgress(progress, message);
+            progressTracker->UpdateProgress(progress, message);
         }
     }
     
     // Signal completion
-    if (m_progressTracker) {
-        m_progressTracker->UpdateProgress(0.9f, "Analyzing terrain data...");
+    if (progressTracker) {
+        progressTracker->UpdateProgress(0.9f, "Analyzing terrain data...");
     }
     
     // Log tile statistics with more detailed information
@@ -674,19 +674,19 @@ void WorldGenScreen::convertWorldToTerrainData() {
     std::cout << "================================================\n" << std::endl;
     
     // Signal final completion
-    if (m_progressTracker) {
-        m_progressTracker->UpdateProgress(1.0f, "Terrain conversion complete!");
+    if (progressTracker) {
+        progressTracker->UpdateProgress(1.0f, "Terrain conversion complete!");
     }
 }
 
 void WorldGenScreen::worldGenerationThreadFunc() {
     try {
         // Generate the world in this background thread
-        m_world = WorldGen::Generators::Generator::CreateWorld(m_planetParams, m_currentSeed, m_progressTracker);
+        world = WorldGen::Generators::Generator::CreateWorld(planetParams, currentSeed, progressTracker);
         
         // Check if we should stop
-        if (m_shouldStopGeneration) {
-            m_isGenerating = false;
+        if (shouldStopGeneration) {
+            isGenerating = false;
             return;
         }
         
@@ -694,119 +694,119 @@ void WorldGenScreen::worldGenerationThreadFunc() {
         worldGenerated = true;
         
         // Set final completion progress
-        std::lock_guard<std::mutex> lock(m_progressMutex);
-        m_latestProgress.progress = 1.0f;
-        m_latestProgress.message = "World generation complete!";
-        m_latestProgress.hasUpdate = true;
+        std::lock_guard<std::mutex> lock(progressMutex);
+        latestProgress.progress = 1.0f;
+        latestProgress.message = "World generation complete!";
+        latestProgress.hasUpdate = true;
     }
     catch (const std::exception& e) {
         // Handle any exceptions
-        std::lock_guard<std::mutex> lock(m_progressMutex);
-        m_latestProgress.progress = 0.0f;
-        m_latestProgress.message = std::string("Error: ") + e.what();
-        m_latestProgress.hasUpdate = true;
+        std::lock_guard<std::mutex> lock(progressMutex);
+        latestProgress.progress = 0.0f;
+        latestProgress.message = std::string("Error: ") + e.what();
+        latestProgress.hasUpdate = true;
     }
     
-    m_isGenerating = false;
+    isGenerating = false;
 }
 
 // New method for creating the game world in a background thread
 void WorldGenScreen::gameWorldCreationThreadFunc() {
     try {
         // Update progress tracker
-        m_progressTracker->StartPhase("Converting");
+        progressTracker->StartPhase("Converting");
         
         // Get the parameters
-        float sampleRate = m_gameWorldParams.sampleRate;
-        Camera* camera = m_gameWorldParams.camera;
-        GameState* gameState = m_gameWorldParams.gameState;
-        GLFWwindow* window = m_gameWorldParams.window;
-        std::string seed = m_gameWorldParams.seed;
+        float sampleRate = gameWorldParams.sampleRate;
+        Camera* camera = gameWorldParams.camera;
+        GameState* gameState = gameWorldParams.gameState;
+        GLFWwindow* window = gameWorldParams.window;
+        std::string seed = gameWorldParams.seed;
         
         // Check if we should stop
-        if (m_shouldStopGameWorldCreation) {
-            std::lock_guard<std::mutex> lock(m_progressMutex);
-            m_latestProgress.progress = 0.0f;
-            m_latestProgress.message = "Game world creation canceled";
-            m_latestProgress.hasUpdate = true;
-            m_isCreatingGameWorld = false;
+        if (shouldStopGameWorldCreation) {
+            std::lock_guard<std::mutex> lock(progressMutex);
+            latestProgress.progress = 0.0f;
+            latestProgress.message = "Game world creation canceled";
+            latestProgress.hasUpdate = true;
+            isCreatingGameWorld = false;
             return;
         }
         
         // Get landing location from the landing location renderer
-        glm::vec3 landingLocation = m_landingLocation->GetSelectedLocation();
+        glm::vec3 landingPos = landingLocation->GetSelectedLocation();
         
         // Generate initial chunk at landing location
-        auto initialChunk = WorldGen::Core::generateInitialChunk(*m_world, landingLocation);
+        auto initialChunk = WorldGen::Core::generateInitialChunk(*world, landingPos);
         
         // Create the new World with chunked loading
-        m_newWorld = std::make_unique<World>(
+        newWorld = std::make_unique<World>(
             *gameState,       // Game state
             seed,             // Seed
             camera,           // Camera
             window,           // Window
-            m_world.get(),    // Spherical world reference
+            world.get(),    // Spherical world reference
             std::move(initialChunk), // Initial chunk
-            landingLocation   // Landing location
+            landingPos   // Landing location
         );
         
         // Check if we should stop
-        if (m_shouldStopGameWorldCreation) {
-            std::lock_guard<std::mutex> lock(m_progressMutex);
-            m_latestProgress.progress = 0.0f;
-            m_latestProgress.message = "Game world creation canceled";
-            m_latestProgress.hasUpdate = true;
-            m_isCreatingGameWorld = false;
-            m_newWorld = nullptr; // Clean up if we're stopping
+        if (shouldStopGameWorldCreation) {
+            std::lock_guard<std::mutex> lock(progressMutex);
+            latestProgress.progress = 0.0f;
+            latestProgress.message = "Game world creation canceled";
+            latestProgress.hasUpdate = true;
+            isCreatingGameWorld = false;
+            newWorld = nullptr; // Clean up if we're stopping
             return;
         }
         
         // Check if game world creation was successful
-        if (!m_newWorld) {
-            std::lock_guard<std::mutex> lock(m_progressMutex);
-            m_latestProgress.progress = 0.0f;
-            m_latestProgress.message = "Failed to create game world";
-            m_latestProgress.hasUpdate = true;
-            m_isCreatingGameWorld = false;
+        if (!newWorld) {
+            std::lock_guard<std::mutex> lock(progressMutex);
+            latestProgress.progress = 0.0f;
+            latestProgress.message = "Failed to create game world";
+            latestProgress.hasUpdate = true;
+            isCreatingGameWorld = false;
             return;
         }
         
         // Initialize the world (loads tiles into rendering system)
-        if (!m_newWorld->initialize()) {
-            std::lock_guard<std::mutex> lock(m_progressMutex);
-            m_latestProgress.progress = 0.0f;
-            m_latestProgress.message = "Failed to initialize game world";
-            m_latestProgress.hasUpdate = true;
-            m_isCreatingGameWorld = false;
-            m_newWorld = nullptr;
+        if (!newWorld->initialize()) {
+            std::lock_guard<std::mutex> lock(progressMutex);
+            latestProgress.progress = 0.0f;
+            latestProgress.message = "Failed to initialize game world";
+            latestProgress.hasUpdate = true;
+            isCreatingGameWorld = false;
+            newWorld = nullptr;
             return;
         }
         
         // Signal completion
-        m_progressTracker->CompletePhase();
-        m_progressTracker->StartPhase("Finalizing");
+        progressTracker->CompletePhase();
+        progressTracker->StartPhase("Finalizing");
         
-        std::lock_guard<std::mutex> lock(m_progressMutex);
-        m_latestProgress.progress = 1.0f;
-        m_latestProgress.message = "Game world creation complete!";
-        m_latestProgress.hasUpdate = true;
+        std::lock_guard<std::mutex> lock(progressMutex);
+        latestProgress.progress = 1.0f;
+        latestProgress.message = "Game world creation complete!";
+        latestProgress.hasUpdate = true;
     }
     catch (const std::exception& e) {
         // Handle any exceptions
-        std::lock_guard<std::mutex> lock(m_progressMutex);
-        m_latestProgress.progress = 0.0f;
-        m_latestProgress.message = std::string("Error: ") + e.what();
-        m_latestProgress.hasUpdate = true;
+        std::lock_guard<std::mutex> lock(progressMutex);
+        latestProgress.progress = 0.0f;
+        latestProgress.message = std::string("Error: ") + e.what();
+        latestProgress.hasUpdate = true;
     }
     catch (...) {
         // Handle unknown exceptions
-        std::lock_guard<std::mutex> lock(m_progressMutex);
-        m_latestProgress.progress = 0.0f;
-        m_latestProgress.message = "Unknown error during game world creation";
-        m_latestProgress.hasUpdate = true;
+        std::lock_guard<std::mutex> lock(progressMutex);
+        latestProgress.progress = 0.0f;
+        latestProgress.message = "Unknown error during game world creation";
+        latestProgress.hasUpdate = true;
     }
     
-    m_isCreatingGameWorld = false;
+    isCreatingGameWorld = false;
 }
 
 void WorldGenScreen::processProgressMessages() {
@@ -817,15 +817,15 @@ void WorldGenScreen::processProgressMessages() {
     bool gameWorldComplete = false; // Flag to check if game world creation is complete
     
     {
-        std::lock_guard<std::mutex> lock(m_progressMutex);
-        if (m_latestProgress.hasUpdate) {
+        std::lock_guard<std::mutex> lock(progressMutex);
+        if (latestProgress.hasUpdate) {
             hasUpdate = true;
-            progress = m_latestProgress.progress;
-            message = m_latestProgress.message;
-            m_latestProgress.hasUpdate = false; // Reset the flag
+            progress = latestProgress.progress;
+            message = latestProgress.message;
+            latestProgress.hasUpdate = false; // Reset the flag
             
             // Check if game world creation is complete
-            if (progress == 1.0f && m_isCreatingGameWorld == false && m_newWorld != nullptr) {
+            if (progress == 1.0f && isCreatingGameWorld == false && newWorld != nullptr) {
                 gameWorldComplete = true;
             }
         }
@@ -834,19 +834,19 @@ void WorldGenScreen::processProgressMessages() {
     // If there's an update, process it
     if (hasUpdate) {
         // Update the UI directly
-        m_worldGenUI->setProgress(progress, message);
+        worldGenUI->setProgress(progress, message);
         
         // Special handling for world generation completion message
-        if (progress == 1.0f && worldGenerated && !m_isCreatingGameWorld && !gameWorldComplete) {
+        if (progress == 1.0f && worldGenerated && !isCreatingGameWorld && !gameWorldComplete) {
             // Update the world renderer now that generation is complete
-            m_worldRenderer->SetWorld(m_world.get());
-            m_worldGenUI->setState(WorldGen::UIState::Viewing);
+            worldRenderer->SetWorld(world.get());
+            worldGenUI->setState(WorldGen::UIState::Viewing);
             
             // Update UI and stars
             int width, height;
-            glfwGetWindowSize(m_window, &width, &height);
-            m_stars->generate(width, height);
-            m_worldGenUI->onResize(width, height);
+            glfwGetWindowSize(window, &width, &height);
+            stars->generate(width, height);
+            worldGenUI->onResize(width, height);
         }
         
         // Special handling for game world creation completion
@@ -858,17 +858,17 @@ void WorldGenScreen::processProgressMessages() {
             
             // Replace the existing world in the screen manager with our new world
             try {
-                screenManager->setWorld(std::move(m_newWorld));
+                screenManager->setWorld(std::move(newWorld));
                 
                 // Let the game state know we're using a custom world
-                gameState->set("custom_world", "true");
-                gameState->set("world_sample_rate", std::to_string(m_gameWorldParams.sampleRate));
-                gameState->set("world_seed", m_gameWorldParams.seed);
+                gameState->set("custoworld", "true");
+                gameState->set("world_sample_rate", std::to_string(gameWorldParams.sampleRate));
+                gameState->set("world_seed", gameWorldParams.seed);
                 
                 // Reset OpenGL state before switching to Game screen
                 // This is critical to ensure the Game screen gets the correct viewport and rendering state
                 int width, height;
-                glfwGetWindowSize(m_window, &width, &height);
+                glfwGetWindowSize(window, &width, &height);
                 glViewport(0, 0, width, height);  // Reset to full window viewport
                 glDisable(GL_DEPTH_TEST);         // Disable depth testing which Game screen doesn't use
                 glEnable(GL_BLEND);               // Ensure blending is enabled
@@ -876,12 +876,12 @@ void WorldGenScreen::processProgressMessages() {
                 glLineWidth(1.0f);                // Reset line width to default
                 
                 std::cout << "================= PRE-SCREEN TRANSITION DIAGNOSTICS ===================" << std::endl;
-                std::cout << "Generator world tiles: " << m_world->GetTiles().size() << std::endl;
+                std::cout << "Generator world tiles: " << world->GetTiles().size() << std::endl;
                 std::cout << "Game world: valid" << std::endl;
                 std::cout << "Camera position: " << 
-                          (m_gameWorldParams.camera ? std::to_string(m_gameWorldParams.camera->getPosition().x) + ", " + 
-                                                    std::to_string(m_gameWorldParams.camera->getPosition().y) + ", " + 
-                                                    std::to_string(m_gameWorldParams.camera->getPosition().z) : "null") << std::endl;
+                          (gameWorldParams.camera ? std::to_string(gameWorldParams.camera->getPosition().x) + ", " + 
+                                                    std::to_string(gameWorldParams.camera->getPosition().y) + ", " + 
+                                                    std::to_string(gameWorldParams.camera->getPosition().z) : "null") << std::endl;
                 std::cout << "About to switch to Game screen..." << std::endl;
                 std::cout << "====================================================================" << std::endl;
                 
@@ -891,11 +891,11 @@ void WorldGenScreen::processProgressMessages() {
             }
             catch (const std::exception& e) {
                 std::cerr << "ERROR: Exception when handling game world completion: " << e.what() << std::endl;
-                m_worldGenUI->setState(WorldGen::UIState::Viewing); // Return to viewing state on error
+                worldGenUI->setState(WorldGen::UIState::Viewing); // Return to viewing state on error
             }
             catch (...) {
                 std::cerr << "ERROR: Unknown exception during game world completion handling" << std::endl;
-                m_worldGenUI->setState(WorldGen::UIState::Viewing); // Return to viewing state on error
+                worldGenUI->setState(WorldGen::UIState::Viewing); // Return to viewing state on error
             }
         }
     }

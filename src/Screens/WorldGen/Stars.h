@@ -23,12 +23,12 @@ public:
     void render();
 
     // Get layer for external operations
-    std::shared_ptr<Rendering::Layer> getLayer() const { return m_starLayer; }
+    std::shared_ptr<Rendering::Layer> getLayer() const { return starLayer; }
 
 private:
-    std::shared_ptr<Rendering::Layer> m_starLayer;
-    Camera* m_camera;
-    GLFWwindow* m_window;
+    std::shared_ptr<Rendering::Layer> starLayer;
+    Camera* camera;
+    GLFWwindow* window;
 };
 
 } // namespace WorldGen

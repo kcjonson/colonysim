@@ -5,39 +5,39 @@ namespace WorldGen {
 namespace Generators {
 
 Tile::Tile(const glm::vec3& center, TileShape shape)
-    : m_center(center)
-    , m_shape(shape)
+    : center(center)
+    , shape(shape)
 {
     // Center should always be normalized
-    m_center = glm::normalize(m_center);
+    this->center = glm::normalize(this->center);
 }
 
 void Tile::AddNeighbor(int neighborIndex)
 {
     // Avoid duplicates
-    if (std::find(m_neighbors.begin(), m_neighbors.end(), neighborIndex) == m_neighbors.end()) {
-        m_neighbors.push_back(neighborIndex);
+    if (std::find(neighbors.begin(), neighbors.end(), neighborIndex) == neighbors.end()) {
+        neighbors.push_back(neighborIndex);
     }
 }
 
 void Tile::AddVertex(const glm::vec3& vertex)
 {
-    m_vertices.push_back(glm::normalize(vertex)); // Ensure vertex is normalized
+    vertices.push_back(glm::normalize(vertex)); // Ensure vertex is normalized
 }
 
 void Tile::SetVertices(const std::vector<glm::vec3>& vertices)
 {
-    m_vertices = vertices;
+    this->vertices = vertices;
     
     // Ensure all vertices are normalized
-    for (auto& vertex : m_vertices) {
+    for (auto& vertex : this->vertices) {
         vertex = glm::normalize(vertex);
     }
 }
 
 void Tile::SetNeighbors(const std::vector<int>& neighbors)
 {
-    m_neighbors = neighbors;
+    this->neighbors = neighbors;
 }
 
 } // namespace Generators

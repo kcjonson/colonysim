@@ -35,26 +35,26 @@ public:    /**
      * 
      * @return const glm::vec3& The center position (normalized to unit sphere).
      */
-    const glm::vec3& GetCenter() const { return m_center; }    /**
+    const glm::vec3& GetCenter() const { return center; }    /**
      * @brief Get the shape of tile.
      * 
      * @return TileShape The tile shape (Pentagon or Hexagon).
      */
-    TileShape GetShape() const { return m_shape; }
+    TileShape GetShape() const { return shape; }
 
     /**
      * @brief Get the indices of neighboring tiles.
      * 
      * @return const std::vector<int>& Vector of neighboring tile indices.
      */
-    const std::vector<int>& GetNeighbors() const { return m_neighbors; }
+    const std::vector<int>& GetNeighbors() const { return neighbors; }
 
     /**
      * @brief Get the vertices that define the tile's boundary.
      * 
      * @return const std::vector<glm::vec3>& Vector of vertex positions (normalized to unit sphere).
      */
-    const std::vector<glm::vec3>& GetVertices() const { return m_vertices; }
+    const std::vector<glm::vec3>& GetVertices() const { return vertices; }
 
     /**
      * @brief Add a neighbor to this tile.
@@ -91,83 +91,83 @@ public:    /**
      * 
      * @return float The elevation value (0.0-1.0).
      */
-    float GetElevation() const { return m_elevation; }
+    float GetElevation() const { return elevation; }
     
     /**
      * @brief Set the elevation of this tile.
      * 
      * @param elevation The elevation value (0.0-1.0).
      */
-    void SetElevation(float elevation) { m_elevation = elevation; }
+    void SetElevation(float elevation) { this->elevation = elevation; }
     
     /**
      * @brief Get the moisture level of this tile.
      * 
      * @return float The moisture value (0.0-1.0).
      */
-    float GetMoisture() const { return m_moisture; }
+    float GetMoisture() const { return moisture; }
     
     /**
      * @brief Set the moisture level of this tile.
      * 
      * @param moisture The moisture value (0.0-1.0).
      */
-    void SetMoisture(float moisture) { m_moisture = moisture; }
+    void SetMoisture(float moisture) { this->moisture = moisture; }
     
     /**
      * @brief Get the temperature of this tile.
      * 
      * @return float The temperature value (0.0-1.0).
      */
-    float GetTemperature() const { return m_temperature; }
+    float GetTemperature() const { return temperature; }
     
     /**
      * @brief Set the temperature of this tile.
      * 
      * @param temperature The temperature value (0.0-1.0).
      */
-    void SetTemperature(float temperature) { m_temperature = temperature; }
+    void SetTemperature(float temperature) { this->temperature = temperature; }
 
     /**
      * @brief Get the terrain type of this tile.
      * 
      * @return TerrainType The terrain type.
      */
-    TerrainType GetTerrainType() const { return m_terrainType; }
+    TerrainType GetTerrainType() const { return terrainType; }
     
     /**
      * @brief Set the terrain type of this tile.
      * 
      * @param terrainType The terrain type.
      */
-    void SetTerrainType(TerrainType terrainType) { m_terrainType = terrainType; }
+    void SetTerrainType(TerrainType terrainType) { this->terrainType = terrainType; }
     
     /**
      * @brief Get the biome type of this tile.
      * 
      * @return BiomeType The biome type.
      */
-    BiomeType GetBiomeType() const { return m_biomeType; }
+    BiomeType GetBiomeType() const { return biomeType; }
     
     /**
      * @brief Set the biome type of this tile.
      * 
      * @param biomeType The biome type.
      */
-    void SetBiomeType(BiomeType biomeType) { m_biomeType = biomeType; }
+    void SetBiomeType(BiomeType biomeType) { this->biomeType = biomeType; }
 
 private:
-    glm::vec3 m_center;                ///< Center position of the tile
-    TileShape m_shape;                 ///< Shape of tile (Pentagon or Hexagon)
-    std::vector<int> m_neighbors;      ///< Indices of neighboring tiles
-    std::vector<glm::vec3> m_vertices; ///< Positions of the tile's boundary vertices
+    glm::vec3 center;                ///< Center position of the tile
+    TileShape shape;                 ///< Shape of tile (Pentagon or Hexagon)
+    std::vector<int> neighbors;      ///< Indices of neighboring tiles
+    std::vector<glm::vec3> vertices; ///< Positions of the tile's boundary vertices
     
     // Terrain attributes
-    float m_elevation = 0.5f;          ///< Elevation of the tile (0.0-1.0)
-    float m_moisture = 0.5f;           ///< Moisture level of the tile (0.0-1.0)
-    float m_temperature = 0.5f;        ///< Temperature of the tile (0.0-1.0)
-    TerrainType m_terrainType = TerrainType::Lowland; ///< Type of terrain in this tile
-    BiomeType m_biomeType = BiomeType::TemperateGrassland; ///< Biome type in this tile
+    float elevation = 0.5f;          ///< Elevation of the tile (0.0-1.0)
+    float moisture = 0.5f;           ///< Moisture level of the tile (0.0-1.0)
+    float temperature = 0.5f;        ///< Temperature of the tile (0.0-1.0)
+    TerrainType terrainType = TerrainType::Lowland; ///< Type of terrain in this tile
+    BiomeType biomeType = BiomeType::TemperateGrassland; ///< Biome type in this tile
 };
 
 } // namespace Generators

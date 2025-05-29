@@ -50,7 +50,7 @@ public:    // Visualization options are now handled internally
     void ValidateTileGeometry();
 
     // Add getter for shader
-    const Shader& getShader() const { return m_shader; }
+    const Shader& getShader() const { return shader; }
 
 private:    /**
      * @brief Generate rendering data for the world.
@@ -77,18 +77,18 @@ private:    /**
     void RenderTile(const TileFanInfo& tileInfo, 
                     const std::function<bool(const glm::vec3&)>& isVisible,
                     bool fillMode);
-      const Generators::World* m_world;    ///< The world to render
+      const Generators::World* world;    ///< The world to render
     // OpenGL rendering data
-    unsigned int m_vao;                  ///< Vertex array object
-    unsigned int m_vbo;                  ///< Vertex buffer object
-    unsigned int m_ebo;                  ///< Element buffer object
-    Shader m_shader;                     ///< Shader object
-    std::vector<TileFanInfo> m_tileFanInfo; ///< Triangle fan information for each tile
+    unsigned int vao;                  ///< Vertex array object
+    unsigned int vbo;                  ///< Vertex buffer object
+    unsigned int ebo;                  ///< Element buffer object
+    Shader shader;                     ///< Shader object
+    std::vector<TileFanInfo> tileFanInfo; ///< Triangle fan information for each tile
 
     // Render data for different modes    // Render data for different modes
-    std::vector<float> m_vertexData;     ///< Vertex data for rendering
-    std::vector<unsigned int> m_indices; ///< Indices for rendering
-      bool m_dataGenerated;                ///< Whether rendering data has been generated
+    std::vector<float> vertexData;     ///< Vertex data for rendering
+    std::vector<unsigned int> indices; ///< Indices for rendering
+      bool dataGenerated;                ///< Whether rendering data has been generated
 };
 
 } // namespace Renderers

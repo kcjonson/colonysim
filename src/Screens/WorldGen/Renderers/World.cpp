@@ -16,27 +16,27 @@ namespace WorldGen {
 namespace Renderers {
 
 World::World()
-    : m_world(nullptr)
-    , m_vao(0)
-    , m_vbo(0)
-    , m_ebo(0)
-    , m_dataGenerated(false)
+    : world(nullptr)
+    , vao(0)
+    , vbo(0)
+    , ebo(0)
+    , dataGenerated(false)
 {
 }
 
 World::~World()
 {
     // Clean up OpenGL resources if necessary
-    if (m_vao != 0) {
-        glDeleteVertexArrays(1, &m_vao);
+    if (vao != 0) {
+        glDeleteVertexArrays(1, &vao);
     }
     
-    if (m_vbo != 0) {
-        glDeleteBuffers(1, &m_vbo);
+    if (vbo != 0) {
+        glDeleteBuffers(1, &vbo);
     }
     
-    if (m_ebo != 0) {
-        glDeleteBuffers(1, &m_ebo);
+    if (ebo != 0) {
+        glDeleteBuffers(1, &ebo);
     }
     
     // Shader object will clean itself up in its destructor
@@ -44,18 +44,18 @@ World::~World()
 
 void World::SetWorld(const Generators::World* world)
 {
-    m_world = world;
-    m_dataGenerated = false; // Need to regenerate rendering data
+    this->world = world;
+    dataGenerated = false; // Need to regenerate rendering data
 }
 
 // SetRenderMode function removed as we now use a fixed rendering mode
 
 void World::Render(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix)
 {
-    if (!m_world) { return; }
+    if (!world) { return; }
 
     // Generate rendering data if needed
-    if (!m_dataGenerated) {
+    if (!dataGenerated) {
         GenerateRenderingData();
     }
     
@@ -90,9 +90,9 @@ void World::Render(const glm::mat4& viewMatrix, const glm::mat4& projectionMatri
 // Helper function to validate tile geometry before rendering
 void World::ValidateTileGeometry()
 {
-    if (!m_world) return;
+    if (!world) return;
     
-    const auto& tiles = m_world->GetTiles();
+    const auto& tiles = world->GetTiles();
     // Debug logging removed
     
     int invalidTiles = 0;
@@ -153,7 +153,7 @@ void World::ValidateTileGeometry()
 
 void World::GenerateRenderingData()
 {
-    if (!m_world) {
+    if (!world) {
         return;
     }
 
@@ -163,12 +163,12 @@ void World::GenerateRenderingData()
     ValidateTileGeometry();
 
     // Clear previous data
-    m_vertexData.clear();
-    m_indices.clear();
-    m_tileFanInfo.clear();
+    vertexData.clear();
+    indices.clear();
+    tileFanInfo.clear();
     
     // Get the tiles
-    const auto& tiles = m_world->GetTiles();
+    const auto& tiles = world->GetTiles();
       // Use the terrain colors defined in TerrainTypes.h
     // We'll convert vec4 to vec3 as needed
     
@@ -193,7 +193,7 @@ void World::GenerateRenderingData()
         // Number of vertices for this tile (center + perimeter)
         unsigned int vertexCount = static_cast<unsigned int>(tileVertices.size() + 1);
           // Index where this tile's indices start in the indices array
-        unsigned int indexOffset = static_cast<unsigned int>(m_indices.size());
+        unsigned int indexOffset = static_cast<unsigned int>(indices.size());
           // Get the terrain type of this tile and use its color
         TerrainType terrainType = tile.GetTerrainType();
           // Get color from the TerrainColors map, convert vec4 to vec3 (drop alpha)
@@ -207,21 +207,21 @@ void World::GenerateRenderingData()
           // Store vertex data
         // First the center vertex
         unsigned int centerVertexIndex = vertexOffset;
-          m_vertexData.push_back(centerPos.x);
-        m_vertexData.push_back(centerPos.y);
-        m_vertexData.push_back(centerPos.z);
-        m_vertexData.push_back(centerPos.x); 
-        m_vertexData.push_back(centerPos.y);
-        m_vertexData.push_back(centerPos.z);
-        m_vertexData.push_back(tileColor.r); 
-        m_vertexData.push_back(tileColor.g);
-        m_vertexData.push_back(tileColor.b);
+          vertexData.push_back(centerPos.x);
+        vertexData.push_back(centerPos.y);
+        vertexData.push_back(centerPos.z);
+        vertexData.push_back(centerPos.x); 
+        vertexData.push_back(centerPos.y);
+        vertexData.push_back(centerPos.z);
+        vertexData.push_back(tileColor.r); 
+        vertexData.push_back(tileColor.g);
+        vertexData.push_back(tileColor.b);
         
         vertexOffset++;
         
         // Store indices for the triangle fan
         // First is the center vertex
-        m_indices.push_back(centerVertexIndex);
+        indices.push_back(centerVertexIndex);
         
         // Sort the perimeter vertices to ensure they form a proper polygon when connected
         std::vector<std::pair<float, glm::vec3>> sortedVertices;
@@ -266,23 +266,23 @@ void World::GenerateRenderingData()
             glm::vec3 vertexPos = glm::normalize(sortedVertices[i].second) * expansionFactor;
             
             // Add vertex
-            m_vertexData.push_back(vertexPos.x);
-            m_vertexData.push_back(vertexPos.y);
-            m_vertexData.push_back(vertexPos.z);
-            m_vertexData.push_back(vertexPos.x); // Normal = position for a sphere
-            m_vertexData.push_back(vertexPos.y);
-            m_vertexData.push_back(vertexPos.z);
-            m_vertexData.push_back(tileColor.r);
-            m_vertexData.push_back(tileColor.g);
-            m_vertexData.push_back(tileColor.b);
+            vertexData.push_back(vertexPos.x);
+            vertexData.push_back(vertexPos.y);
+            vertexData.push_back(vertexPos.z);
+            vertexData.push_back(vertexPos.x); // Normal = position for a sphere
+            vertexData.push_back(vertexPos.y);
+            vertexData.push_back(vertexPos.z);
+            vertexData.push_back(tileColor.r);
+            vertexData.push_back(tileColor.g);
+            vertexData.push_back(tileColor.b);
             
             // Add this vertex to the indices
-            m_indices.push_back(vertexOffset);
+            indices.push_back(vertexOffset);
             vertexOffset++;
         }
         
         // Close the loop by adding the first perimeter vertex again
-        m_indices.push_back(firstPerimeterIndex);
+        indices.push_back(firstPerimeterIndex);
         
         // Calculate index count (center + perimeter + repeated first vertex)
         unsigned int indexCount = static_cast<unsigned int>(tileVertices.size() + 2);
@@ -292,7 +292,7 @@ void World::GenerateRenderingData()
         tileInfo.startIndex = indexOffset;   // Offset in the indices array
         tileInfo.vertexCount = vertexCount;  // How many vertices in this tile
         tileInfo.indexCount = indexCount;    // How many indices for the fan
-          m_tileFanInfo.push_back(tileInfo);
+          tileFanInfo.push_back(tileInfo);
           // Debug logging removed
     }
     
@@ -300,24 +300,24 @@ void World::GenerateRenderingData()
     
     // Set up OpenGL objects
     // Create and bind VAO
-    if (m_vao == 0) {
-        glGenVertexArrays(1, &m_vao);
+    if (vao == 0) {
+        glGenVertexArrays(1, &vao);
     }
-    glBindVertexArray(m_vao);
+    glBindVertexArray(vao);
     
     // Create and bind VBO
-    if (m_vbo == 0) {
-        glGenBuffers(1, &m_vbo);
+    if (vbo == 0) {
+        glGenBuffers(1, &vbo);
     }
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    glBufferData(GL_ARRAY_BUFFER, m_vertexData.size() * sizeof(float), m_vertexData.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertexData.size() * sizeof(float), vertexData.data(), GL_STATIC_DRAW);
     
     // Create and bind EBO
-    if (m_ebo == 0) {
-        glGenBuffers(1, &m_ebo);
+    if (ebo == 0) {
+        glGenBuffers(1, &ebo);
     }
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(unsigned int), m_indices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
     
     // Position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)0);
@@ -335,20 +335,20 @@ void World::GenerateRenderingData()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
       // Load shaders if not already loaded
-    if (m_shader.getProgram() == 0) {
-        if (!m_shader.loadFromFile("Planet/PlanetVertex.glsl", "Planet/PlanetFragment.glsl")) {
+    if (shader.getProgram() == 0) {
+        if (!shader.loadFromFile("Planet/PlanetVertex.glsl", "Planet/PlanetFragment.glsl")) {
             std::cerr << "Failed to load planet shaders" << std::endl;
         }
     }
     
-    m_dataGenerated = true;
+    dataGenerated = true;
 }
 
 
 
 void World::RenderTiles(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix)
 {
-    if (!m_dataGenerated || m_shader.getProgram() == 0) {
+    if (!dataGenerated || shader.getProgram() == 0) {
         return;
     }
     
@@ -359,23 +359,23 @@ void World::RenderTiles(const glm::mat4& viewMatrix, const glm::mat4& projection
     glDisable(GL_CULL_FACE); 
     
     // Use our shader
-    m_shader.use();
+    shader.use();
     
     // Set up model matrix
-    float scale = m_world->GetRadius();
+    float scale = world->GetRadius();
     glm::mat4 modelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
       // Set the shader uniforms
-    GLint useColorAttribLoc = glGetUniformLocation(m_shader.getProgram(), "useColorAttrib");
-    GLint planetColorLoc = glGetUniformLocation(m_shader.getProgram(), "planetColor");
+    GLint useColorAttribLoc = glGetUniformLocation(shader.getProgram(), "useColorAttrib");
+    GLint planetColorLoc = glGetUniformLocation(shader.getProgram(), "planetColor");
     
     // Set matrix uniforms using the Shader class methods
-    m_shader.setUniform("model", modelMatrix);
-    m_shader.setUniform("view", viewMatrix);
-    m_shader.setUniform("projection", projectionMatrix);
+    shader.setUniform("model", modelMatrix);
+    shader.setUniform("view", viewMatrix);
+    shader.setUniform("projection", projectionMatrix);
       // Set light parameters
-    GLint lightPosLoc = glGetUniformLocation(m_shader.getProgram(), "lightPos");
-    GLint lightColorLoc = glGetUniformLocation(m_shader.getProgram(), "lightColor");
-    GLint viewPosLoc = glGetUniformLocation(m_shader.getProgram(), "viewPos");
+    GLint lightPosLoc = glGetUniformLocation(shader.getProgram(), "lightPos");
+    GLint lightColorLoc = glGetUniformLocation(shader.getProgram(), "lightColor");
+    GLint viewPosLoc = glGetUniformLocation(shader.getProgram(), "viewPos");
     
     // Use camera position from view matrix
     glm::vec3 cameraPos = glm::vec3(glm::inverse(viewMatrix) * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
@@ -406,10 +406,10 @@ void World::RenderTiles(const glm::mat4& viewMatrix, const glm::mat4& projection
     }
     
     // Draw each tile as a triangle fan
-    glBindVertexArray(m_vao);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    for (const auto& tileInfo : m_tileFanInfo) {
+    for (const auto& tileInfo : tileFanInfo) {
         RenderTile(tileInfo, isVisible, true);
     }
 
@@ -426,7 +426,7 @@ void World::RenderTiles(const glm::mat4& viewMatrix, const glm::mat4& projection
     // glLineWidth(1.5f);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     // glDepthMask(GL_FALSE); // Disable depth writing for wireframe to ensure all lines are visible
-    //   for (const auto& tileInfo : m_tileFanInfo) {
+    //   for (const auto& tileInfo : tileFanInfo) {
     //     RenderTile(tileInfo, isVisible, false);
     // }
 
@@ -436,7 +436,7 @@ void World::RenderTiles(const glm::mat4& viewMatrix, const glm::mat4& projection
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     
     // Unbind shader program
-    m_shader.unbind();
+    shader.unbind();
     
     // Unbind VAO and current texture
     glBindVertexArray(0);
@@ -456,20 +456,20 @@ void World::RenderTile(const TileFanInfo& tileInfo,
                       bool fillMode)
 {
     // Get the center vertex for visibility check
-    unsigned int centerVertexIdx = m_indices[tileInfo.startIndex];
-    glm::vec3 center(m_vertexData[centerVertexIdx * 9], 
-                     m_vertexData[centerVertexIdx * 9 + 1], 
-                     m_vertexData[centerVertexIdx * 9 + 2]);
+    unsigned int centerVertexIdx = indices[tileInfo.startIndex];
+    glm::vec3 center(vertexData[centerVertexIdx * 9], 
+                     vertexData[centerVertexIdx * 9 + 1], 
+                     vertexData[centerVertexIdx * 9 + 2]);
                       
     // Check if this tile has at least one visible vertex
     bool anyVertexVisible = isVisible(center);
     if (!anyVertexVisible) {
         // If center isn't visible, check perimeter vertices
         for (unsigned int i = 1; i < tileInfo.indexCount; ++i) {
-            unsigned int vertexIdx = m_indices[tileInfo.startIndex + i];
-            glm::vec3 vertex(m_vertexData[vertexIdx * 9], 
-                             m_vertexData[vertexIdx * 9 + 1], 
-                             m_vertexData[vertexIdx * 9 + 2]);
+            unsigned int vertexIdx = indices[tileInfo.startIndex + i];
+            glm::vec3 vertex(vertexData[vertexIdx * 9], 
+                             vertexData[vertexIdx * 9 + 1], 
+                             vertexData[vertexIdx * 9 + 2]);
             if (isVisible(vertex)) {
                 anyVertexVisible = true;
                 break;

@@ -7,17 +7,17 @@
 namespace WorldGen {
 namespace Renderers {
 
-LandingLocation::LandingLocation(const World* worldRenderer)    : m_world(nullptr)
-    , m_worldRenderer(worldRenderer)
-    , m_vao(0)
-    , m_vbo(0)
-    , m_ebo(0)    , m_locationSelected(false)
-    , m_circleRadius(LandingLocationConstants::DEFAULT_CIRCLE_RADIUS)  // Use the constant from header
-    , m_circleSections(32)  // Number of sections in the circle
+LandingLocation::LandingLocation(const World* worldRenderer)    : world(nullptr)
+    , worldRenderer(worldRenderer)
+    , vao(0)
+    , vbo(0)
+    , ebo(0)    , locationSelected(false)
+    , circleRadius(LandingLocationConstants::DEFAULT_CIRCLE_RADIUS)  // Use the constant from header
+    , circleSections(32)  // Number of sections in the circle
 {
     // Initialize with empty locations
-    m_currentLocation = glm::vec3(0.0f);
-    m_selectedLocation = glm::vec3(0.0f);
+    currentLocation = glm::vec3(0.0f);
+    selectedLocation = glm::vec3(0.0f);
       // Initialize the circle indicator
     GenerateCircle();
 }
@@ -25,33 +25,33 @@ LandingLocation::LandingLocation(const World* worldRenderer)    : m_world(nullpt
 LandingLocation::~LandingLocation()
 {
     // Clean up OpenGL resources
-    if (m_vao != 0) {
-        glDeleteVertexArrays(1, &m_vao);
+    if (vao != 0) {
+        glDeleteVertexArrays(1, &vao);
     }
     
-    if (m_vbo != 0) {
-        glDeleteBuffers(1, &m_vbo);
+    if (vbo != 0) {
+        glDeleteBuffers(1, &vbo);
     }
     
-    if (m_ebo != 0) {
-        glDeleteBuffers(1, &m_ebo);
+    if (ebo != 0) {
+        glDeleteBuffers(1, &ebo);
     }
 }
 
 void LandingLocation::SetWorld(const Generators::World* world)
 {
-    m_world = world;
+    this->world = world;
 }
 
 void LandingLocation::Render(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix)
 {
-    if (!m_world || !m_worldRenderer) {
+    if (!world || !worldRenderer) {
         std::cerr << "Cannot render landing location: world or world renderer not initialized" << std::endl;
         return;
     }
     
     // Only render if we have a current location to hover over or a selected location
-    if (!m_locationSelected && glm::length(m_currentLocation) < 0.001f) {
+    if (!locationSelected && glm::length(currentLocation) < 0.001f) {
         // No location to render
         return;
     }
@@ -72,17 +72,17 @@ void LandingLocation::Render(const glm::mat4& viewMatrix, const glm::mat4& proje
     glDisable(GL_CULL_FACE);
     
     // Use the world renderer's shader
-    GLuint shaderProgram = m_worldRenderer->getShader().getProgram();
+    GLuint shaderProgram = worldRenderer->getShader().getProgram();
     glUseProgram(shaderProgram);
       // Get world radius but don't trust it - use fixed value if invalid
-    float worldRadius = m_world->GetRadius();
+    float worldRadius = world->GetRadius();
     
     // Force a fixed scale since world radius is incorrect
     // Most planet renderers use a scale of 1.0 for unit spheres
     float scale = 1.0f;
     
     // Use either the hovering location or the selected location
-    glm::vec3 location = m_locationSelected ? m_selectedLocation : m_currentLocation;
+    glm::vec3 location = locationSelected ? selectedLocation : currentLocation;
     
     // Calculate the rotation to align the circle with the surface normal
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -125,8 +125,8 @@ void LandingLocation::Render(const glm::mat4& viewMatrix, const glm::mat4& proje
     }
     
     // Draw the circle
-    glBindVertexArray(m_vao);
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_indices.size()), GL_UNSIGNED_INT, 0);
+    glBindVertexArray(vao);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
     
     // Reset shader to use planetColor if needed
@@ -160,7 +160,7 @@ bool LandingLocation::UpdateFromMousePosition(float mouseX, float mouseY,
                                              int windowWidth, int windowHeight)
 {
     // If world is not set or location already selected, don't update
-    if (!m_world || m_locationSelected) {
+    if (!world || locationSelected) {
         return false;
     }
     
@@ -201,7 +201,7 @@ bool LandingLocation::UpdateFromMousePosition(float mouseX, float mouseY,
     
     if (hit) {
         // Update current location to the intersection point (normalized to surface)
-        m_currentLocation = glm::normalize(intersectionPoint);
+        currentLocation = glm::normalize(intersectionPoint);
         
         // Regenerate the circle with appropriate colors
         GenerateCircle();
@@ -210,19 +210,19 @@ bool LandingLocation::UpdateFromMousePosition(float mouseX, float mouseY,
     }
     
     // No intersection, reset current location
-    m_currentLocation = glm::vec3(0.0f);
+    currentLocation = glm::vec3(0.0f);
     return false;
 }
 
 bool LandingLocation::SelectCurrentLocation()
 {
-    if (!m_world) {
+    if (!world) {
         std::cerr << "Cannot select landing location: no world set" << std::endl;
         return false;
     }
     
     // Check if we have a valid location to select
-    float locationLength = glm::length(m_currentLocation);
+    float locationLength = glm::length(currentLocation);
     std::cout << "Current location length: " << locationLength << std::endl;
     
     if (locationLength < 0.001f) {
@@ -231,36 +231,36 @@ bool LandingLocation::SelectCurrentLocation()
     }
     
     // Store the selected location
-    m_selectedLocation = m_currentLocation;
-    m_locationSelected = true;
+    selectedLocation = currentLocation;
+    locationSelected = true;
     
     // Log selection for debugging
     std::cout << "User has selected landing site at: [" 
-              << m_selectedLocation.x << ", " 
-              << m_selectedLocation.y << ", " 
-              << m_selectedLocation.z << "]" << std::endl;
+              << selectedLocation.x << ", " 
+              << selectedLocation.y << ", " 
+              << selectedLocation.z << "]" << std::endl;
     
     return true;
 }
 
 void LandingLocation::Reset()
 {
-    m_locationSelected = false;
-    m_currentLocation = glm::vec3(0.0f);
-    m_selectedLocation = glm::vec3(0.0f);
+    locationSelected = false;
+    currentLocation = glm::vec3(0.0f);
+    selectedLocation = glm::vec3(0.0f);
 }
 
 void LandingLocation::GenerateCircle()
 {
     // Clear previous data
-    m_vertexData.clear();
-    m_indices.clear();
+    vertexData.clear();
+    indices.clear();
       // Create a flat circle in the XZ plane (Y is up)
-    const float innerRadius = m_circleRadius * LandingLocationConstants::INNER_RADIUS_RATIO; // Inner circle for ring effect
+    const float innerRadius = circleRadius * LandingLocationConstants::INNER_RADIUS_RATIO; // Inner circle for ring effect
       // Define colors for better visibility - much brighter
     glm::vec3 circleColor;
     
-    if (m_locationSelected) {
+    if (locationSelected) {
         // Bright green for selected - very visible
         circleColor = glm::vec3(0.0f, 1.0f, 0.2f); // Brighter green
     } else {
@@ -269,86 +269,86 @@ void LandingLocation::GenerateCircle()
     }
     
     // Center vertex
-    m_vertexData.push_back(0.0f); // x
-    m_vertexData.push_back(0.0f); // y
-    m_vertexData.push_back(0.0f); // z
-    m_vertexData.push_back(0.0f); // normal x
-    m_vertexData.push_back(1.0f); // normal y (pointing up)
-    m_vertexData.push_back(0.0f); // normal z
-    m_vertexData.push_back(circleColor.r); // color r (using color instead of texture coordinates)
-    m_vertexData.push_back(circleColor.g); // color g
-    m_vertexData.push_back(circleColor.b); // color b
+    vertexData.push_back(0.0f); // x
+    vertexData.push_back(0.0f); // y
+    vertexData.push_back(0.0f); // z
+    vertexData.push_back(0.0f); // normal x
+    vertexData.push_back(1.0f); // normal y (pointing up)
+    vertexData.push_back(0.0f); // normal z
+    vertexData.push_back(circleColor.r); // color r (using color instead of texture coordinates)
+    vertexData.push_back(circleColor.g); // color g
+    vertexData.push_back(circleColor.b); // color b
     
     // Generate vertices for the outer circle
-    for (int i = 0; i < m_circleSections; ++i) {
-        float angle = 2.0f * glm::pi<float>() * i / m_circleSections;
-        float x = m_circleRadius * cos(angle);
-        float z = m_circleRadius * sin(angle);
+    for (int i = 0; i < circleSections; ++i) {
+        float angle = 2.0f * glm::pi<float>() * i / circleSections;
+        float x = circleRadius * cos(angle);
+        float z = circleRadius * sin(angle);
         
         // Outer circle vertex
-        m_vertexData.push_back(x);
-        m_vertexData.push_back(0.0f);
-        m_vertexData.push_back(z);
-        m_vertexData.push_back(0.0f);
-        m_vertexData.push_back(1.0f);
-        m_vertexData.push_back(0.0f);
-        m_vertexData.push_back(circleColor.r);
-        m_vertexData.push_back(circleColor.g);
-        m_vertexData.push_back(circleColor.b);
+        vertexData.push_back(x);
+        vertexData.push_back(0.0f);
+        vertexData.push_back(z);
+        vertexData.push_back(0.0f);
+        vertexData.push_back(1.0f);
+        vertexData.push_back(0.0f);
+        vertexData.push_back(circleColor.r);
+        vertexData.push_back(circleColor.g);
+        vertexData.push_back(circleColor.b);
         
         // Inner circle vertex (to create a ring)
         x = innerRadius * cos(angle);
         z = innerRadius * sin(angle);
         
-        m_vertexData.push_back(x);
-        m_vertexData.push_back(0.0f);
-        m_vertexData.push_back(z);
-        m_vertexData.push_back(0.0f);
-        m_vertexData.push_back(1.0f);
-        m_vertexData.push_back(0.0f);
-        m_vertexData.push_back(circleColor.r);
-        m_vertexData.push_back(circleColor.g);
-        m_vertexData.push_back(circleColor.b);
+        vertexData.push_back(x);
+        vertexData.push_back(0.0f);
+        vertexData.push_back(z);
+        vertexData.push_back(0.0f);
+        vertexData.push_back(1.0f);
+        vertexData.push_back(0.0f);
+        vertexData.push_back(circleColor.r);
+        vertexData.push_back(circleColor.g);
+        vertexData.push_back(circleColor.b);
     }
     
     // Create indices for triangles
-    for (int i = 0; i < m_circleSections; ++i) {
+    for (int i = 0; i < circleSections; ++i) {
         int outerIdx = 1 + i * 2;
         int innerIdx = 2 + i * 2;
-        int nextOuterIdx = 1 + ((i + 1) % m_circleSections) * 2;
-        int nextInnerIdx = 2 + ((i + 1) % m_circleSections) * 2;
+        int nextOuterIdx = 1 + ((i + 1) % circleSections) * 2;
+        int nextInnerIdx = 2 + ((i + 1) % circleSections) * 2;
         
         // First triangle of the sector
-        m_indices.push_back(innerIdx);
-        m_indices.push_back(outerIdx);
-        m_indices.push_back(nextOuterIdx);
+        indices.push_back(innerIdx);
+        indices.push_back(outerIdx);
+        indices.push_back(nextOuterIdx);
         
         // Second triangle of the sector
-        m_indices.push_back(innerIdx);
-        m_indices.push_back(nextOuterIdx);
-        m_indices.push_back(nextInnerIdx);
+        indices.push_back(innerIdx);
+        indices.push_back(nextOuterIdx);
+        indices.push_back(nextInnerIdx);
     }
     
     // Set up OpenGL objects
     // Create and bind VAO
-    if (m_vao == 0) {
-        glGenVertexArrays(1, &m_vao);
+    if (vao == 0) {
+        glGenVertexArrays(1, &vao);
     }
-    glBindVertexArray(m_vao);
+    glBindVertexArray(vao);
     
     // Create and bind VBO
-    if (m_vbo == 0) {
-        glGenBuffers(1, &m_vbo);
+    if (vbo == 0) {
+        glGenBuffers(1, &vbo);
     }
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    glBufferData(GL_ARRAY_BUFFER, m_vertexData.size() * sizeof(float), m_vertexData.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertexData.size() * sizeof(float), vertexData.data(), GL_STATIC_DRAW);
     
     // Create and bind EBO
-    if (m_ebo == 0) {
-        glGenBuffers(1, &m_ebo);
+    if (ebo == 0) {
+        glGenBuffers(1, &ebo);
     }
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(unsigned int), m_indices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
     
     // Position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)0);
@@ -425,19 +425,19 @@ bool LandingLocation::RaySphereIntersect(const glm::vec3& rayOrigin,
 void LandingLocation::GenerateDummyLocation()
 {
     // Create a fixed test location on the equator
-    m_currentLocation = glm::normalize(glm::vec3(1.0f, 0.0f, 0.0f));
+    currentLocation = glm::normalize(glm::vec3(1.0f, 0.0f, 0.0f));
     
     // If we want to immediately select it
-    m_selectedLocation = m_currentLocation;
-    m_locationSelected = true;
+    selectedLocation = currentLocation;
+    locationSelected = true;
     
     // Generate the circle geometry with appropriate colors
     GenerateCircle();
     
     std::cout << "Generated dummy location at: [" 
-              << m_currentLocation.x << ", " 
-              << m_currentLocation.y << ", " 
-              << m_currentLocation.z << "]" << std::endl;
+              << currentLocation.x << ", " 
+              << currentLocation.y << ", " 
+              << currentLocation.z << "]" << std::endl;
 }
 
 } // namespace Renderers

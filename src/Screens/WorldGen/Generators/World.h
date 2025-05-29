@@ -45,56 +45,56 @@ public:
      * 
      * @return const std::vector<Tile>& The world's tiles.
      */
-    const std::vector<Tile>& GetTiles() const { return m_tiles; }
+    const std::vector<Tile>& GetTiles() const { return tiles; }
 
     /**
      * @brief Get the number of tiles in the world.
      * 
      * @return size_t The total number of tiles.
      */
-    size_t GetTileCount() const { return m_tiles.size(); }
+    size_t GetTileCount() const { return tiles.size(); }
 
     /**
      * @brief Get the number of pentagon tiles (should be 12).
      * 
      * @return size_t The number of pentagon tiles.
      */
-    size_t GetPentagonCount() const { return m_pentagonCount; }
+    size_t GetPentagonCount() const { return pentagonCount; }
 
     /**
      * @brief Get the number of hexagon tiles.
      * 
      * @return size_t The number of hexagon tiles.
      */
-    size_t GetHexagonCount() const { return m_tiles.size() - m_pentagonCount; }
+    size_t GetHexagonCount() const { return tiles.size() - pentagonCount; }
 
     /**
      * @brief Get the vertices from the initial icosahedron.
      * 
      * @return const std::vector<glm::vec3>& The original icosahedron vertices.
      */
-    const std::vector<glm::vec3>& GetIcosahedronVertices() const { return m_icosahedronVertices; }
+    const std::vector<glm::vec3>& GetIcosahedronVertices() const { return icosahedronVertices; }
 
     /**
      * @brief Get the triangular faces from the initial icosahedron.
      * 
      * @return const std::vector<std::array<int, 3>>& The original icosahedron faces.
      */
-    const std::vector<std::array<int, 3>>& GetIcosahedronFaces() const { return m_icosahedronFaces; }
+    const std::vector<std::array<int, 3>>& GetIcosahedronFaces() const { return icosahedronFaces; }
 
     /**
      * @brief Get the world radius.
      * 
      * @return float The world radius.
      */
-    float GetRadius() const { return m_radius; }
+    float GetRadius() const { return radius; }
 
     /**
      * @brief Set the world radius.
      * 
      * @param radius The new world radius.
      */
-    void SetRadius(float radius) { m_radius = radius; }
+    void SetRadius(float radius) { this->radius = radius; }
     
     /**
      * @brief Find which tile contains a given point on the sphere.
@@ -195,20 +195,20 @@ private:
      */
     bool isPointInTile(const glm::vec3& point, int tileIndex) const;
 
-    std::vector<Tile> m_tiles;                     ///< All tiles in the world
-    std::vector<glm::vec3> m_icosahedronVertices;  ///< Original icosahedron vertices
-    std::vector<std::array<int, 3>> m_icosahedronFaces; ///< Original icosahedron faces as index triplets
+    std::vector<Tile> tiles;                     ///< All tiles in the world
+    std::vector<glm::vec3> icosahedronVertices;  ///< Original icosahedron vertices
+    std::vector<std::array<int, 3>> icosahedronFaces; ///< Original icosahedron faces as index triplets
     
     // Subdivision data structures
-    std::vector<glm::vec3> m_subdivisionVertices;  ///< Vertices after subdivision
-    std::vector<std::array<int, 3>> m_subdivisionFaces; ///< Faces after subdivision
+    std::vector<glm::vec3> subdivisionVertices;  ///< Vertices after subdivision
+    std::vector<std::array<int, 3>> subdivisionFaces; ///< Faces after subdivision
       // Cache of midpoints to avoid duplicates during subdivision
-    std::unordered_map<uint64_t, size_t> m_midPointCache;
+    std::unordered_map<uint64_t, size_t> midPointCache;
     
-    float m_radius;         ///< World radius
-    size_t m_pentagonCount; ///< Count of pentagon tiles (should be 12)
-    uint64_t m_seed;        ///< Seed for random distortion
-    std::shared_ptr<ProgressTracker> m_progressTracker; ///< Progress tracking
+    float radius;         ///< World radius
+    size_t pentagonCount; ///< Count of pentagon tiles (should be 12)
+    uint64_t seed;        ///< Seed for random distortion
+    std::shared_ptr<ProgressTracker> progressTracker; ///< Progress tracking
 };
 
 } // namespace Generators

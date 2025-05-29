@@ -46,11 +46,11 @@ public:
     void Reset();
 
 private:
-    std::vector<PhaseInfo> m_phases;
-    int m_currentPhaseIndex;
-    ProgressCallback m_callback;
-    std::chrono::time_point<std::chrono::steady_clock> m_startTime;
-    std::string m_currentMessage;
+    std::vector<PhaseInfo> phases;
+    int currentPhaseIndex;
+    ProgressCallback callback;
+    std::chrono::time_point<std::chrono::steady_clock> startTime;
+    std::string currentMessage;
 };
 
 } // namespace WorldGen 

@@ -83,14 +83,14 @@ public:
      * @return true If a landing location has been selected.
      * @return false Otherwise.
      */
-    bool HasLocationSelected() const { return m_locationSelected; }
+    bool HasLocationSelected() const { return locationSelected; }
 
     /**
      * @brief Get the selected landing location.
      * 
      * @return glm::vec3 The selected landing location.
      */
-    glm::vec3 GetSelectedLocation() const { return m_selectedLocation; }
+    glm::vec3 GetSelectedLocation() const { return selectedLocation; }
     
     /**
      * @brief Generate a dummy location for testing purposes.
@@ -125,19 +125,19 @@ private:
                             float sphereRadius,
                             glm::vec3& intersectionPoint);
 
-    const Generators::World* m_world;           ///< The world to render on
-    const World* m_worldRenderer;               ///< The world renderer for shader sharing
-    unsigned int m_vao;                         ///< Vertex array object
-    unsigned int m_vbo;                         ///< Vertex buffer object
-    unsigned int m_ebo;                         ///< Element buffer object
-    std::vector<float> m_vertexData;            ///< Vertex data for the circle
-    std::vector<unsigned int> m_indices;        ///< Indices for the circle
+    const Generators::World* world;           ///< The world to render on
+    const World* worldRenderer;               ///< The world renderer for shader sharing
+    unsigned int vao;                         ///< Vertex array object
+    unsigned int vbo;                         ///< Vertex buffer object
+    unsigned int ebo;                         ///< Element buffer object
+    std::vector<float> vertexData;            ///< Vertex data for the circle
+    std::vector<unsigned int> indices;        ///< Indices for the circle
     
-    glm::vec3 m_currentLocation;                ///< Current indicator location
-    glm::vec3 m_selectedLocation;               ///< Selected landing location
-    bool m_locationSelected;                    ///< Whether a location has been selected
-    float m_circleRadius;                       ///< Radius of the circle in world space
-    int m_circleSections;                       ///< Number of sections in the circle
+    glm::vec3 currentLocation;                ///< Current indicator location
+    glm::vec3 selectedLocation;               ///< Selected landing location
+    bool locationSelected;                    ///< Whether a location has been selected
+    float circleRadius;                       ///< Radius of the circle in world space
+    int circleSections;                       ///< Number of sections in the circle
 };
 
 } // namespace Renderers
