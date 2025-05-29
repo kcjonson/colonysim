@@ -4,9 +4,9 @@
 namespace WorldGen {
 namespace Generators {
 
-std::unique_ptr<World> Generator::CreateWorld(const PlanetParameters& params, std::shared_ptr<ProgressTracker> progressTracker) {
+std::unique_ptr<World> Generator::CreateWorld(const PlanetParameters& params, uint64_t seed, std::shared_ptr<ProgressTracker> progressTracker) {
     // Create a new world with the specified parameters and progress tracker
-    auto world = std::make_unique<World>(params, progressTracker);
+    auto world = std::make_unique<World>(params, seed, progressTracker);
     
     // Calculate appropriate subdivision level based on resolution
     int subdivisionLevel = GetSubdivisionLevel(params.resolution);

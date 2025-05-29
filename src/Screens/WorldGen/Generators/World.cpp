@@ -37,10 +37,10 @@ uint64_t EdgeKey(int v1, int v2) {
     return (static_cast<uint64_t>(v1) << 32) | static_cast<uint64_t>(v2);
 }
 
-World::World(const PlanetParameters& params, std::shared_ptr<ProgressTracker> progressTracker)
+World::World(const PlanetParameters& params, uint64_t seed, std::shared_ptr<ProgressTracker> progressTracker)
     : m_radius(params.radius)
     , m_pentagonCount(0)
-    , m_seed(params.seed)
+    , m_seed(seed)
     , m_progressTracker(progressTracker)
 {
     CreateIcosahedron();

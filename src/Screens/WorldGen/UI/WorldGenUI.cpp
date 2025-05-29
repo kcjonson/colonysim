@@ -357,7 +357,7 @@ void WorldGenUI::setPlanetParameters(const PlanetParameters& params) {
     radiusValue->setText(std::to_string(params.radius));
     massValue->setText(std::to_string(params.mass));
     waterValue->setText(std::to_string(params.waterAmount));
-    seedInput->setValue(std::to_string(params.seed));
+    // Seed is no longer part of PlanetParameters
 }
 
 void WorldGenUI::setProgress(float progress, const std::string& message) {

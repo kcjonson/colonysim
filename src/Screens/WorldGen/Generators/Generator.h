@@ -22,7 +22,7 @@ public:    /**
      * @param progressTracker Optional progress tracker to report generation progress.
      * @return std::unique_ptr<World> A unique pointer to the newly created World.
      */
-    static std::unique_ptr<World> CreateWorld(const PlanetParameters& params, std::shared_ptr<ProgressTracker> progressTracker = nullptr);
+    static std::unique_ptr<World> CreateWorld(const PlanetParameters& params, uint64_t seed, std::shared_ptr<ProgressTracker> progressTracker = nullptr);
 
     /**
      * @brief Get the appropriate subdivision level for a given resolution.

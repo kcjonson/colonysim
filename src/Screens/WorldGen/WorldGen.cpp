@@ -34,9 +34,7 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window):
     , m_window(window) {
     
     // Register this instance in the static map
-    s_instances[window] = this;    // Generate a random seed
-    std::random_device rd;
-    seed = rd();
+    s_instances[window] = this;
       // Create a central progress tracker with a callback to update the UI
     m_progressTracker = std::make_shared<WorldGen::ProgressTracker>();
     
@@ -48,10 +46,8 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window):
 
     m_planetParams = WorldGen::PlanetParameters();
 
-    //   // Initialize planet parameters
-    // m_planetParams.seed = seed;
-    // m_planetParams.radius = 1.0f;
-    // m_planetParams.resolution = WorldGen::PlanetParameters().resolution;
+    // Planet parameters are initialized with defaults
+    // Seed is now managed separately through the UI
 }
 
 WorldGenScreen::~WorldGenScreen() {
@@ -97,7 +93,7 @@ bool WorldGenScreen::initialize() {
     
     // Set up scroll callback without overriding window user pointer
     glfwSetScrollCallback(m_window, scrollCallback);    // Initialize world object and renderer, but don't generate the world yet
-    m_world = std::make_unique<WorldGen::Generators::World>(m_planetParams, m_progressTracker);
+    m_world = std::make_unique<WorldGen::Generators::World>(m_planetParams, 12345, m_progressTracker);
     m_worldRenderer = std::make_unique<WorldGen::Renderers::World>();
     m_landingLocation = std::make_unique<WorldGen::Renderers::LandingLocation>(m_worldRenderer.get());
     
@@ -129,8 +125,8 @@ bool WorldGenScreen::initialize() {
         // Switch to generating state
         m_worldGenUI->setState(WorldGen::UIState::Generating);
         
-        // Update seed from UI
-        m_planetParams.seed = m_worldGenUI->getCurrentSeed();
+        // Get seed from UI (seed is no longer part of PlanetParameters)
+        m_currentSeed = m_worldGenUI->getCurrentSeed();
         
         // Reset the progress tracker
         m_progressTracker->Reset();
@@ -205,7 +201,7 @@ bool WorldGenScreen::initialize() {
         m_gameWorldParams.camera = camera;
         m_gameWorldParams.gameState = gameState;
         m_gameWorldParams.window = m_window;
-        m_gameWorldParams.seed = std::to_string(m_planetParams.seed);
+        m_gameWorldParams.seed = std::to_string(m_currentSeed);
         
         // Set flag to indicate we're creating a game world
         m_isCreatingGameWorld = true;
@@ -686,7 +682,7 @@ void WorldGenScreen::convertWorldToTerrainData() {
 void WorldGenScreen::worldGenerationThreadFunc() {
     try {
         // Generate the world in this background thread
-        m_world = WorldGen::Generators::Generator::CreateWorld(m_planetParams, m_progressTracker);
+        m_world = WorldGen::Generators::Generator::CreateWorld(m_planetParams, m_currentSeed, m_progressTracker);
         
         // Check if we should stop
         if (m_shouldStopGeneration) {

@@ -28,9 +28,10 @@ public:
      * @brief Construct a new World with specific parameters.
      * 
      * @param params The parameters to use for world generation.
+     * @param seed Random seed for world generation.
      * @param progressTracker Progress tracker to report generation progress.
      */
-    World(const PlanetParameters& params, std::shared_ptr<ProgressTracker> progressTracker);    /**
+    World(const PlanetParameters& params, uint64_t seed, std::shared_ptr<ProgressTracker> progressTracker);    /**
      * @brief Generate the world geometry with progress tracking.
      * 
      * @param subdivisionLevel Number of times to subdivide the base icosahedron.

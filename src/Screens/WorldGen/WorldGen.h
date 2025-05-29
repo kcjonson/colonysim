@@ -47,7 +47,6 @@ private:
     int worldWidth;
     int worldHeight;
     float waterLevel;
-    unsigned int seed;
     bool worldGenerated;
       // Star background
     std::unique_ptr<WorldGen::Stars> m_stars;
@@ -71,6 +70,7 @@ private:
     std::unique_ptr<WorldGen::Renderers::World> m_worldRenderer;
     std::unique_ptr<WorldGen::Renderers::LandingLocation> m_landingLocation;
     WorldGen::PlanetParameters m_planetParams;
+    uint64_t m_currentSeed = 12345; // Current seed for world generation
     float m_distortionFactor = 0.15f;
     
     // Progress tracking for world generation
