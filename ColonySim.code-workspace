@@ -90,7 +90,21 @@
 			"xtree": "cpp",
 			"cstdarg": "cpp",
 			"set": "cpp",
-			"stack": "cpp"
+			"stack": "cpp",
+			"__bit_reference": "cpp",
+			"__split_buffer": "cpp",
+			"__hash_table": "cpp",
+			"__locale": "cpp",
+			"__node_handle": "cpp",
+			"__tree": "cpp",
+			"__verbose_abort": "cpp",
+			"bitset": "cpp",
+			"complex": "cpp",
+			"cwctype": "cpp",
+			"execution": "cpp",
+			"print": "cpp",
+			"source_location": "cpp",
+			"string_view": "cpp"
 		}
 	}
 }

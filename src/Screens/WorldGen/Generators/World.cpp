@@ -391,65 +391,70 @@ void World::TrianglesToTiles() {
     }
 }
 
-void World::SetupTileNeighbors() {    // Build a map of vertices to tiles
-    std::unordered_map<size_t, std::vector<int>> vertexToTiles;
+void World::SetupTileNeighbors() {
+    // Build edge-to-tiles mapping during tile creation for O(E) complexity
+    std::unordered_map<uint64_t, std::vector<int>> edgeToTiles;
     
-    // For each tile, register it with each of its vertices
+    // For each tile, register all its edges
     for (size_t tileIdx = 0; tileIdx < m_tiles.size(); tileIdx++) {
         const auto& tile = m_tiles[tileIdx];
-          // For each vertex in the tile
-        for (const auto& vertex : tile.GetVertices()) {
-            // Hash the vertex to get a unique ID
-            // Note: In a production system, you would need a more robust way to identify vertices
-            size_t vertexHash = std::hash<glm::vec3>{}(vertex);
-            vertexToTiles[vertexHash].push_back(static_cast<int>(tileIdx));
+        const auto& vertices = tile.GetVertices();
+        
+        // For each edge in the tile (connecting consecutive vertices)
+        for (size_t i = 0; i < vertices.size(); i++) {
+            size_t nextIdx = (i + 1) % vertices.size();
+            
+            // Create edge key using vertex hashes (ensure consistent ordering)
+            size_t hash1 = std::hash<glm::vec3>{}(vertices[i]);
+            size_t hash2 = std::hash<glm::vec3>{}(vertices[nextIdx]);
+            uint64_t edgeKey = (hash1 < hash2) ? 
+                               ((static_cast<uint64_t>(hash1) << 32) | hash2) :
+                               ((static_cast<uint64_t>(hash2) << 32) | hash1);
+            
+            // Add this tile to the edge mapping
+            edgeToTiles[edgeKey].push_back(static_cast<int>(tileIdx));
         }
         
         // Report progress periodically
-        if (m_progressTracker && tileIdx % 500 == 0) {
-            float progress = static_cast<float>(tileIdx) / m_tiles.size() * 0.5f; // First half of process
-            std::string message = "Mapping tiles to vertices (" + 
+        if (m_progressTracker && tileIdx % 1000 == 0) {
+            float progress = static_cast<float>(tileIdx) / m_tiles.size() * 0.3f;
+            std::string message = "Building edge mapping (" + 
                                  std::to_string(tileIdx) + " of " + 
                                  std::to_string(m_tiles.size()) + ")";
             m_progressTracker->UpdateProgress(progress, message);
         }
     }
     
-    // Now establish neighborhood relationships
+    // Now establish neighborhood relationships using the edge mapping
     for (size_t tileIdx = 0; tileIdx < m_tiles.size(); tileIdx++) {
         auto& tile = m_tiles[tileIdx];
+        const auto& vertices = tile.GetVertices();
         std::vector<int> neighbors;
-          // For each vertex in the tile
-        for (const auto& vertex : tile.GetVertices()) {
-            size_t vertexHash = std::hash<glm::vec3>{}(vertex);
+        
+        // For each edge in the tile, find tiles that share this edge
+        for (size_t i = 0; i < vertices.size(); i++) {
+            size_t nextIdx = (i + 1) % vertices.size();
             
-            // All tiles that share this vertex are potential neighbors
-            for (int otherTileIdx : vertexToTiles[vertexHash]) {
-                // Don't add ourselves as a neighbor
-                if (otherTileIdx != static_cast<int>(tileIdx)) {
-                    // Check if the tiles also share another vertex (meaning they're adjacent)
-                    const auto& otherTile = m_tiles[otherTileIdx];
-                    
-                    // Count shared vertices
-                    int sharedVertices = 0;
-                    for (const auto& tileVertex : tile.GetVertices()) {
-                        for (const auto& otherVertex : otherTile.GetVertices()) {
-                            if (glm::distance(tileVertex, otherVertex) < 0.0001f) {
-                                sharedVertices++;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    // If they share at least two vertices, they're neighbors
-                    if (sharedVertices >= 2) {
+            // Create the same edge key
+            size_t hash1 = std::hash<glm::vec3>{}(vertices[i]);
+            size_t hash2 = std::hash<glm::vec3>{}(vertices[nextIdx]);
+            uint64_t edgeKey = (hash1 < hash2) ? 
+                               ((static_cast<uint64_t>(hash1) << 32) | hash2) :
+                               ((static_cast<uint64_t>(hash2) << 32) | hash1);
+            
+            // Find all tiles sharing this edge
+            auto it = edgeToTiles.find(edgeKey);
+            if (it != edgeToTiles.end()) {
+                for (int otherTileIdx : it->second) {
+                    // Don't add ourselves as a neighbor
+                    if (otherTileIdx != static_cast<int>(tileIdx)) {
                         neighbors.push_back(otherTileIdx);
                     }
                 }
             }
         }
         
-        // Remove duplicates
+        // Remove duplicates (a tile might be added multiple times if sharing multiple edges)
         std::sort(neighbors.begin(), neighbors.end());
         neighbors.erase(std::unique(neighbors.begin(), neighbors.end()), neighbors.end());
         
@@ -457,8 +462,8 @@ void World::SetupTileNeighbors() {    // Build a map of vertices to tiles
         tile.SetNeighbors(neighbors);
         
         // Report progress periodically
-        if (m_progressTracker && tileIdx % 500 == 0) {
-            float progress = 0.5f + static_cast<float>(tileIdx) / m_tiles.size() * 0.5f; // Second half of process
+        if (m_progressTracker && tileIdx % 1000 == 0) {
+            float progress = 0.3f + static_cast<float>(tileIdx) / m_tiles.size() * 0.7f;
             std::string message = "Establishing tile connections (" + 
                                  std::to_string(tileIdx) + " of " + 
                                  std::to_string(m_tiles.size()) + ")";
