@@ -207,6 +207,14 @@ namespace Rendering {
 				// Reset mouse state when changing disabled state
 				if (disabled) {
 					mouseDown = false;
+					// Force state to normal when disabling
+					state = State::Normal;
+				} else {
+					// Force state update when enabling by setting to an invalid state first
+					State currentState = state;
+					state = static_cast<State>(-1); // Force the state to be different
+					updateVisualState();
+					// The updateVisualState call will set the correct state
 				}
 				updateVisualState();
 				markDirty();

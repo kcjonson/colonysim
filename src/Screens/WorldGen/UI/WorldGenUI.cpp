@@ -329,8 +329,12 @@ void WorldGenUI::setState(UIState newState) {
                 break;
             case UIState::Viewing:
                 generateButton->setDisabled(false);
-                landButton->setDisabled(false);
                 std::cout << "Viewing";
+                break;
+            case UIState::Landing:
+                generateButton->setDisabled(false);
+                landButton->setDisabled(false);
+                std::cout << "Landing";
                 break;
             case UIState::Saving:
                 generateButton->setDisabled(true);

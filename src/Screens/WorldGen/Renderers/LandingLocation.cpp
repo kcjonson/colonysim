@@ -234,6 +234,9 @@ bool LandingLocation::SelectCurrentLocation()
     selectedLocation = currentLocation;
     locationSelected = true;
     
+    // Regenerate the circle with the selected color
+    GenerateCircle();
+    
     // Log selection for debugging
     std::cout << "User has selected landing site at: [" 
               << selectedLocation.x << ", " 
@@ -248,6 +251,9 @@ void LandingLocation::Reset()
     locationSelected = false;
     currentLocation = glm::vec3(0.0f);
     selectedLocation = glm::vec3(0.0f);
+    
+    // Regenerate the circle to remove the selected color
+    GenerateCircle();
 }
 
 void LandingLocation::GenerateCircle()
@@ -261,8 +267,8 @@ void LandingLocation::GenerateCircle()
     glm::vec3 circleColor;
     
     if (locationSelected) {
-        // Bright green for selected - very visible
-        circleColor = glm::vec3(0.0f, 1.0f, 0.2f); // Brighter green
+        // Bright red for selected - very visible
+        circleColor = glm::vec3(1.0f, 0.0f, 0.0f); // Bright red
     } else {
         // Extremely bright color for hovering - visible against any background
         circleColor = glm::vec3(1.0f, 0.7f, 0.0f); // Bright amber/orange color

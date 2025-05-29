@@ -437,10 +437,12 @@ void WorldGenScreen::handleInput(float deltaTime) {
                     // If we already have a location selected, unselect it
                     if (landingLocation->HasLocationSelected()) {
                         landingLocation->Reset();
+                        worldGenUI->setState(WorldGen::UIState::Viewing);
                         std::cout << "Landing location unselected!" << std::endl;
                     }
                     // Otherwise try to select a new landing location
                     else if (landingLocation->SelectCurrentLocation()) {
+                        worldGenUI->setState(WorldGen::UIState::Landing);
                         std::cout << "Landing location selected!" << std::endl;
                     }
                 }
