@@ -31,7 +31,8 @@ WorldGenScreen::WorldGenScreen(Camera* camera, GLFWwindow* window):
     , cameraDistance(5.0f)
     , rotationAngle(0.0f)
     , isDragging(false)
-    , window(window) {
+    , window(window)
+    , currentVisualizationMode(WorldGen::VisualizationMode::Terrain) {
     
     // Register this instance in the static map
     instances[window] = this;
@@ -143,6 +144,13 @@ bool WorldGenScreen::initialize() {
         // Start a new generation thread
         isGenerating = true;
         generationThread = std::thread(&WorldGenScreen::worldGenerationThreadFunc, this);
+    });
+    
+    // Visualization mode change event
+    worldGenUI->addEventListener(WorldGen::UIEvent::ChangeVisualization, [this]() {
+        currentVisualizationMode = worldGenUI->getVisualizationMode();
+        std::cout << "Visualization mode changed to: " << static_cast<int>(currentVisualizationMode) << std::endl;
+        // The tile coloring will be handled in the render loop
     });
     
     // Land button event
@@ -326,7 +334,15 @@ void WorldGenScreen::render() {
             aspectRatio,          // Aspect ratio
             0.1f,                 // Near plane
             100.0f                // Far plane
-        );        // Render the world with adjusted projection
+        );        // Update renderer with current visualization mode
+        worldRenderer->SetVisualizationMode(currentVisualizationMode);
+        
+        // Pass plate data if available
+        if (!tectonicPlates.empty()) {
+            worldRenderer->SetPlateData(tectonicPlates);
+        }
+        
+        // Render the world with adjusted projection
         worldRenderer->Render(viewMatrix, adjustedProjection);
         
         // Render the landing location indicator
@@ -685,6 +701,32 @@ void WorldGenScreen::worldGenerationThreadFunc() {
     try {
         // Generate the world in this background thread
         world = WorldGen::Generators::Generator::CreateWorld(planetParams, currentSeed, progressTracker);
+        
+        // Check if we should stop
+        if (shouldStopGeneration) {
+            isGenerating = false;
+            return;
+        }
+        
+        // Update progress for plate generation phase
+        {
+            std::lock_guard<std::mutex> lock(progressMutex);
+            latestProgress.progress = 0.7f;
+            latestProgress.message = "Starting tectonic plate generation...";
+            latestProgress.hasUpdate = true;
+        }
+        
+        // Generate tectonic plates with progress tracking
+        tectonicPlates = WorldGen::Generators::GeneratePlates(world.get(), planetParams.numTectonicPlates, currentSeed + 1, progressTracker);
+        
+        // Check if we should stop
+        if (shouldStopGeneration) {
+            isGenerating = false;
+            return;
+        }
+        
+        // Assign tiles to plates with progress tracking
+        WorldGen::Generators::AssignTilesToPlates(world.get(), tectonicPlates, planetParams.numTectonicPlates, currentSeed + 2, progressTracker);
         
         // Check if we should stop
         if (shouldStopGeneration) {

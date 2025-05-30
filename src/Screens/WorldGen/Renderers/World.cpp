@@ -21,6 +21,7 @@ World::World()
     , vbo(0)
     , ebo(0)
     , dataGenerated(false)
+    , visualizationMode(WorldGen::VisualizationMode::Terrain)
 {
 }
 
@@ -46,6 +47,65 @@ void World::SetWorld(const Generators::World* world)
 {
     this->world = world;
     dataGenerated = false; // Need to regenerate rendering data
+}
+
+void World::SetVisualizationMode(WorldGen::VisualizationMode mode)
+{
+    visualizationMode = mode;
+    // No need to regenerate anything - shader will handle the color change
+}
+
+void World::SetPlateData(const std::vector<Generators::Plate>& plates)
+{
+    plateData = plates;
+    plateColors.clear();
+    plateColors.reserve(plates.size());
+    
+    // Pre-calculate colors for each plate with better contrast
+    for (size_t i = 0; i < plates.size(); ++i) {
+        const auto& plate = plates[i];
+        
+        // Use plate ID to generate variation
+        float variation = (i * 7919) % 100 / 100.0f; // Prime number for good distribution
+        
+        glm::vec3 color;
+        if (plate.size == Generators::PlateSize::Major) {
+            // Major plates: darker, more saturated colors
+            if (plate.isOceanic) {
+                // Dark blue range for major oceanic
+                float r = 0.0f + variation * 0.1f;
+                float g = 0.1f + variation * 0.1f;
+                float b = 0.3f + variation * 0.2f;
+                color = glm::vec3(r, g, b);
+            } else {
+                // Dark brown/green range for major continental
+                float r = 0.2f + variation * 0.2f;
+                float g = 0.1f + variation * 0.1f;
+                float b = 0.0f + variation * 0.1f;
+                color = glm::vec3(r, g, b);
+            }
+        } else {
+            // Minor plates: bright, highly visible colors for contrast
+            if (plate.isOceanic) {
+                // Bright cyan/turquoise for minor oceanic
+                float r = 0.3f + variation * 0.3f;
+                float g = 0.6f + variation * 0.3f;
+                float b = 0.8f + variation * 0.2f;
+                color = glm::vec3(r, g, b);
+            } else {
+                // Bright orange/yellow for minor continental
+                float r = 0.8f + variation * 0.2f;
+                float g = 0.5f + variation * 0.3f;
+                float b = 0.1f + variation * 0.2f;
+                color = glm::vec3(r, g, b);
+            }
+        }
+        plateColors.push_back(color);
+        
+        // Debug output disabled to reduce console spam
+    }
+    
+    // No need to regenerate - colors are handled by shader
 }
 
 // SetRenderMode function removed as we now use a fixed rendering mode
@@ -194,11 +254,7 @@ void World::GenerateRenderingData()
         unsigned int vertexCount = static_cast<unsigned int>(tileVertices.size() + 1);
           // Index where this tile's indices start in the indices array
         unsigned int indexOffset = static_cast<unsigned int>(indices.size());
-          // Get the terrain type of this tile and use its color
-        TerrainType terrainType = tile.GetTerrainType();
-          // Get color from the TerrainColors map, convert vec4 to vec3 (drop alpha)
-        const glm::vec4& colorVec4 = TerrainColors.at(terrainType);
-        glm::vec3 tileColor = glm::vec3(colorVec4.r, colorVec4.g, colorVec4.b);
+        // No color calculation needed - shader will handle it
         
         // Get the center position
         glm::vec3 centerPos = glm::normalize(tile.GetCenter());
@@ -213,9 +269,10 @@ void World::GenerateRenderingData()
         vertexData.push_back(centerPos.x); 
         vertexData.push_back(centerPos.y);
         vertexData.push_back(centerPos.z);
-        vertexData.push_back(tileColor.r); 
-        vertexData.push_back(tileColor.g);
-        vertexData.push_back(tileColor.b);
+        // Instead of color, store tile data as floats
+        vertexData.push_back(static_cast<float>(tile.GetTerrainType())); // Terrain type
+        vertexData.push_back(static_cast<float>(tile.GetPlateId()));     // Plate ID
+        vertexData.push_back(tile.GetElevation());                       // Elevation
         
         vertexOffset++;
         
@@ -272,9 +329,10 @@ void World::GenerateRenderingData()
             vertexData.push_back(vertexPos.x); // Normal = position for a sphere
             vertexData.push_back(vertexPos.y);
             vertexData.push_back(vertexPos.z);
-            vertexData.push_back(tileColor.r);
-            vertexData.push_back(tileColor.g);
-            vertexData.push_back(tileColor.b);
+            // Instead of color, store tile data as floats
+            vertexData.push_back(static_cast<float>(tile.GetTerrainType())); // Terrain type
+            vertexData.push_back(static_cast<float>(tile.GetPlateId()));     // Plate ID
+            vertexData.push_back(tile.GetElevation());                       // Elevation
             
             // Add this vertex to the indices
             indices.push_back(vertexOffset);
@@ -388,6 +446,39 @@ void World::RenderTiles(const glm::mat4& viewMatrix, const glm::mat4& projection
     glUniform3fv(lightColorLoc, 1, glm::value_ptr(lightColor));
     glUniform3fv(viewPosLoc, 1, glm::value_ptr(cameraPos));
     
+    // Set visualization mode uniform
+    GLint visualizationModeLoc = glGetUniformLocation(shader.getProgram(), "visualizationMode");
+    glUniform1i(visualizationModeLoc, static_cast<int>(visualizationMode));
+    
+    // Set terrain colors uniform array
+    GLint terrainColorsLoc = glGetUniformLocation(shader.getProgram(), "terrainColors");
+    if (terrainColorsLoc != -1) {
+        glm::vec3 terrainColorArray[16];
+        for (int i = 0; i < 16; ++i) {
+            if (TerrainColors.count(static_cast<TerrainType>(i))) {
+                const glm::vec4& color = TerrainColors.at(static_cast<TerrainType>(i));
+                terrainColorArray[i] = glm::vec3(color.r, color.g, color.b);
+            } else {
+                terrainColorArray[i] = glm::vec3(1.0f, 0.0f, 1.0f); // Magenta for missing
+            }
+        }
+        glUniform3fv(terrainColorsLoc, 16, glm::value_ptr(terrainColorArray[0]));
+    }
+    
+    // Set plate colors uniform array
+    GLint plateColorsLoc = glGetUniformLocation(shader.getProgram(), "plateColors");
+    if (plateColorsLoc != -1 && !plateColors.empty()) {
+        glm::vec3 plateColorArray[32];
+        for (int i = 0; i < 32; ++i) {
+            if (i < plateColors.size()) {
+                plateColorArray[i] = plateColors[i];
+            } else {
+                plateColorArray[i] = glm::vec3(0.5f, 0.5f, 0.5f); // Gray for missing
+            }
+        }
+        glUniform3fv(plateColorsLoc, 32, glm::value_ptr(plateColorArray[0]));
+    }
+    
     // Calculate camera forward direction from view matrix
     glm::mat4 cameraMatrix = glm::inverse(viewMatrix);
     glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
@@ -400,10 +491,6 @@ void World::RenderTiles(const glm::mat4& viewMatrix, const glm::mat4& projection
     };
 
     // PASS 1: Draw the solid colored tiles
-    // Tell shader to use vertex colors (1 for true)
-    if (useColorAttribLoc != -1) {
-        glUniform1i(useColorAttribLoc, 1);
-    }
     
     // Draw each tile as a triangle fan
     glBindVertexArray(vao);
@@ -487,6 +574,7 @@ void World::RenderTile(const TileFanInfo& tileInfo,
         );
     }
 }
+
 
 } // namespace Renderers
 } // namespace WorldGen

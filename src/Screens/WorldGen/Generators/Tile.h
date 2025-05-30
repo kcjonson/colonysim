@@ -155,6 +155,20 @@ public:    /**
      * @param biomeType The biome type.
      */
     void SetBiomeType(BiomeType biomeType) { this->biomeType = biomeType; }
+    
+    /**
+     * @brief Get the tectonic plate ID of this tile.
+     * 
+     * @return int The plate ID (-1 if unassigned).
+     */
+    int GetPlateId() const { return plateId; }
+    
+    /**
+     * @brief Set the tectonic plate ID of this tile.
+     * 
+     * @param plateId The plate ID.
+     */
+    void SetPlateId(int plateId) { this->plateId = plateId; }
 
 private:
     glm::vec3 center;                ///< Center position of the tile
@@ -168,6 +182,9 @@ private:
     float temperature = 0.5f;        ///< Temperature of the tile (0.0-1.0)
     TerrainType terrainType = TerrainType::Lowland; ///< Type of terrain in this tile
     BiomeType biomeType = BiomeType::TemperateGrassland; ///< Biome type in this tile
+    
+    // Tectonic plate data
+    int plateId = -1;                ///< Tectonic plate ID (-1 if unassigned)
 };
 
 } // namespace Generators

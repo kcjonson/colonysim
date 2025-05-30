@@ -11,6 +11,7 @@
 #include "UI/WorldGenUI.h" // Updated path
 #include "Generators/World.h"
 #include "Generators/Generator.h"
+#include "Generators/TectonicPlates.h" // Add tectonic plates
 #include "Renderers/World.h"
 #include "Renderers/LandingLocation.h" // Add LandingLocation
 #include "../Game/World.h" // Include for World class
@@ -69,7 +70,13 @@ private:
     std::unique_ptr<WorldGen::Generators::World> world;
     std::unique_ptr<WorldGen::Renderers::World> worldRenderer;
     std::unique_ptr<WorldGen::Renderers::LandingLocation> landingLocation;
+    
+    // Current visualization mode for coloring tiles
+    WorldGen::VisualizationMode currentVisualizationMode;
     WorldGen::PlanetParameters planetParams;
+    
+    // Tectonic plates data
+    std::vector<WorldGen::Generators::Plate> tectonicPlates;
     uint64_t currentSeed = 12345; // Current seed for world generation
     float distortionFactor = 0.15f;
     

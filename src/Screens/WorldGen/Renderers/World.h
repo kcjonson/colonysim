@@ -5,7 +5,9 @@
 #include <functional>
 #include <glm/glm.hpp>
 #include "../Generators/World.h"
+#include "../Generators/TectonicPlates.h" // For Plate struct
 #include "../../../Shader.h"
+#include "../UI/WorldGenUI.h" // For VisualizationMode enum
 
 namespace WorldGen {
 namespace Renderers {
@@ -34,7 +36,21 @@ public:    // Visualization options are now handled internally
      * 
      * @param world Pointer to the world to render.
      */
-    void SetWorld(const Generators::World* world);    /**
+    void SetWorld(const Generators::World* world);
+    
+    /**
+     * @brief Set the visualization mode for tile coloring.
+     * 
+     * @param mode The visualization mode to use.
+     */
+    void SetVisualizationMode(WorldGen::VisualizationMode mode);
+    
+    /**
+     * @brief Set the plate data for tectonic visualization.
+     * 
+     * @param plates The tectonic plates data.
+     */
+    void SetPlateData(const std::vector<Generators::Plate>& plates);    /**
      * @brief Render the world.
      * 
      * @param viewMatrix The view matrix.
@@ -84,6 +100,13 @@ private:    /**
     unsigned int ebo;                  ///< Element buffer object
     Shader shader;                     ///< Shader object
     std::vector<TileFanInfo> tileFanInfo; ///< Triangle fan information for each tile
+    
+    // Visualization mode
+    WorldGen::VisualizationMode visualizationMode;
+    
+    // Plate data for visualization
+    std::vector<Generators::Plate> plateData;
+    std::vector<glm::vec3> plateColors; // Pre-calculated colors for each plate
 
     // Render data for different modes    // Render data for different modes
     std::vector<float> vertexData;     ///< Vertex data for rendering

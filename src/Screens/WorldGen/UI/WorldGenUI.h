@@ -24,7 +24,16 @@ namespace WorldGen {
 enum class UIEvent {
     GenerateWorld,
     GoToLand,
-    Back
+    Back,
+    ChangeVisualization
+};
+
+// Visualization modes
+enum class VisualizationMode {
+    Terrain,        // Default icosahedron terrain view (existing)
+    TectonicPlates, // Show tectonic plates
+    CrustThickness, // Show crust thickness  
+    PlanetMesh      // Basic planet mesh from tectonic system
 };
 
 // Callback definition
@@ -67,6 +76,10 @@ public:
     
     // Progress tracking (setter)
     void setProgress(float progress, const std::string& statusMessage);
+    
+    // Visualization controls
+    void setVisualizationMode(VisualizationMode mode);
+    VisualizationMode getVisualizationMode() const { return visualizationMode; }
 
 private:
     float sidebarWidth;
@@ -116,6 +129,11 @@ private:
     
     // UI state
     UIState state;
+    VisualizationMode visualizationMode;
+    
+    // Visualization mode UI elements
+    std::shared_ptr<Rendering::Shapes::Text> visualizationLabel;
+    std::vector<std::shared_ptr<Rendering::Components::Button>> visualizationButtons;
     
 public:
     // Seed management

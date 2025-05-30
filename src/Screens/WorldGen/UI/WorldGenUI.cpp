@@ -19,7 +19,8 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
     , window(window)
     , state(UIState::ParameterSetup)
     , currentProgress(0.0f)
-    , statusMessage("Ready to generate world") {
+    , statusMessage("Ready to generate world")
+    , visualizationMode(VisualizationMode::Terrain) {
     
     // Create layers with different z-indices and pass pointers
     sidebarLayer = std::make_shared<Rendering::Layer>(50.0f, Rendering::ProjectionType::ScreenSpace, camera, window);
@@ -180,6 +181,54 @@ WorldGenUI::WorldGenUI(Camera* camera, GLFWwindow* window)
     } else {
         std::cout << "No default seed in config, generating random seed" << std::endl;
         randomizeSeed();
+    }
+    
+    // Visualization mode controls
+    visualizationLabel = std::make_shared<Rendering::Shapes::Text>(
+        Rendering::Shapes::Text::Args{
+            .text = "Visualization:",
+            .position = glm::vec2(labelX, startY + 4 * lineHeight),
+            .style = Rendering::Shapes::Text::Styles({
+                .color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .fontSize = 1.0f
+            }),
+            .zIndex = 150.0f
+        }
+    );
+    sidebarLayer->addItem(visualizationLabel);
+    
+    // Create visualization mode buttons
+    std::vector<std::pair<std::string, VisualizationMode>> vizModes = {
+        {"Terrain", VisualizationMode::Terrain},
+        {"Plates", VisualizationMode::TectonicPlates},
+        {"Crust", VisualizationMode::CrustThickness},
+        {"Mesh", VisualizationMode::PlanetMesh}
+    };
+    
+    float buttonWidth = 60.0f;
+    float buttonSpacing = 5.0f;
+    float buttonStartX = labelX;
+    
+    for (size_t i = 0; i < vizModes.size(); ++i) {
+        auto button = std::make_shared<Rendering::Components::Button>(
+            Rendering::Components::Button::Args{
+                .label = vizModes[i].first,
+                .position = glm::vec2(buttonStartX + i * (buttonWidth + buttonSpacing), startY + 5 * lineHeight),
+                .size = glm::vec2(buttonWidth, 30.0f),
+                .type = (vizModes[i].second == visualizationMode) ? 
+                    Rendering::Components::Button::Type::Primary : 
+                    Rendering::Components::Button::Type::Secondary,
+                .onClick = [this, mode = vizModes[i].second]() {
+                    setVisualizationMode(mode);
+                    auto it = eventHandlers.find(UIEvent::ChangeVisualization);
+                    if (it != eventHandlers.end()) {
+                        it->second();
+                    }
+                }
+            }
+        );
+        visualizationButtons.push_back(button);
+        sidebarLayer->addItem(button);
     }
     
     generateButton = std::make_shared<Rendering::Components::Button>(
@@ -560,6 +609,26 @@ unsigned int WorldGenUI::getCurrentSeed() const {
     } catch (const std::exception& e) {
         std::cout << "Warning: Unexpected error parsing seed '" << seedText << "': " << e.what() << ". Using default seed 12345." << std::endl;
         return 12345;
+    }
+}
+
+void WorldGenUI::setVisualizationMode(VisualizationMode mode) {
+    visualizationMode = mode;
+    
+    // Update button states to reflect the new mode
+    const std::vector<VisualizationMode> modes = {
+        VisualizationMode::Terrain,
+        VisualizationMode::TectonicPlates,
+        VisualizationMode::CrustThickness,
+        VisualizationMode::PlanetMesh
+    };
+    
+    for (size_t i = 0; i < visualizationButtons.size() && i < modes.size(); ++i) {
+        visualizationButtons[i]->setType(
+            (modes[i] == mode) ? 
+            Rendering::Components::Button::Type::Primary : 
+            Rendering::Components::Button::Type::Secondary
+        );
     }
 }
 

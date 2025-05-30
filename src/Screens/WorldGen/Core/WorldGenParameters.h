@@ -11,7 +11,7 @@ struct PlanetParameters {
     float physicalRadiusMeters = 6371000.0f; // Physical radius in meters (Earth default)
     float mass = 1.0f;
     float rotationRate = 1.0f;
-    int numTectonicPlates = 8;
+    int numTectonicPlates = 12;
     float waterAmount = 0.7f;
     float atmosphereDensity = 1.0f;
     uint64_t planetAge = 4500000000; // ~4.5 billion years

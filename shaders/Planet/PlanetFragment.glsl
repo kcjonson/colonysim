@@ -2,34 +2,56 @@
 
 in vec3 Normal;
 in vec3 FragPos;
-in vec3 VertexColor;
+in vec3 TileData; // x=terrainType, y=plateId, z=elevation
 
 out vec4 FragColor;
 
+// Lighting uniforms
 uniform vec3 lightPos;
 uniform vec3 lightColor;
 uniform vec3 viewPos;
-uniform vec3 planetColor;
-uniform int useColorAttrib = 0; // Whether to use the vertex color attribute (0=false, 1=true)
+
+// Visualization mode
+uniform int visualizationMode; // 0=terrain, 1=plates, 2=crust, 3=mesh
+
+// Color lookup tables
+uniform vec3 terrainColors[16];
+uniform vec3 plateColors[32];
 
 void main() {
-    // Select the color source based on useColorAttrib uniform
-    // If 1, use vertex color. Otherwise use planetColor or default
+    // Extract tile data
+    int terrainType = int(TileData.x);
+    int plateId = int(TileData.y);
+    float elevation = TileData.z;
+    
+    // Determine base color based on visualization mode
     vec3 baseColor;
     
-    if (useColorAttrib == 1) {
-        // Use the color from vertex attributes
-        baseColor = VertexColor;
-    } else {
-        // Use planetColor if provided, otherwise use default ocean color
-        baseColor = planetColor.x + planetColor.y + planetColor.z > 0.0 ? planetColor : vec3(0.0, 0.3, 0.8);
+    if (visualizationMode == 0) { // Terrain
+        baseColor = terrainColors[clamp(terrainType, 0, 15)];
+    } 
+    else if (visualizationMode == 1) { // Tectonic plates
+        if (plateId >= 0 && plateId < 32) {
+            baseColor = plateColors[plateId];
+        } else {
+            baseColor = vec3(0.5, 0.5, 0.5); // Gray for unassigned
+        }
+    }
+    else if (visualizationMode == 2) { // Crust thickness (elevation-based)
+        float thickness = (elevation + 1.0) * 0.5; // Normalize to 0-1
+        baseColor = vec3(thickness, thickness * 0.5, 0.2);
+    }
+    else if (visualizationMode == 3) { // Mesh
+        baseColor = vec3(0.7, 0.7, 0.7);
+    }
+    else {
+        baseColor = vec3(1.0, 0.0, 1.0); // Magenta for unknown mode
     }
     
-    // Ambient
+    // Lighting calculation
     float ambientStrength = 0.2;
     vec3 ambient = ambientStrength * lightColor;
 
-    // Diffuse
     vec3 norm = normalize(Normal);
     vec3 lightDir = normalize(lightPos - FragPos);
     float diff = max(dot(norm, lightDir), 0.0);
