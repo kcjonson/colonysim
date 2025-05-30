@@ -8,6 +8,13 @@
 #include "Tile.h"
 #include "../ProgressTracker.h"
 
+// Forward declaration for Plate struct
+namespace WorldGen {
+namespace Generators {
+    struct Plate;
+}
+}
+
 namespace WorldGen {
 
 // Forward declaration
@@ -195,6 +202,23 @@ private:
      */
     bool isPointInTile(const glm::vec3& point, int tileIndex) const;
 
+public:
+    // Plate data storage (populated by Generator pipeline)
+    
+    /**
+     * @brief Set the tectonic plates for this world
+     * 
+     * @param plates Vector of plate data
+     */
+    void SetPlates(const std::vector<Plate>& plates);
+    
+    /**
+     * @brief Get the tectonic plates for this world
+     * 
+     * @return const std::vector<Plate>& The plate data
+     */
+    const std::vector<Plate>& GetPlates() const { return tectonicPlates; }
+
     std::vector<Tile> tiles;                     ///< All tiles in the world
     std::vector<glm::vec3> icosahedronVertices;  ///< Original icosahedron vertices
     std::vector<std::array<int, 3>> icosahedronFaces; ///< Original icosahedron faces as index triplets
@@ -209,6 +233,9 @@ private:
     size_t pentagonCount; ///< Count of pentagon tiles (should be 12)
     uint64_t seed;        ///< Seed for random distortion
     std::shared_ptr<ProgressTracker> progressTracker; ///< Progress tracking
+    
+    // Tectonic plate data (populated by Generator pipeline)
+    std::vector<Plate> tectonicPlates;
 };
 
 } // namespace Generators

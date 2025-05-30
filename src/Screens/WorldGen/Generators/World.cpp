@@ -16,6 +16,7 @@
 
 // Project headers
 #include "World.h"
+#include "Plate.h"
 #include "../Core/WorldGenParameters.h"
 #include "../Core/Util.h"
 #include <cmath>
@@ -728,6 +729,10 @@ bool World::isPointInTile(const glm::vec3& point, int tileIndex) const {
     }
     
     return true;  // This tile's center is closest, point belongs here
+}
+
+void World::SetPlates(const std::vector<Plate>& plates) {
+    tectonicPlates = plates;
 }
 
 } // namespace Generators

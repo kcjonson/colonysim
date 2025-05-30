@@ -338,8 +338,9 @@ void WorldGenScreen::render() {
         worldRenderer->SetVisualizationMode(currentVisualizationMode);
         
         // Pass plate data if available
-        if (!tectonicPlates.empty()) {
-            worldRenderer->SetPlateData(tectonicPlates);
+        const auto& plates = world->GetPlates();
+        if (!plates.empty()) {
+            worldRenderer->SetPlateData(plates);
         }
         
         // Render the world with adjusted projection
@@ -708,48 +709,8 @@ void WorldGenScreen::worldGenerationThreadFunc() {
             return;
         }
         
-        // Update progress for plate generation phase
-        {
-            std::lock_guard<std::mutex> lock(progressMutex);
-            latestProgress.progress = 0.7f;
-            latestProgress.message = "Starting tectonic plate generation...";
-            latestProgress.hasUpdate = true;
-        }
-        
-        // Generate tectonic plates with progress tracking
-        tectonicPlates = WorldGen::Generators::GeneratePlates(world.get(), planetParams.numTectonicPlates, currentSeed + 1, progressTracker);
-        
-        // Check if we should stop
-        if (shouldStopGeneration) {
-            isGenerating = false;
-            return;
-        }
-        
-        // Assign tiles to plates with progress tracking
-        WorldGen::Generators::AssignTilesToPlates(world.get(), tectonicPlates, planetParams.numTectonicPlates, currentSeed + 2, progressTracker);
-        
-        // Check if we should stop
-        if (shouldStopGeneration) {
-            isGenerating = false;
-            return;
-        }
-        
-        // Update progress for mountain generation phase
-        {
-            std::lock_guard<std::mutex> lock(progressMutex);
-            latestProgress.progress = 0.85f;
-            latestProgress.message = "Generating mountains at plate boundaries...";
-            latestProgress.hasUpdate = true;
-        }
-        
-        // Generate mountains at plate boundaries with progress tracking
-        WorldGen::Generators::GenerateMountains(world.get(), tectonicPlates, progressTracker);
-        
-        // Check if we should stop
-        if (shouldStopGeneration) {
-            isGenerating = false;
-            return;
-        }
+        // The complete world generation pipeline is now handled by Generator::CreateWorld
+        // which includes geometry, plates, mountains, and future features
         
         // Generation complete
         worldGenerated = true;

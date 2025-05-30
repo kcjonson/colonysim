@@ -14,6 +14,9 @@
 namespace WorldGen {
 namespace Generators {
 
+// COMMENTED OUT - This implementation moved to Plate.cpp
+// Keeping for reference
+/*
 // Simplified spherical point distribution (much faster than Poisson disc)
 std::vector<glm::vec3> GenerateWellDistributedPoints(int numSamples, uint64_t seed) {
     std::mt19937_64 rng(seed);
@@ -47,7 +50,11 @@ std::vector<glm::vec3> GenerateWellDistributedPoints(int numSamples, uint64_t se
     
     return points;
 }
+*/
 
+// COMMENTED OUT - This implementation moved to Plate.cpp
+// Keeping for reference
+/*
 std::vector<Plate> GeneratePlates(World* world, int numPlates, uint64_t seed, std::shared_ptr<ProgressTracker> progressTracker) {
     if (progressTracker) {
         progressTracker->UpdateProgress(0.0f, "Generating tectonic plates...");
@@ -139,7 +146,11 @@ std::vector<Plate> GeneratePlates(World* world, int numPlates, uint64_t seed, st
     
     return plates;
 }
+*/
 
+// COMMENTED OUT - This implementation moved to Plate.cpp
+// Keeping for reference
+/*
 void AssignTilesToPlates(World* world, std::vector<Plate>& plates, int targetTotalPlates, uint64_t seed, std::shared_ptr<ProgressTracker> progressTracker) {
     if (!world || plates.empty()) {
         std::cerr << "Error: Invalid world or no plates to assign" << std::endl;
@@ -298,7 +309,11 @@ void AssignTilesToPlates(World* world, std::vector<Plate>& plates, int targetTot
         progressTracker->UpdateProgress(1.0f, "Plate assignment complete!");
     }
 }
+*/
 
+// COMMENTED OUT - This implementation moved to Mountain.cpp
+// Keeping for reference
+/*
 void GenerateMountains(World* world, const std::vector<Plate>& plates, std::shared_ptr<ProgressTracker> progressTracker) {
     if (!world || plates.empty()) {
         std::cerr << "Error: Invalid world or no plates for mountain generation" << std::endl;
@@ -513,7 +528,7 @@ void GenerateMountains(World* world, const std::vector<Plate>& plates, std::shar
     
     std::cout << "Mountain generation complete." << std::endl;
 }
-
+*/
 
 } // namespace Generators
 } // namespace WorldGen

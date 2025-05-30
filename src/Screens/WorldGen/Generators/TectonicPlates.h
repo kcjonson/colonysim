@@ -57,11 +57,12 @@ std::vector<Plate> GeneratePlates(World* world, int numPlates, uint64_t seed, st
 void AssignTilesToPlates(World* world, std::vector<Plate>& plates, int targetTotalPlates, uint64_t seed, std::shared_ptr<ProgressTracker> progressTracker = nullptr);
 
 /**
- * @brief Generate mountains at plate boundaries
+ * @brief Generate mountains at plate boundaries (legacy simple version)
  * 
  * @param world The world containing tiles with plate assignments
  * @param plates The plates with their properties
  * @param progressTracker Optional progress tracker for reporting progress
+ * @deprecated Use MountainGenerator::GenerateComprehensiveMountains for enhanced mountain generation
  */
 void GenerateMountains(World* world, const std::vector<Plate>& plates, std::shared_ptr<ProgressTracker> progressTracker = nullptr);
 

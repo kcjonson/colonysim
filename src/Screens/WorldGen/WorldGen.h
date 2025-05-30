@@ -76,7 +76,7 @@ private:
     WorldGen::PlanetParameters planetParams;
     
     // Tectonic plates data
-    std::vector<WorldGen::Generators::Plate> tectonicPlates;
+    // Tectonic plates are now stored in the World object itself
     uint64_t currentSeed = 12345; // Current seed for world generation
     float distortionFactor = 0.15f;
     
