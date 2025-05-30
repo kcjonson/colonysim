@@ -47,12 +47,24 @@ void World::SetWorld(const Generators::World* world)
 {
     this->world = world;
     dataGenerated = false; // Need to regenerate rendering data
+    
+    // When world is set, regenerate vertex data with proper elevations
+    if (world) {
+        GenerateRenderingData();
+    }
 }
 
 void World::SetVisualizationMode(WorldGen::VisualizationMode mode)
 {
-    visualizationMode = mode;
-    // No need to regenerate anything - shader will handle the color change
+    if (visualizationMode != mode) {
+        visualizationMode = mode;
+        // When switching to/from plate mode, regenerate vertex data
+        // because plate mode should be flat while other modes show terrain
+        dataGenerated = false;
+        if (world) {
+            GenerateRenderingData();
+        }
+    }
 }
 
 void World::SetPlateData(const std::vector<Generators::Plate>& plates)
@@ -261,10 +273,20 @@ void World::GenerateRenderingData()
         unsigned int indexOffset = static_cast<unsigned int>(indices.size());
         // No color calculation needed - shader will handle it
         
-        // Get the center position
+        // Get the center position with elevation
         glm::vec3 centerPos = glm::normalize(tile.GetCenter());
-        const float expansionFactor = 1.001f;
-        centerPos *= expansionFactor;
+        
+        // Apply elevation-based scaling
+        float centerElevationScale;
+        if (visualizationMode == WorldGen::VisualizationMode::TectonicPlates) {
+            // Keep plates flat for better visualization
+            centerElevationScale = 1.001f;
+        } else {
+            // Show 3D terrain for other modes
+            // Scale based on elevation: 0.0 = sea level (radius 1.0), 1.0 = max height (radius 1.3)
+            centerElevationScale = 1.0f + (tile.GetElevation() * 0.3f);
+        }
+        centerPos *= centerElevationScale;
           // Store vertex data
         // First the center vertex
         unsigned int centerVertexIndex = vertexOffset;
@@ -324,8 +346,47 @@ void World::GenerateRenderingData()
         unsigned int firstPerimeterIndex = vertexOffset;
         
         for (size_t i = 0; i < sortedVertices.size(); ++i) {
-            // Normalize and expand the perimeter vertex slightly
-            glm::vec3 vertexPos = glm::normalize(sortedVertices[i].second) * expansionFactor;
+            // Get the vertex and normalize it
+            glm::vec3 vertex = sortedVertices[i].second;
+            glm::vec3 vertexPos = glm::normalize(vertex);
+            
+            // Calculate interpolated elevation for this vertex by averaging tiles that share it
+            float vertexElevation = tile.GetElevation(); // Start with current tile's elevation
+            int elevationCount = 1;
+            
+            // Find neighboring tiles that share this vertex
+            const auto& neighbors = tile.GetNeighbors();
+            for (int neighborIdx : neighbors) {
+                if (neighborIdx >= 0 && neighborIdx < tiles.size()) {
+                    const auto& neighborTile = tiles[neighborIdx];
+                    const auto& neighborVertices = neighborTile.GetVertices();
+                    
+                    // Check if this neighbor shares this vertex
+                    for (const auto& nv : neighborVertices) {
+                        float dist = glm::length(vertex - nv);
+                        if (dist < 0.001f) { // Vertices match within tolerance
+                            vertexElevation += neighborTile.GetElevation();
+                            elevationCount++;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Average the elevations
+            vertexElevation /= elevationCount;
+            
+            // Apply elevation scaling based on visualization mode
+            float vertexElevationScale;
+            if (visualizationMode == WorldGen::VisualizationMode::TectonicPlates) {
+                // Keep plates flat for better visualization
+                vertexElevationScale = 1.001f;
+            } else {
+                // Show 3D terrain for other modes
+                // Scale: 0.0 = sea level (radius 1.0), 1.0 = max height (radius 1.3)
+                vertexElevationScale = 1.0f + (vertexElevation * 0.3f);
+            }
+            vertexPos *= vertexElevationScale;
             
             // Add vertex
             vertexData.push_back(vertexPos.x);
@@ -356,10 +417,8 @@ void World::GenerateRenderingData()
         tileInfo.vertexCount = vertexCount;  // How many vertices in this tile
         tileInfo.indexCount = indexCount;    // How many indices for the fan
           tileFanInfo.push_back(tileInfo);
-          // Debug logging removed
     }
     
-    // Summary logging removed
     
     // Set up OpenGL objects
     // Create and bind VAO

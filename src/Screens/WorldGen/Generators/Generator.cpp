@@ -1,6 +1,7 @@
 #include "Generator.h"
 #include "Plate.h"
 #include "Mountain.h"
+#include "Biome.h"
 #include <cmath>
 #include <iostream>
 
@@ -52,13 +53,21 @@ std::unique_ptr<World> Generator::CreateWorld(const PlanetParameters& params, ui
     
     std::cout << "Mountain generation complete." << std::endl;
     
+    // Phase 4: Generate biomes based on environmental factors
+    if (progressTracker) {
+        progressTracker->UpdateProgress(0.9f, "Generating biomes...");
+    }
+    
+    GenerateBiomes(world.get(), progressTracker);
+    
+    std::cout << "Biome generation complete." << std::endl;
+    
     // Store plate data in the world for visualization
     world->SetPlates(plates);
     
     // TODO: Future phases
-    // Phase 4: Climate simulation
-    // Phase 5: River generation
-    // Phase 6: Biome assignment
+    // Phase 5: Climate simulation (refine temperature/moisture)
+    // Phase 6: River generation
     // Phase 7: Final terrain smoothing
     
     if (progressTracker) {

@@ -147,15 +147,8 @@ std::pair<BoundaryType, float> DetermineBoundaryType(const Plate& plate1, const 
     return {type, stress};
 }
 
-float GetPlateBaseElevation(const Plate& plate) {
-    // Oceanic plates are generally at lower elevations (ocean floor)
-    // Continental plates are at higher elevations (above sea level)
-    if (plate.isOceanic) {
-        return 0.2f; // Below typical sea level (0.4)
-    } else {
-        return 0.6f; // Above typical sea level
-    }
-}
+// REMOVED: GetPlateBaseElevation was causing all tiles on a plate to have uniform elevation
+// Now we preserve the original terrain variation and only add mountain effects
 
 float CalculateInfluence(float distance, float maxDistance) {
     // Exponential decay function for concentrated mountain ranges
@@ -286,8 +279,8 @@ void GenerateComprehensiveMountains(World* world, const std::vector<Plate>& plat
         const Plate* tileplate = plateMap[tilePlateId];
         if (!tileplate) continue;
         
-        // Start with base elevation from plate type
-        float newElevation = GetPlateBaseElevation(*tileplate);
+        // Start with the tile's existing elevation (preserves terrain variation)
+        float newElevation = tile.GetElevation();
         
         glm::vec3 tilePos = glm::normalize(tile.GetCenter());
         
@@ -317,18 +310,18 @@ void GenerateComprehensiveMountains(World* world, const std::vector<Plate>& plat
                             float foldingContribution = ApplyFoldingPattern(tilePos, boundary.position, 
                                                                            boundary.normal, distance, normalizedStress);
                             
-                            elevationChange = (mountainContribution + foldingContribution) * 0.001f;
+                            elevationChange = (mountainContribution + foldingContribution) * 0.1f; // Increased from 0.001f
                             
                         } else if (boundary.type == BoundaryType::Divergent) {
                             // Rifting creates valleys and lower elevation
                             float normalizedStress = boundary.stress / 500.0f;
-                            elevationChange = -normalizedStress * influence * 0.0003f;
+                            elevationChange = -normalizedStress * influence * 0.03f; // Increased from 0.0003f
                             
                         } else if (boundary.type == BoundaryType::Transform) {
                             // Transform boundaries create moderate relief variation
                             float normalizedStress = boundary.stress / 200.0f;
                             float noise = sin(tilePos.x * 6.0f) * cos(tilePos.z * 6.0f);
-                            elevationChange = normalizedStress * influence * noise * 0.0002f;
+                            elevationChange = normalizedStress * influence * noise * 0.02f; // Increased from 0.0002f
                         }
                         
                         newElevation += elevationChange;
@@ -346,25 +339,7 @@ void GenerateComprehensiveMountains(World* world, const std::vector<Plate>& plat
         // Set the new elevation
         const_cast<Tile&>(tile).SetElevation(newElevation);
         
-        // Update terrain type based on new elevation
-        const float waterLevel = 0.4f;
-        TerrainType newTerrainType;
-        if (newElevation < waterLevel - 0.2f) {
-            newTerrainType = TerrainType::Ocean;
-        } else if (newElevation < waterLevel - 0.05f) {
-            newTerrainType = TerrainType::Shallow;
-        } else if (newElevation < waterLevel + 0.05f) {
-            newTerrainType = TerrainType::Beach;
-        } else if (newElevation < waterLevel + 0.3f) {
-            newTerrainType = TerrainType::Lowland;
-        } else if (newElevation < waterLevel + 0.6f) {
-            newTerrainType = TerrainType::Highland;
-        } else if (newElevation < waterLevel + 0.8f) {
-            newTerrainType = TerrainType::Mountain;
-        } else {
-            newTerrainType = TerrainType::Peak;
-        }
-        const_cast<Tile&>(tile).SetTerrainType(newTerrainType);
+        // Note: Terrain type will be set by the Biome generator based on final elevation
         
         // Report progress periodically
         if (progressTracker && tileIdx % 1000 == 0) {

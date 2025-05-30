@@ -206,6 +206,51 @@ void AssignTilesToPlates(World* world, std::vector<Plate>& plates, int targetTot
                   << "): " << plate.tileIds.size() << " tiles assigned" << std::endl;
     }
     
+    // Set base elevations based on plate type
+    if (progressTracker) {
+        progressTracker->UpdateProgress(0.9f, "Setting base elevations...");
+    }
+    
+    // Apply base elevations with noise for natural terrain
+    for (size_t tileIdx = 0; tileIdx < tiles.size(); ++tileIdx) {
+        const auto& tile = tiles[tileIdx];
+        int plateId = tile.GetPlateId();
+        
+        if (plateId >= 0 && plateId < plates.size()) {
+            const auto& plate = plates[plateId];
+            glm::vec3 tilePos = glm::normalize(tile.GetCenter());
+            
+            // Base elevation based on plate type
+            float baseElevation;
+            if (plate.isOceanic) {
+                // Oceanic plates: below sea level with variation
+                // Use simple hash-based noise for variation
+                float noise1 = sin(tilePos.x * 13.0f + tilePos.y * 7.0f + tilePos.z * 17.0f) * 0.5f + 0.5f;
+                float noise2 = sin(tilePos.x * 31.0f + tilePos.y * 19.0f + tilePos.z * 23.0f) * 0.5f + 0.5f;
+                baseElevation = 0.15f + 0.1f * noise1;
+                baseElevation += 0.05f * noise2;
+            } else {
+                // Continental plates: above sea level with more variation
+                // Use layered noise for more interesting terrain
+                float noise1 = sin(tilePos.x * 11.0f + tilePos.y * 13.0f + tilePos.z * 7.0f) * 
+                              cos(tilePos.x * 5.0f - tilePos.y * 3.0f + tilePos.z * 9.0f);
+                float noise2 = sin(tilePos.x * 23.0f + tilePos.y * 17.0f + tilePos.z * 19.0f) * 
+                              cos(tilePos.x * 13.0f - tilePos.y * 11.0f + tilePos.z * 7.0f);
+                float noise3 = sin(tilePos.x * 43.0f + tilePos.y * 37.0f + tilePos.z * 41.0f);
+                
+                baseElevation = 0.5f + 0.15f * noise1;
+                baseElevation += 0.1f * noise2;
+                baseElevation += 0.05f * noise3;
+            }
+            
+            // Clamp to valid range
+            baseElevation = glm::clamp(baseElevation, 0.0f, 1.0f);
+            
+            // Set the elevation
+            const_cast<Tile&>(tile).SetElevation(baseElevation);
+        }
+    }
+    
     if (progressTracker) {
         progressTracker->UpdateProgress(1.0f, "Tile assignment complete!");
     }

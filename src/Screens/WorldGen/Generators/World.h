@@ -148,11 +148,12 @@ private:
     void SetupTileNeighbors();
     
     /**
-     * @brief Generate terrain data for all tiles.
+     * @brief Initialize tiles with base values.
      * 
-     * This method calculates elevation, moisture, and temperature for all tiles.
+     * This method sets default values for tiles. The plate-based system will
+     * set the actual terrain properties.
      */
-    void GenerateTerrainData();
+    void InitializeBaseTiles();
     
     /**
      * @brief Smooth terrain data by averaging with neighbors.

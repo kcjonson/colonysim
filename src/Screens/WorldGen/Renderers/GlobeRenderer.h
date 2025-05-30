@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include "PlanetData.h" // Updated include path
+#include "../Generators/World.h" // For accessing tile elevation data
 
 namespace WorldGen {
 
@@ -21,8 +22,13 @@ public:
     void resize(int width, int height);
     const PlanetData* getPlanetData() const { return m_planetData.get(); }
     
+    // Terrain elevation support
+    void setWorldData(const Generators::World* world);
+    void updateTerrainElevation();
+    
 private:
     std::unique_ptr<PlanetData> m_planetData;
+    const Generators::World* m_world; // Reference to world data for elevation
     
     // OpenGL objects
     GLuint m_vao;

@@ -116,9 +116,9 @@ void World::Generate(int subdivisionLevel, float distortionFactor, std::shared_p
         progressTracker->StartPhase("Generating Terrain");
     }
     
-    // Generate terrain data for the tiles
-    std::cout << "Generating terrain data..." << std::endl;
-    GenerateTerrainData();
+    // Skip old terrain generation - plate-based system will handle it
+    // Initialize tiles with base values
+    InitializeBaseTiles();
     
     // Report phase completion
     if (progressTracker) {
@@ -479,108 +479,39 @@ void World::SetupTileNeighbors() {
     }
 }
 
-void World::GenerateTerrainData() {
-    // Use a simple noise-based approach for terrain generation
-    // In a real implementation, this would be much more sophisticated
+void World::InitializeBaseTiles() {
+    // Initialize all tiles with base values
+    // The plate-based system will set the actual terrain
     
-    // Random number generator with seed (non-static so it's re-seeded each time)
-    std::mt19937 rng(static_cast<unsigned int>(seed & 0xFFFFFFFF));
-    std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
-    
-    // Create seed-based offsets for noise functions to ensure different results per seed
-    float seedOffsetX = static_cast<float>((seed * 1337) % 10000) / 1000.0f;
-    float seedOffsetY = static_cast<float>((seed * 7919) % 10000) / 1000.0f;
-    float seedOffsetZ = static_cast<float>((seed * 2333) % 10000) / 1000.0f;
-    
-    // Water level constant for terrain type determination
-    const float waterLevel = 0.4f;
-    
-    // Counters for terrain types (for debugging)
-    std::unordered_map<TerrainType, int> terrainTypeCounts;
-    
-    // Generate elevation data
+    // Initialize all tiles with default values
+    // Plate assignment will determine ocean vs land
     for (size_t i = 0; i < tiles.size(); i++) {
+        // Set neutral elevation - plate system will determine actual values
+        tiles[i].SetElevation(0.5f);
+        
+        // Set default terrain type - will be updated by plate system
+        tiles[i].SetTerrainType(TerrainType::Lowland);
+        
+        // Set neutral moisture - can be updated later by climate system
+        tiles[i].SetMoisture(0.5f);
+        
+        // Temperature based on latitude (this can stay)
         glm::vec3 pos = tiles[i].GetCenter();
-        
-        // Simple elevation based on position with seed-based offsets
-        // This creates a simple pattern of high and low points that varies with seed
-        float elevation = 0.5f + 0.2f * glm::simplex(glm::vec2(pos.x * 3.0f + seedOffsetX, pos.z * 3.0f + seedOffsetY));
-        elevation += 0.1f * glm::simplex(glm::vec2(pos.x * 6.0f + seedOffsetY, pos.z * 6.0f + seedOffsetZ));
-        elevation += 0.05f * glm::simplex(glm::vec2(pos.x * 12.0f + seedOffsetZ, pos.z * 12.0f + seedOffsetX));
-        
-        // Clamp to valid range
-        elevation = glm::clamp(elevation, 0.0f, 1.0f);
-        
-        tiles[i].SetElevation(elevation);
-        
-        // Set terrain type based on elevation
-        TerrainType terrainType;
-        if (elevation < waterLevel - 0.2f) {
-            terrainType = TerrainType::Ocean;
-        } else if (elevation < waterLevel - 0.05f) {
-            terrainType = TerrainType::Shallow;
-        } else if (elevation < waterLevel + 0.05f) {
-            terrainType = TerrainType::Beach;
-        } else if (elevation < waterLevel + 0.3f) {
-            terrainType = TerrainType::Lowland;
-        } else if (elevation < waterLevel + 0.6f) {
-            terrainType = TerrainType::Highland;
-        } else if (elevation < waterLevel + 0.8f) {
-            terrainType = TerrainType::Mountain;
-        } else {
-            terrainType = TerrainType::Peak;
-        }
-        
-        // Set the terrain type
-        tiles[i].SetTerrainType(terrainType);
-        
-        // Count terrain types for debugging
-        terrainTypeCounts[terrainType]++;
-        
-        // Simple moisture based on elevation and position with seed-based offset
-        // Higher elevations are typically drier
-        float moisture = 0.7f - (elevation - 0.5f) * 0.4f;
-        moisture += 0.15f * glm::simplex(glm::vec2(pos.z * 4.0f + seedOffsetZ, pos.y * 4.0f + seedOffsetY));
-        moisture = glm::clamp(moisture, 0.0f, 1.0f);
-        
-        tiles[i].SetMoisture(moisture);
-        
-        // Simple temperature based on latitude (y-coordinate)
-        // Higher latitudes (closer to poles) are colder
         float latitude = std::asin(pos.y);  // -π/2 to +π/2
         float normalizedLatitude = latitude / (3.14159f / 2.0f);  // -1 to +1
         float temperature = 0.8f - 0.6f * std::abs(normalizedLatitude);
-        
-        // Temperature also decreases with elevation
-        temperature -= elevation * 0.2f;
-        
-        // Add some noise for variety with seed-based offset
-        temperature += 0.05f * glm::simplex(glm::vec2(pos.x * 5.0f + seedOffsetX, pos.z * 5.0f + seedOffsetZ));
         temperature = glm::clamp(temperature, 0.0f, 1.0f);
-        
         tiles[i].SetTemperature(temperature);
         
         // Report progress periodically
         if (progressTracker && i % 1000 == 0) {
-            float progress = static_cast<float>(i) / tiles.size() * 0.7f; // First 70% is elevation generation
-            std::string message = "Generating terrain features (" + 
+            float progress = static_cast<float>(i) / tiles.size();
+            std::string message = "Initializing tiles (" + 
                                  std::to_string(i) + " of " + 
-                                 std::to_string(tiles.size()) + " tiles)";
+                                 std::to_string(tiles.size()) + ")";
             progressTracker->UpdateProgress(progress, message);
         }
     }
-    
-    // Log terrain type distribution
-    std::cout << "\n============ TERRAIN TYPE DISTRIBUTION ============" << std::endl;
-    std::cout << "Ocean: " << terrainTypeCounts[TerrainType::Ocean] << " tiles" << std::endl;
-    std::cout << "Shallow: " << terrainTypeCounts[TerrainType::Shallow] << " tiles" << std::endl;
-    std::cout << "Beach: " << terrainTypeCounts[TerrainType::Beach] << " tiles" << std::endl;
-    std::cout << "Lowland: " << terrainTypeCounts[TerrainType::Lowland] << " tiles" << std::endl;
-    std::cout << "Highland: " << terrainTypeCounts[TerrainType::Highland] << " tiles" << std::endl;
-    std::cout << "Mountain: " << terrainTypeCounts[TerrainType::Mountain] << " tiles" << std::endl;
-    std::cout << "Peak: " << terrainTypeCounts[TerrainType::Peak] << " tiles" << std::endl;
-    std::cout << "Total: " << tiles.size() << " tiles" << std::endl;
-    std::cout << "==================================================" << std::endl;
     
     // Report progress before smoothing starts
     if (progressTracker) {
