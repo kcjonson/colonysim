@@ -130,6 +130,11 @@ void World::Render(const glm::mat4& viewMatrix, const glm::mat4& projectionMatri
 
     RenderTiles(viewMatrix, projectionMatrix);
 
+    // Render plate arrows if in plate visualization mode
+    if (visualizationMode == WorldGen::VisualizationMode::TectonicPlates && !plateData.empty()) {
+        RenderPlateArrows(viewMatrix, projectionMatrix);
+    }
+
     // Restore previous OpenGL state
     if (cullFaceEnabled)
         glEnable(GL_CULL_FACE);
@@ -573,6 +578,150 @@ void World::RenderTile(const TileFanInfo& tileInfo,
             (void*)(tileInfo.startIndex * sizeof(unsigned int))
         );
     }
+}
+
+void World::RenderPlateArrows(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+    if (plateData.empty() || !world) return;
+    
+    // Use the same shader
+    shader.use();
+    
+    // Set up model matrix
+    float scale = world->GetRadius();
+    glm::mat4 modelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+    
+    // Set uniforms
+    shader.setUniform("model", modelMatrix);
+    shader.setUniform("view", viewMatrix);
+    shader.setUniform("projection", projectionMatrix);
+    
+    // Set isArrow flag to true
+    GLint isArrowLoc = glGetUniformLocation(shader.getProgram(), "isArrow");
+    if (isArrowLoc != -1) {
+        glUniform1i(isArrowLoc, 1); // true
+    }
+    
+    // Set up OpenGL state for arrows
+    glEnable(GL_DEPTH_TEST);
+    glLineWidth(3.0f);
+    
+    // Calculate camera forward direction for visibility culling
+    glm::mat4 cameraMatrix = glm::inverse(viewMatrix);
+    glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
+    
+    // Generate and render arrows for each plate
+    for (const auto& plate : plateData) {
+        // Check if plate center is visible (on the front hemisphere)
+        glm::vec3 plateCenter = glm::normalize(plate.center);
+        if (glm::dot(plateCenter, cameraForward) > 0.1f) {
+            continue; // Skip arrows on back side
+        }
+        
+        // Calculate arrow geometry
+        glm::vec3 center = plateCenter * 1.05f; // Slightly above surface
+        glm::vec3 movement = glm::normalize(plate.movement);
+        float arrowLength = 0.15f; // Arrow length relative to planet radius
+        
+        // Create arrow tip and tail
+        glm::vec3 arrowTip = center + movement * arrowLength;
+        glm::vec3 arrowTail = center - movement * arrowLength * 0.3f;
+        
+        // Create arrowhead - two lines forming a "V" shape
+        glm::vec3 perpendicular1 = glm::normalize(glm::cross(movement, plateCenter));
+        glm::vec3 perpendicular2 = glm::normalize(glm::cross(perpendicular1, movement));
+        
+        float arrowheadSize = arrowLength * 0.3f;
+        glm::vec3 arrowhead1 = arrowTip - movement * arrowheadSize + perpendicular1 * arrowheadSize * 0.5f;
+        glm::vec3 arrowhead2 = arrowTip - movement * arrowheadSize + perpendicular2 * arrowheadSize * 0.5f;
+        glm::vec3 arrowhead3 = arrowTip - movement * arrowheadSize - perpendicular1 * arrowheadSize * 0.5f;
+        glm::vec3 arrowhead4 = arrowTip - movement * arrowheadSize - perpendicular2 * arrowheadSize * 0.5f;
+        
+        // Create vertex data for the arrow (shaft + arrowhead)
+        std::vector<glm::vec3> arrowVertices = {
+            // Arrow shaft
+            arrowTail, arrowTip,
+            // Arrowhead lines
+            arrowTip, arrowhead1,
+            arrowTip, arrowhead2,
+            arrowTip, arrowhead3,
+            arrowTip, arrowhead4
+        };
+        
+        // Create dummy normal and tile data (not used for arrows)
+        std::vector<glm::vec3> arrowNormals(arrowVertices.size(), glm::vec3(0, 1, 0));
+        std::vector<glm::vec3> arrowTileData(arrowVertices.size(), glm::vec3(0, 0, 0));
+        
+        // Create temporary VBO for arrow rendering to avoid corrupting world geometry
+        GLuint tempVBO, tempVAO;
+        glGenVertexArrays(1, &tempVAO);
+        glGenBuffers(1, &tempVBO);
+        
+        glBindVertexArray(tempVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, tempVBO);
+        
+        // Calculate total size needed
+        size_t totalSize = arrowVertices.size() * 3 * sizeof(float) + 
+                          arrowNormals.size() * 3 * sizeof(float) + 
+                          arrowTileData.size() * 3 * sizeof(float);
+        
+        glBufferData(GL_ARRAY_BUFFER, totalSize, nullptr, GL_DYNAMIC_DRAW);
+        
+        // Upload positions
+        glBufferSubData(GL_ARRAY_BUFFER, 0, 
+                       arrowVertices.size() * 3 * sizeof(float), 
+                       arrowVertices.data());
+        
+        // Upload normals  
+        glBufferSubData(GL_ARRAY_BUFFER, 
+                       arrowVertices.size() * 3 * sizeof(float),
+                       arrowNormals.size() * 3 * sizeof(float),
+                       arrowNormals.data());
+        
+        // Upload tile data
+        glBufferSubData(GL_ARRAY_BUFFER, 
+                       arrowVertices.size() * 3 * sizeof(float) + arrowNormals.size() * 3 * sizeof(float),
+                       arrowTileData.size() * 3 * sizeof(float),
+                       arrowTileData.data());
+        
+        // Set up vertex attributes
+        size_t stride = 3 * sizeof(float);
+        
+        // Position attribute
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+        glEnableVertexAttribArray(0);
+        
+        // Normal attribute
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, 
+                             (void*)(arrowVertices.size() * 3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+        
+        // Tile data attribute
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, 
+                             (void*)(arrowVertices.size() * 3 * sizeof(float) + arrowNormals.size() * 3 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        
+        // Draw the arrow as lines
+        glDrawArrays(GL_LINES, 0, arrowVertices.size());
+        
+        // Clean up temporary buffers
+        glBindVertexArray(0);
+        glDeleteVertexArrays(1, &tempVAO);
+        glDeleteBuffers(1, &tempVBO);
+    }
+    
+    // Reset isArrow flag
+    if (isArrowLoc != -1) {
+        glUniform1i(isArrowLoc, 0); // false
+    }
+    
+    // Reset line width
+    glLineWidth(1.0f);
+    
+    // Restore original VAO state (don't unbind the main world VAO)
+    glBindVertexArray(vao);
+    
+    // Unbind shader
+    shader.unbind();
 }
 
 

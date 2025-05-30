@@ -1,3 +1,8 @@
+/*
+ * DEPRECATED - This class-based tectonic plate implementation is no longer used.
+ * The functional plate generation system in Generators/TectonicPlates.h/cpp is used instead.
+ * This file is kept for reference but should not be used in new code.
+ */
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
 #include "TectonicPlate.h"

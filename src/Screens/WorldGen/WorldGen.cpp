@@ -734,6 +734,23 @@ void WorldGenScreen::worldGenerationThreadFunc() {
             return;
         }
         
+        // Update progress for mountain generation phase
+        {
+            std::lock_guard<std::mutex> lock(progressMutex);
+            latestProgress.progress = 0.85f;
+            latestProgress.message = "Generating mountains at plate boundaries...";
+            latestProgress.hasUpdate = true;
+        }
+        
+        // Generate mountains at plate boundaries with progress tracking
+        WorldGen::Generators::GenerateMountains(world.get(), tectonicPlates, progressTracker);
+        
+        // Check if we should stop
+        if (shouldStopGeneration) {
+            isGenerating = false;
+            return;
+        }
+        
         // Generation complete
         worldGenerated = true;
         

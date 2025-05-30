@@ -1,3 +1,8 @@
+/*
+ * DEPRECATED - This class-based lithosphere implementation is no longer used.
+ * The functional plate generation system in Generators/TectonicPlates.h/cpp is used instead.
+ * This file is kept for reference but should not be used in new code.
+ */
 #pragma once
 
 #include <vector>

@@ -93,6 +93,11 @@ private:    /**
     void RenderTile(const TileFanInfo& tileInfo, 
                     const std::function<bool(const glm::vec3&)>& isVisible,
                     bool fillMode);
+    
+    /**
+     * @brief Render movement arrows for plates when in plate visualization mode.
+     */
+    void RenderPlateArrows(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
       const Generators::World* world;    ///< The world to render
     // OpenGL rendering data
     unsigned int vao;                  ///< Vertex array object

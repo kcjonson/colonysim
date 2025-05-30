@@ -13,12 +13,21 @@ uniform vec3 viewPos;
 
 // Visualization mode
 uniform int visualizationMode; // 0=terrain, 1=plates, 2=crust, 3=mesh
+uniform bool isArrow; // Flag to indicate arrow rendering
 
 // Color lookup tables
 uniform vec3 terrainColors[16];
 uniform vec3 plateColors[32];
 
 void main() {
+    // Check if this is arrow rendering
+    if (isArrow) {
+        // Simple bright color for all arrows - highly visible
+        vec3 arrowColor = vec3(1.0, 1.0, 0.0); // Bright yellow
+        FragColor = vec4(arrowColor, 1.0);
+        return;
+    }
+    
     // Extract tile data
     int terrainType = int(TileData.x);
     int plateId = int(TileData.y);

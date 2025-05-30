@@ -1,3 +1,8 @@
+/*
+ * DEPRECATED - This class-based lithosphere implementation is no longer used.
+ * The functional plate generation system in Generators/TectonicPlates.h/cpp is used instead.
+ * This file is kept for reference but should not be used in new code.
+ */
 #define GLM_ENABLE_EXPERIMENTAL
 #include "Lithosphere.h"
 #include <glm/gtx/vector_angle.hpp> // For glm::angle

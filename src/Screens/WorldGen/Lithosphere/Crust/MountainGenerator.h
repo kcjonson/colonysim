@@ -1,3 +1,8 @@
+/*
+ * DEPRECATED - This class-based mountain generator is no longer used.
+ * The functional plate generation system handles mountain formation differently.
+ * This file is kept for reference but should not be used in new code.
+ */
 #pragma once
 
 #include <vector>

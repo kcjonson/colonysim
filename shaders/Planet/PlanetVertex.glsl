@@ -11,6 +11,7 @@ out vec3 TileData;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform bool isArrow; // Flag to indicate arrow rendering
 
 void main() {
     FragPos = vec3(model * vec4(aPos, 1.0));
