@@ -3,6 +3,7 @@
 #include "Tile.h"
 #include "../ProgressTracker.h"
 #include "../Core/TerrainTypes.h"
+#include "../Core/WorldGenParameters.h"
 #include <algorithm>
 #include <iostream>
 #include <cmath>
@@ -217,11 +218,12 @@ float ApplyIsostaticAdjustment(float elevation) {
     // Apply crustal thickening effect (isostatic adjustment)
     // Thicker crust "floats" higher on the mantle
     
-    const float isostaticThreshold = 0.3f;
+    const float seaLevel = PlanetParameters().physicalRadiusMeters;
+    const float isostaticThreshold = seaLevel + 2000.0f; // 2km above sea level
     if (elevation > isostaticThreshold) {
         // Calculate additional elevation boost from crustal thickening
-        float excess = elevation - isostaticThreshold;
-        float isostaticAdjustment = excess * excess * 0.4f; // Non-linear boost
+        float excess = (elevation - isostaticThreshold) / 1000.0f; // Normalize to km
+        float isostaticAdjustment = excess * excess * 400.0f; // Non-linear boost in meters
         return elevation + isostaticAdjustment;
     }
     
@@ -310,18 +312,18 @@ void GenerateComprehensiveMountains(World* world, const std::vector<Plate>& plat
                             float foldingContribution = ApplyFoldingPattern(tilePos, boundary.position, 
                                                                            boundary.normal, distance, normalizedStress);
                             
-                            elevationChange = (mountainContribution + foldingContribution) * 0.1f; // Increased from 0.001f
+                            elevationChange = (mountainContribution + foldingContribution) * 1000.0f; // Convert to meters
                             
                         } else if (boundary.type == BoundaryType::Divergent) {
                             // Rifting creates valleys and lower elevation
                             float normalizedStress = boundary.stress / 500.0f;
-                            elevationChange = -normalizedStress * influence * 0.03f; // Increased from 0.0003f
+                            elevationChange = -normalizedStress * influence * 300.0f; // Rift valleys in meters
                             
                         } else if (boundary.type == BoundaryType::Transform) {
                             // Transform boundaries create moderate relief variation
                             float normalizedStress = boundary.stress / 200.0f;
                             float noise = sin(tilePos.x * 6.0f) * cos(tilePos.z * 6.0f);
-                            elevationChange = normalizedStress * influence * noise * 0.02f; // Increased from 0.0002f
+                            elevationChange = normalizedStress * influence * noise * 200.0f; // Transform relief in meters
                         }
                         
                         newElevation += elevationChange;
@@ -333,8 +335,7 @@ void GenerateComprehensiveMountains(World* world, const std::vector<Plate>& plat
         // Apply isostatic adjustment for crustal thickening effects
         newElevation = ApplyIsostaticAdjustment(newElevation);
         
-        // Clamp elevation to valid range
-        newElevation = glm::clamp(newElevation, 0.0f, 1.0f);
+        // No clamping needed for physical meter values
         
         // Set the new elevation
         const_cast<Tile&>(tile).SetElevation(newElevation);

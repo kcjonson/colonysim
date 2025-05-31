@@ -1,4 +1,5 @@
 #include "World.h"
+#include "../Core/WorldGenParameters.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -283,8 +284,12 @@ void World::GenerateRenderingData()
             centerElevationScale = 1.001f;
         } else {
             // Show 3D terrain for other modes
-            // Scale based on elevation: 0.0 = sea level (radius 1.0), 1.0 = max height (radius 1.3)
-            centerElevationScale = 1.0f + (tile.GetElevation() * 0.3f);
+            // Convert physical meter elevation to normalized scale for vertex positioning
+            float planetRadius = PlanetParameters().physicalRadiusMeters;
+            float normalizedElevation = (tile.GetElevation() - planetRadius) / 10000.0f; // Normalize to ±10km range
+            normalizedElevation = glm::clamp(normalizedElevation, -1.0f, 1.0f); // Clamp to safe range
+            // Scale: -1.0 = deep ocean (radius 0.9), 0.0 = sea level (radius 1.0), 1.0 = high mountains (radius 1.1)
+            centerElevationScale = 1.0f + (normalizedElevation * 0.1f);
         }
         centerPos *= centerElevationScale;
           // Store vertex data
@@ -383,8 +388,12 @@ void World::GenerateRenderingData()
                 vertexElevationScale = 1.001f;
             } else {
                 // Show 3D terrain for other modes
-                // Scale: 0.0 = sea level (radius 1.0), 1.0 = max height (radius 1.3)
-                vertexElevationScale = 1.0f + (vertexElevation * 0.3f);
+                // Convert physical meter elevation to normalized scale for vertex positioning
+                float planetRadius = PlanetParameters().physicalRadiusMeters;
+                float normalizedElevation = (vertexElevation - planetRadius) / 10000.0f; // Normalize to ±10km range
+                normalizedElevation = glm::clamp(normalizedElevation, -1.0f, 1.0f); // Clamp to safe range
+                // Scale: -1.0 = deep ocean (radius 0.9), 0.0 = sea level (radius 1.0), 1.0 = high mountains (radius 1.1)
+                vertexElevationScale = 1.0f + (normalizedElevation * 0.1f);
             }
             vertexPos *= vertexElevationScale;
             
@@ -513,6 +522,13 @@ void World::RenderTiles(const glm::mat4& viewMatrix, const glm::mat4& projection
     // Set visualization mode uniform
     GLint visualizationModeLoc = glGetUniformLocation(shader.getProgram(), "visualizationMode");
     glUniform1i(visualizationModeLoc, static_cast<int>(visualizationMode));
+    
+    // Set planet radius uniform
+    GLint planetRadiusLoc = glGetUniformLocation(shader.getProgram(), "planetRadius");
+    if (planetRadiusLoc != -1) {
+        float planetRadius = PlanetParameters().physicalRadiusMeters;
+        glUniform1f(planetRadiusLoc, planetRadius);
+    }
     
     // Set terrain colors uniform array
     GLint terrainColorsLoc = glGetUniformLocation(shader.getProgram(), "terrainColors");

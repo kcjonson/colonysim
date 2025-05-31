@@ -76,5 +76,19 @@ void AssignTilesToPlates(World* world, std::vector<Plate>& plates, int targetTot
  */
 std::vector<glm::vec3> GenerateWellDistributedPoints(int numSamples, uint64_t seed);
 
+/**
+ * @brief Smooth elevation transitions at oceanic-continental plate boundaries
+ * 
+ * Applies simple distance-based smoothing to reduce sharp elevation jumps
+ * between oceanic and continental plates while preserving the overall 
+ * elevation ranges and mountain generation.
+ * 
+ * @param world The world containing tiles
+ * @param plates The plates with oceanic/continental types
+ * @param progressTracker Optional progress tracker
+ */
+void SmoothPlateBoundaries(World* world, const std::vector<Plate>& plates,
+                          std::shared_ptr<ProgressTracker> progressTracker = nullptr);
+
 } // namespace Generators
 } // namespace WorldGen

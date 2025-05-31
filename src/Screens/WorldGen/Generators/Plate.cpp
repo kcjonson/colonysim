@@ -2,6 +2,7 @@
 #include "World.h"
 #include "Tile.h"
 #include "../ProgressTracker.h"
+#include "../Core/WorldGenParameters.h"
 #include <algorithm>
 #include <iostream>
 #include <cmath>
@@ -220,31 +221,19 @@ void AssignTilesToPlates(World* world, std::vector<Plate>& plates, int targetTot
             const auto& plate = plates[plateId];
             glm::vec3 tilePos = glm::normalize(tile.GetCenter());
             
-            // Base elevation based on plate type
+            // Base elevation based on plate type (in meters from planet center)
+            // Use planet's physical radius as sea level reference
+            static const float seaLevelMeters = PlanetParameters().physicalRadiusMeters;
             float baseElevation;
             if (plate.isOceanic) {
-                // Oceanic plates: below sea level with variation
-                // Use simple hash-based noise for variation
-                float noise1 = sin(tilePos.x * 13.0f + tilePos.y * 7.0f + tilePos.z * 17.0f) * 0.5f + 0.5f;
-                float noise2 = sin(tilePos.x * 31.0f + tilePos.y * 19.0f + tilePos.z * 23.0f) * 0.5f + 0.5f;
-                baseElevation = 0.15f + 0.1f * noise1;
-                baseElevation += 0.05f * noise2;
+                // Oceanic plates: 3000m below sea level (typical ocean depth)
+                baseElevation = seaLevelMeters - 3000.0f;
             } else {
-                // Continental plates: above sea level with more variation
-                // Use layered noise for more interesting terrain
-                float noise1 = sin(tilePos.x * 11.0f + tilePos.y * 13.0f + tilePos.z * 7.0f) * 
-                              cos(tilePos.x * 5.0f - tilePos.y * 3.0f + tilePos.z * 9.0f);
-                float noise2 = sin(tilePos.x * 23.0f + tilePos.y * 17.0f + tilePos.z * 19.0f) * 
-                              cos(tilePos.x * 13.0f - tilePos.y * 11.0f + tilePos.z * 7.0f);
-                float noise3 = sin(tilePos.x * 43.0f + tilePos.y * 37.0f + tilePos.z * 41.0f);
-                
-                baseElevation = 0.5f + 0.15f * noise1;
-                baseElevation += 0.1f * noise2;
-                baseElevation += 0.05f * noise3;
+                // Continental plates: 500m above sea level (typical continental elevation)
+                baseElevation = seaLevelMeters + 500.0f;
             }
             
-            // Clamp to valid range
-            baseElevation = glm::clamp(baseElevation, 0.0f, 1.0f);
+            // No clamping needed for physical meter values
             
             // Set the elevation
             const_cast<Tile&>(tile).SetElevation(baseElevation);
@@ -256,6 +245,70 @@ void AssignTilesToPlates(World* world, std::vector<Plate>& plates, int targetTot
     }
     
     std::cout << "Tile assignment complete." << std::endl;
+}
+
+void SmoothPlateBoundaries(World* world, const std::vector<Plate>& plates,
+                          std::shared_ptr<ProgressTracker> progressTracker) {
+    if (!world) return;
+    
+    const auto& tiles = world->GetTiles();
+    if (tiles.empty()) return;
+    
+    std::cout << "Smoothing oceanic-continental plate boundaries..." << std::endl;
+    
+    const float smoothingDistance = 0.05f; // Distance for smoothing effect
+    
+    // Find tiles near oceanic-continental boundaries and smooth them
+    for (size_t i = 0; i < tiles.size(); ++i) {
+        const auto& tile = tiles[i];
+        int plateId = tile.GetPlateId();
+        
+        if (plateId >= 0 && plateId < plates.size()) {
+            const auto& plate = plates[plateId];
+            float currentElevation = tile.GetElevation();
+            
+            // Look for adjacent tiles with different plate types
+            std::vector<float> neighborElevations;
+            bool hasOceanicNeighbor = false;
+            bool hasContinentalNeighbor = false;
+            
+            for (int neighborIdx : tile.GetNeighbors()) {
+                if (neighborIdx >= 0 && neighborIdx < tiles.size()) {
+                    const auto& neighborTile = tiles[neighborIdx];
+                    int neighborPlateId = neighborTile.GetPlateId();
+                    
+                    if (neighborPlateId >= 0 && neighborPlateId < plates.size()) {
+                        const auto& neighborPlate = plates[neighborPlateId];
+                        
+                        // Track different plate types
+                        if (neighborPlate.isOceanic != plate.isOceanic) {
+                            neighborElevations.push_back(neighborTile.GetElevation());
+                            
+                            if (neighborPlate.isOceanic) hasOceanicNeighbor = true;
+                            else hasContinentalNeighbor = true;
+                        }
+                    }
+                }
+            }
+            
+            // Apply smoothing if this tile is at an oceanic-continental boundary
+            if (!neighborElevations.empty() && hasOceanicNeighbor && hasContinentalNeighbor) {
+                // Calculate average of neighbor elevations from different plate types
+                float avgNeighborElevation = 0.0f;
+                for (float elev : neighborElevations) {
+                    avgNeighborElevation += elev;
+                }
+                avgNeighborElevation /= neighborElevations.size();
+                
+                // Blend current elevation with neighbor average (gentle smoothing)
+                float smoothedElevation = currentElevation * 0.7f + avgNeighborElevation * 0.3f;
+                
+                const_cast<Tile&>(tile).SetElevation(smoothedElevation);
+            }
+        }
+    }
+    
+    std::cout << "Plate boundary smoothing complete." << std::endl;
 }
 
 } // namespace Generators

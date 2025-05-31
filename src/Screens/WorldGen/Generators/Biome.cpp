@@ -2,6 +2,7 @@
 #include "World.h"
 #include "Tile.h"
 #include "../ProgressTracker.h"
+#include "../Core/WorldGenParameters.h"
 #include <iostream>
 #include <unordered_map>
 
@@ -9,21 +10,22 @@ namespace WorldGen {
 namespace Generators {
 
 TerrainType DetermineTerrainType(float elevation, float waterLevel) {
-    // Determine terrain type based purely on elevation
-    if (elevation < waterLevel - 0.2f) {
-        return TerrainType::Ocean;
-    } else if (elevation < waterLevel - 0.05f) {
-        return TerrainType::Shallow;
-    } else if (elevation < waterLevel + 0.05f) {
-        return TerrainType::Beach;
-    } else if (elevation < 0.6f) {
-        return TerrainType::Lowland;
-    } else if (elevation < 0.75f) {
-        return TerrainType::Highland;
-    } else if (elevation < 0.9f) {
-        return TerrainType::Mountain;
+    // Determine terrain type based on elevation in meters from planet center
+    // waterLevel = planet radius (sea level reference)
+    if (elevation < waterLevel - 1000.0f) {
+        return TerrainType::Ocean;      // Deep ocean (>1000m below sea level)
+    } else if (elevation < waterLevel - 50.0f) {
+        return TerrainType::Shallow;    // Shallow water (50-1000m below sea level)
+    } else if (elevation < waterLevel + 50.0f) {
+        return TerrainType::Beach;      // Beach/coastal (±50m of sea level)
+    } else if (elevation < waterLevel + 1000.0f) {
+        return TerrainType::Lowland;    // Lowlands (0-1000m above sea level)
+    } else if (elevation < waterLevel + 2000.0f) {
+        return TerrainType::Highland;   // Highlands (1000-2000m above sea level)
+    } else if (elevation < waterLevel + 4000.0f) {
+        return TerrainType::Mountain;   // Mountains (2000-4000m above sea level)
     } else {
-        return TerrainType::Peak;
+        return TerrainType::Peak;       // High peaks (>4000m above sea level)
     }
 }
 
@@ -110,7 +112,8 @@ void GenerateBiomes(World* world, std::shared_ptr<ProgressTracker> progressTrack
     }
     
     const auto& tiles = world->GetTiles();
-    const float waterLevel = 0.4f;
+    // Use planet's physical radius as sea level reference
+    const float waterLevel = PlanetParameters().physicalRadiusMeters;
     
     std::cout << "Generating biomes for " << tiles.size() << " tiles..." << std::endl;
     

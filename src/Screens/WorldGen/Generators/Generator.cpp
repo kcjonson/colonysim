@@ -1,5 +1,6 @@
 #include "Generator.h"
 #include "Plate.h"
+#include "ContinentalMargin.h"
 #include "Mountain.h"
 #include "Biome.h"
 #include <cmath>
@@ -44,7 +45,17 @@ std::unique_ptr<World> Generator::CreateWorld(const PlanetParameters& params, ui
     
     std::cout << "Plate generation complete. Created " << plates.size() << " plates." << std::endl;
     
-    // Phase 3: Generate mountains based on plate interactions
+    // Phase 3: Create realistic continental margins with wide-area smoothing
+    if (progressTracker) {
+        progressTracker->UpdateProgress(0.75f, "Forming continental margins...");
+    }
+    
+    ContinentalMarginParams marginParams; // Use default realistic parameters
+    CreateRealisticContinentalMargins(world.get(), plates, marginParams, seed + 3, progressTracker);
+    
+    std::cout << "Continental margin formation complete." << std::endl;
+    
+    // Phase 4: Generate mountains based on plate interactions
     if (progressTracker) {
         progressTracker->UpdateProgress(0.8f, "Generating comprehensive mountain systems...");
     }
@@ -53,7 +64,7 @@ std::unique_ptr<World> Generator::CreateWorld(const PlanetParameters& params, ui
     
     std::cout << "Mountain generation complete." << std::endl;
     
-    // Phase 4: Generate biomes based on environmental factors
+    // Phase 5: Generate biomes based on environmental factors
     if (progressTracker) {
         progressTracker->UpdateProgress(0.9f, "Generating biomes...");
     }
@@ -66,9 +77,9 @@ std::unique_ptr<World> Generator::CreateWorld(const PlanetParameters& params, ui
     world->SetPlates(plates);
     
     // TODO: Future phases
-    // Phase 5: Climate simulation (refine temperature/moisture)
-    // Phase 6: River generation
-    // Phase 7: Final terrain smoothing
+    // Phase 6: Climate simulation (refine temperature/moisture)
+    // Phase 7: River generation
+    // Phase 8: Final terrain smoothing
     
     if (progressTracker) {
         progressTracker->UpdateProgress(1.0f, "World generation complete!");
